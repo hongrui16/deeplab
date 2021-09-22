@@ -124,10 +124,10 @@ parser.add_argument('--crop_size', type=int, default=720)
 parser.add_argument('--rotate_degree', type=int, default=15)
 parser.add_argument('--n_classes', type=int, default=2)
 parser.add_argument('--dataset', type=str, default='basicDataset')
-parser.add_argument('--dataset_dir', type=str, default=None)
+parser.add_argument('--dataset_dir', type=str, default=None, help='dataset dir')
 parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: test, 1: testval, 2: trainval, 3: train')
-parser.add_argument('--testset_dir', type=str, default=None)
-parser.add_argument('--testOut_dir', type=str, default=None)
+parser.add_argument('--testset_dir', type=str, default=None, help='input test image dir')
+parser.add_argument('--testOut_dir', type=str, default=None, help='test image output dir')
 
 args = parser.parse_args()
 
