@@ -29,6 +29,7 @@ using Pascal VOC 2012, SBD, Cityscapes, and customer-made datasets.
 ### 1 Use slurm
 1.1 foreground running
 srun -N1 --cpus-per-task 32 --gres gpu:4 python train_main.py
+
 1.2 background running
 sbatch background_running.slurm
 ### 2 directly use gpu machines
