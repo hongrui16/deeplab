@@ -1,4 +1,4 @@
-# pytorch-deeplab-xception
+# pytorch-deeplab-xception (distributed training)
 
 **Update on 2018/12/06. Provide model trained on VOC and SBD datasets.**  
 
@@ -19,61 +19,40 @@
 
 
 
-### Introduction
-This is a PyTorch(0.4.1) implementation of [DeepLab-V3-Plus](https://arxiv.org/pdf/1802.02611). It
-can use Modified Aligned Xception and ResNet as backbone. Currently, we train DeepLab V3 Plus
-using Pascal VOC 2012, SBD and Cityscapes datasets.
+### 如何提交代码
 
-![Results](doc/results.png)
+1.git init
 
+#初始化本地仓库
 
-### Installation
-The code was tested with Anaconda and Python 3.6. After installing the Anaconda environment:
+2.git remote add origin https://git.oschina.net/redArmy/springboot-swagger2.git(或则 git:git的地址)
 
-0. Clone the repo:
-    ```Shell
-    git clone https://github.com/jfzhang95/pytorch-deeplab-xception.git
-    cd pytorch-deeplab-xception
-    ```
+#关联本地仓库到远程仓库
 
-1. Install dependencies:
+git add *
+#添加要提交的文件到暂存区
 
-    For PyTorch dependency, see [pytorch.org](https://pytorch.org/) for more details.
+4.git commit -m "init commint"
 
-    For custom dependencies:
-    ```Shell
-    pip install matplotlib pillow tensorboardX tqdm
-    ```
-### Training
-Follow steps below to train your model:
+#提交代码到文件控制仓库
 
-0. Configure your dataset path in [mypath.py](https://github.com/jfzhang95/pytorch-deeplab-xception/blob/master/mypath.py).
+5.git fetch origin
 
-1. Input arguments: (see full input arguments via python train.py --help):
-    ```Shell
-    usage: train.py [-h] [--backbone {resnet,xception,drn,mobilenet}]
-                [--out-stride OUT_STRIDE] [--dataset {pascal,coco,cityscapes}]
-                [--use-sbd] [--workers N] [--base-size BASE_SIZE]
-                [--crop-size CROP_SIZE] [--sync-bn SYNC_BN]
-                [--freeze-bn FREEZE_BN] [--loss-type {ce,focal}] [--epochs N]
-                [--start_epoch N] [--batch-size N] [--test-batch-size N]
-                [--use-balanced-weights] [--lr LR]
-                [--lr-scheduler {poly,step,cos}] [--momentum M]
-                [--weight-decay M] [--nesterov] [--no-cuda]
-                [--gpu-ids GPU_IDS] [--seed S] [--resume RESUME]
-                [--checkname CHECKNAME] [--ft] [--eval-interval EVAL_INTERVAL]
-                [--no-val]
+#将远程主机的更新，全部取回本地
 
-    ```
+6.git pull origin master 如果报错用这个 git pull origin master --allow-unrelated-histories
 
-2. To train deeplabv3+ using Pascal VOC dataset and ResNet as backbone:
-    ```Shell
-    bash train_voc.sh
-    ```
-3. To train deeplabv3+ using COCO dataset and ResNet as backbone:
-    ```Shell
-    bash train_coco.sh
-    ```    
+#拉取远程分支代码到本地
+
+7.git push -u origin master:master
+
+#提交本地分支(master)代码到远程分支(master)
+
+本地仓库的东西push到远程仓库时报错：
+
+看网上很多人说是因为本地仓库的文件和远程仓库不一样，所以要先用命令git pull -f origin master将远程仓库的文件拉到本地：
+
+可是这样做之后再git push还是没有用，还是报同样的错误。 于是就用git push -f origin master强制push就成功了。（注意：大家千万不要随便用-f的操作，因为f意味着强制push，会覆盖掉远程的所有代码！）
 
 ### Acknowledgement
 [PyTorch-Encoding](https://github.com/zhanghang1989/PyTorch-Encoding)
