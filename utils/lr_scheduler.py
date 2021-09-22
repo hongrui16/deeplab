@@ -31,7 +31,8 @@ class LR_Scheduler(object):
                  lr_step=0, warmup_epochs=0, args = None):
         self.mode = mode
         self.args = args
-        print(f'args.rank {args.rank } Using {self.mode} LR Scheduler!')
+        if self.args.master:
+            print(f'rank {args.rank } Using {self.mode} LR Scheduler!')
         self.lr = base_lr
         if mode == 'step':
             assert lr_step
@@ -55,8 +56,9 @@ class LR_Scheduler(object):
         if self.warmup_iters > 0 and T < self.warmup_iters:
             lr = lr * 1.0 * T / self.warmup_iters
         if epoch > self.epoch:
-            print('\nrank %d =>Epoches %i, learning rate = %.4f, \
-                previous best = %.4f' % (self.args.rank, epoch, lr, best_pred))
+            if self.args.master:
+                print('\nrank %d =>Epoches %i, learning rate = %.4f, \
+                    previous best = %.4f' % (self.args.rank, epoch, lr, best_pred))
             self.epoch = epoch
         assert lr >= 0
         self._adjust_learning_rate(optimizer, lr)

@@ -44,18 +44,21 @@ def make_data_loader(args, **kwargs):
         # print(f'calling {__file__}, {sys._getframe().f_lineno}')
         train_set = basicDataset.BasicDataset(args, split="train")
         val_set = basicDataset.BasicDataset(args, split="val")
+        test_set = basicDataset.BasicDataset(args, split="test")
         num_class = args.n_classes
 
         # train_sampler = torch.utils.data.distributed.DistributedSampler(train_set)
         if torch.distributed.is_initialized():
             train_sampler = torch.utils.data.distributed.DistributedSampler(train_set, num_replicas=args.world_size, rank=args.rank)
             val_sampler = torch.utils.data.distributed.DistributedSampler(val_set, num_replicas=args.world_size, rank=args.rank)
+            test_sampler = torch.utils.data.distributed.DistributedSampler(test_set, num_replicas=args.world_size, rank=args.rank)
         else:
             train_sampler = None
             val_sampler = None
+            test_sampler = None
         train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=(train_sampler is None), drop_last=False, sampler=train_sampler, **kwargs)
         val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=(val_sampler is None), drop_last=False, sampler=val_sampler, **kwargs)
-        test_loader = None
+        test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=(test_sampler is None), drop_last=False, sampler=test_sampler, **kwargs)
         return train_loader, val_loader, test_loader, num_class
 
     else:

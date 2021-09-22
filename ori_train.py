@@ -8,7 +8,6 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 import sys
-import time
 
 from mypath import Path
 from dataloaders import make_data_loader
@@ -24,35 +23,40 @@ from runx.logx import logx
 
 # print(f'calling {__file__}, {sys._getframe().f_lineno}')
 
-class distTrainer(object):
+class Trainer(object):
     def __init__(self, args):
         self.args = args
         # Define Saver
         self.saver = Saver(args)
         self.saver.save_experiment_config()
 
-        if self.args.master:
-            # Define Tensorboard Summary
-            self.summary = TensorboardSummary(self.saver.experiment_dir)
-            self.writer = self.summary.create_summary()
-                
+        # Define Tensorboard Summary
+        self.summary = TensorboardSummary(self.saver.experiment_dir)
+        self.writer = self.summary.create_summary()
+        
+        
         # Define Dataloader
+        # self.writer.add_text('my_log', 'Define Dataloader')
         kwargs = {'num_workers': args.workers, 'pin_memory': True}
         self.train_loader, self.val_loader, self.test_loader, self.nclass = make_data_loader(args, **kwargs)
         
         # Define network
-        print(f'rank {args.rank} Define network')
+        # self.writer.add_text('my_log', 'Define network')
+        print('Define network')
+        # return
         self.model = DeepLab(num_classes=self.nclass,
                         backbone=args.backbone,
                         output_stride=args.out_stride,
                         sync_bn=args.sync_bn,
                         freeze_bn=args.freeze_bn)
 
+        
         train_params = [{'params': self.model.get_1x_lr_params(), 'lr': args.lr},
                         {'params': self.model.get_10x_lr_params(), 'lr': args.lr * 10}]
 
         # Define Optimizer
-        # print(f'args.rank {args.rank} Define Optimizer')
+        # self.writer.add_text('my_log', 'Define Optimizer')
+        print('Define Optimizer')
         self.optimizer = torch.optim.SGD(train_params, momentum=args.momentum,
                                     weight_decay=args.weight_decay, nesterov=args.nesterov)
 
@@ -71,14 +75,14 @@ class distTrainer(object):
         
         # print(f'calling {__file__}, {sys._getframe().f_lineno}')
         # self.writer.add_text('my_log', 'Define Evaluator and scheduler')
-        # print(f'args.rank {args.rank} Define Evaluator and scheduler')
+        print('Define Evaluator and scheduler')
         # Define Evaluator
         self.evaluator = Evaluator(self.nclass)
         # Define lr scheduler
         self.scheduler = LR_Scheduler(args.lr_scheduler, args.lr,
-                                            args.epochs, len(self.train_loader), args = args)
+                                            args.epochs, len(self.train_loader))
 
-        # print(f'args.rank {args.rank} Define DataParallel')
+        print('Define DataParallel')
         # self.writer.add_text('my_log', 'Define DataParallel')
         # Using cuda
         # return
@@ -101,8 +105,8 @@ class distTrainer(object):
 
         # Resuming checkpoint
         self.best_pred = 0.0
-        if self.args.master:   
-            print(f'rank {args.rank} Define Evaluator and scheduler')
+        # self.writer.add_text('my_log', 'Resuming checkpoint')
+        print('Define Evaluator and scheduler')
         if args.resume is not None:
             if not os.path.isfile(args.resume):
                 raise RuntimeError("=> no checkpoint found at '{}'" .format(args.resume))
@@ -117,7 +121,7 @@ class distTrainer(object):
             self.best_pred = checkpoint['best_pred']
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.resume, checkpoint['epoch']))
-        # print(f'args.rank {args.rank} calling {__file__}, {sys._getframe().f_lineno}')
+        print(f'calling {__file__}, {sys._getframe().f_lineno}')
 
         # Clear start epoch if fine-tuning
         if args.ft:
@@ -128,49 +132,36 @@ class distTrainer(object):
         self.model.train()
         tbar = tqdm(self.train_loader)
         num_img_tr = len(self.train_loader)
-        # if self.args.master:
-        #     print(f'rank {self.args.rank} num_img_tr: {num_img_tr}')
         # print('num_img_tr: ', num_img_tr)
-        start = 0
         for i, sample in enumerate(tbar):
             # if not i % 100 == 0:
             #     continue
-            # print(f'self.args.rank {self.args.rank} dataload time {round(time.time() - start, 3)}')
-            start = time.time()
             image, target = sample['image'], sample['label']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
             self.optimizer.zero_grad()
-            start = time.time()
             output = self.model(image)
-            # print(f'self.args.rank {self.args.rank} inference time {round(time.time() - start, 3)}')
-            start = time.time()
             loss = self.criterion(output, target)
-            # print(f'self.args.rank {self.args.rank} loss calculation time {round(time.time() - start, 3)}')
-            start = time.time()
             loss.backward()
-            # print(f'self.args.rank {self.args.rank} loss backward time {round(time.time() - start, 3)}')
-            start = time.time()
             self.optimizer.step()
             train_loss += loss.item()
-            
-            if self.args.master:
-                tbar.set_description('Train loss: %.5f' % (train_loss / (i + 1)))
-                self.writer.add_scalar('train/total_loss_iter', loss.item(), i + num_img_tr * epoch)
+            tbar.set_description('Train loss: %.3f' % (train_loss / (i + 1)))
+            self.writer.add_scalar('train/total_loss_iter', loss.item(), i + num_img_tr * epoch)
 
-            # # Show 10 * 3 inference results each epoch
-            # if self.args.master:
-            #     if i % (num_img_tr // 10) == 0:
-            #         global_step = i + num_img_tr * epoch
-            #         self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step)
-        if self.args.master:
-            self.writer.add_scalar('train/total_loss_epoch', train_loss, epoch)
-            print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
-            print('Loss: %.5f' % train_loss)
+            # Show 10 * 3 inference results each epoch
+            if i % (num_img_tr // 10) == 0:
+                global_step = i + num_img_tr * epoch
+                self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step)
 
-        if self.args.no_val and self.args.master:
+        self.writer.add_scalar('train/total_loss_epoch', train_loss, epoch)
+        print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
+        print('Loss: %.3f' % train_loss)
+
+        if self.args.no_val:
             # save checkpoint every epoch
+            if not args.multiprocessing_distributed or (args.multiprocessing_distributed
+                and args.rank % args.ngpus_per_node == 0):
                 is_best = False
                 self.saver.save_checkpoint({
                     'epoch': epoch + 1,
@@ -178,7 +169,6 @@ class distTrainer(object):
                     'optimizer': self.optimizer.state_dict(),
                     'best_pred': self.best_pred,
                 }, is_best)
-        start = time.time()
 
     def validation(self, epoch):
         self.model.eval()
@@ -195,8 +185,7 @@ class distTrainer(object):
                 output = self.model(image)
             loss = self.criterion(output, target)
             test_loss += loss.item()
-            if self.args.master:
-                tbar.set_description('Val loss: %.5f' % (test_loss / (i + 1)))
+            tbar.set_description('Val loss: %.3f' % (test_loss / (i + 1)))
             pred = output.data.cpu().numpy()
             target = target.cpu().numpy()
             pred = np.argmax(pred, axis=1)
@@ -208,19 +197,18 @@ class distTrainer(object):
         Acc_class = self.evaluator.Pixel_Accuracy_Class()
         mIoU = self.evaluator.Mean_Intersection_over_Union()
         FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
-        if self.args.master:
-            self.writer.add_scalar('val/total_loss_epoch', test_loss, epoch)
-            self.writer.add_scalar('val/mIoU', mIoU, epoch)
-            self.writer.add_scalar('val/Acc', Acc, epoch)
-            self.writer.add_scalar('val/Acc_class', Acc_class, epoch)
-            self.writer.add_scalar('val/fwIoU', FWIoU, epoch)
-            print('Validation:')
-            print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
-            print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
-            print('Loss: %.5f' % test_loss)
+        self.writer.add_scalar('val/total_loss_epoch', test_loss, epoch)
+        self.writer.add_scalar('val/mIoU', mIoU, epoch)
+        self.writer.add_scalar('val/Acc', Acc, epoch)
+        self.writer.add_scalar('val/Acc_class', Acc_class, epoch)
+        self.writer.add_scalar('val/fwIoU', FWIoU, epoch)
+        print('Validation:')
+        print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
+        print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
+        print('Loss: %.3f' % test_loss)
 
         new_pred = mIoU
-        if new_pred > self.best_pred and self.args.master:
+        if new_pred > self.best_pred:
             is_best = True
             self.best_pred = new_pred
             self.saver.save_checkpoint({
@@ -229,59 +217,6 @@ class distTrainer(object):
                 'optimizer': self.optimizer.state_dict(),
                 'best_pred': self.best_pred,
             }, is_best)
-
-
-    def test(self, epoch):
-        self.model.eval()
-        self.evaluator.reset()
-        tbar = tqdm(self.test_loader, desc='\r')
-        test_loss = 0.0
-        if self.args.testOut_dir and not os.path.exists(self.args.testOut_dir):
-            os.makedirs(self.args.testOut_dir)
-        for i, sample in enumerate(tbar):
-            # if not i % 200 == 0:
-            #     continue
-            image, target, img_names = sample['image'], sample['label'], sample['img_name']
-            if self.args.cuda:
-                image, target = image.cuda(), target.cuda()
-            with torch.no_grad():
-                output = self.model(image)
-            pred = output.data.cpu().numpy()
-            pred = np.argmax(pred, axis=1)
-            if self.args.testValTrain == 1:
-                loss = self.criterion(output, target)
-                test_loss += loss.item()
-                if self.args.master:
-                    tbar.set_description('Val loss: %.5f' % (test_loss / (i + 1)))
-            
-                target = target.cpu().numpy()
-                # Add batch sample into evaluator
-                self.evaluator.add_batch(target, pred)
-            batch_size = pred.shape[0]
-            results = pred.copy()
-            results = results[results==1]
-            for _id in range(batch_size):
-                img_name = img_names[_id]
-                out_img_filepath = os.path.join(self.args.testOut_dir, img_name)
-                cv2.imwrite(out_img_filepath, results[_id])
-                
-        if self.args.testValTrain == 1:
-            # Fast test during the training
-            Acc = self.evaluator.Pixel_Accuracy()
-            Acc_class = self.evaluator.Pixel_Accuracy_Class()
-            mIoU = self.evaluator.Mean_Intersection_over_Union()
-            FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
-            if self.args.master:
-                self.writer.add_scalar('test/total_loss_epoch', test_loss, epoch)
-                self.writer.add_scalar('test/mIoU', mIoU, epoch)
-                self.writer.add_scalar('test/Acc', Acc, epoch)
-                self.writer.add_scalar('test/Acc_class', Acc_class, epoch)
-                self.writer.add_scalar('test/fwIoU', FWIoU, epoch)
-                print('Test:')
-                print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
-                print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
-                print('Loss: %.5f' % test_loss)
-
 
 def main(args):
     args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -325,7 +260,7 @@ def main(args):
         args.checkname = 'deeplab-'+str(args.backbone)
     print(args)
     torch.manual_seed(args.seed)
-    trainer = distTrainer(args)
+    trainer = Trainer(args)
     print('Starting Epoch:', trainer.args.start_epoch)
     print('Total Epoches:', trainer.args.epochs)
     for epoch in range(trainer.args.start_epoch, trainer.args.epochs):

@@ -112,13 +112,11 @@ parser.add_argument('--no-val', action='store_true', default=False,
 
 
 # training hyper params
-parser.add_argument('--epochs', type=int, default=60, metavar='N',
+parser.add_argument('--epochs', type=int, default=55, metavar='N',
                     help='number of epochs to train (default: auto)')
 parser.add_argument('--start_epoch', type=int, default=0,
                     metavar='N', help='start epochs (default:0)')
-parser.add_argument('--batch-size', type=int, default=8,
-                    metavar='N', help='input batch size for \
-                            training (default: auto)')
+
 parser.add_argument('--test-batch-size', type=int, default=None,
                     metavar='N', help='input batch size for \
                             testing (default: auto)')
@@ -126,15 +124,22 @@ parser.add_argument('--use-balanced-weights', action='store_true', default=False
                     help='whether to use balanced weights (default: False)')
 
 #
+parser.add_argument('--batch-size', type=int, default=16,
+                    metavar='N', help='input batch size for \
+                            training (default: auto)')
 parser.add_argument('--workers', type=int, default=4,
                     metavar='N', help='dataloader threads')
+parser.add_argument('--hw_ratio', type=float, default=1.25)
 parser.add_argument('--ignore_index', type=int, default=255)
-parser.add_argument('--base_size', type=int, default=480)
-parser.add_argument('--crop_size', type=int, default=480)
+parser.add_argument('--base_size', type=int, default=720)
+parser.add_argument('--crop_size', type=int, default=720)
 parser.add_argument('--rotate_degree', type=int, default=15)
 parser.add_argument('--n_classes', type=int, default=2)
 parser.add_argument('--dataset', type=str, default='basicDataset')
 parser.add_argument('--dataset_dir', type=str, default=None)
+parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: test, 1: testval, 2: trainval, 3: train')
+parser.add_argument('--testset_dir', type=str, default=None)
+parser.add_argument('--testOut_dir', type=str, default=None)
 
 args = parser.parse_args()
 

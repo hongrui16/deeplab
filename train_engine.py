@@ -8,7 +8,6 @@ import sys
 import torch
 import torch.nn as nn
 import torch.distributed as dist
-from train import Trainer
 from train_worker import distTrainer
 # from idea import build_module, Config, Runner
 # from idea.utils import get_logger, random_seed
@@ -75,14 +74,14 @@ def main_worker(gpu, ngpus_per_node, args):
 
     if args.checkname is None:
         args.checkname = 'deeplab-'+str(args.backbone)
-    if  args.master:
+    if args.master:
         print(args)
     torch.manual_seed(args.seed)
     # return
     # trainer = Trainer(args)
     trainer = distTrainer(args)
-    print(f'args.rank {args.rank} Starting Epoch: {trainer.args.start_epoch}')
-    print(f'args.rank {args.rank} Total Epoches: {trainer.args.epochs}')
+    print(f'rank {args.rank} Starting Epoch: {trainer.args.start_epoch}')
+    print(f'rank {args.rank} Total Epoches: {trainer.args.epochs}')
     for epoch in range(trainer.args.start_epoch, trainer.args.epochs):
         trainer.training(epoch)
         if not trainer.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):

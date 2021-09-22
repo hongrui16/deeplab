@@ -10,7 +10,8 @@ class Path(object):
         elif dataset == 'coco':
             return '/data1/cv_public_dataset/COCO2017'
         elif dataset == 'basicDataset':
-            return '/home/hongrui/project/metro_pro/dataset/youtubeHandcraft'
+            # return '/home/hongrui/project/metro_pro/dataset/youtubeHandcraft'
+            return '/home/hongrui/project/metro_pro/dataset/1st_2000'
         else:
             print('Dataset {} not available.'.format(dataset))
             raise NotImplementedError

@@ -1,3 +1,4 @@
+from os import O_WRONLY
 import torch
 import random
 import numpy as np
@@ -13,17 +14,25 @@ class Normalize(object):
     def __init__(self, mean=(0., 0., 0.), std=(1., 1., 1.)):
         self.mean = mean
         self.std = std
-
+        
+        
     def __call__(self, sample):
         img = sample['image']
         mask = sample['label']
+        img_name = sample['img_name']
         img = np.array(img).astype(np.float32)
-        mask = np.array(mask).astype(np.float32)
+        if mask:
+            mask = np.array(mask).astype(np.float32)
         img /= 255.0
         img -= self.mean
         img /= self.std
 
-        return {'image': img,
+        if img_name:
+            return {'image': img,
+                'label': mask,
+                'img_name':img_name}
+        else:
+            return {'image': img,
                 'label': mask}
 
 
@@ -36,13 +45,20 @@ class ToTensor(object):
         # torch image: C X H X W
         img = sample['image']
         mask = sample['label']
+        img_name = sample['img_name']
+        
         img = np.array(img).astype(np.float32).transpose((2, 0, 1))
-        mask = np.array(mask).astype(np.float32)
-
         img = torch.from_numpy(img).float()
-        mask = torch.from_numpy(mask).float()
+        if mask:
+            mask = np.array(mask).astype(np.float32)
+            mask = torch.from_numpy(mask).float()
 
-        return {'image': img,
+        if img_name:
+            return {'image': img,
+                'label': mask,
+                'img_name':img_name}
+        else:
+            return {'image': img,
                 'label': mask}
 
 
@@ -148,6 +164,37 @@ class FixScaleCrop(object):
         return {'image': img,
                 'label': mask}
 
+
+class ShortEdgeCrop(object):
+    def __init__(self, hw_ratio = 1.5):
+        self.hw_ratio = hw_ratio
+
+    def __call__(self, sample):
+        img = sample['image']
+        mask = sample['label']
+        w, h = img.size
+        if w > h:
+            if w/h <= self.hw_ratio:
+                return sample
+            oh = h
+            ow = int(self.hw_ratio*h)
+        else:
+            if h/w <= self.hw_ratio:
+                return sample
+            oh = int(self.hw_ratio*w)
+            ow = w
+
+        # center crop
+        x1 = int(round((w - ow) / 2.))
+        y1 = int(round((h - oh) / 2.))
+        img = img.crop((x1, y1, x1 + ow, y1 + ow))
+        mask = mask.crop((x1, y1, x1 + oh, y1 + oh))
+
+        return {'image': img,
+                'label': mask}
+
+# sample = {'image': _img, 'label': _target, 'img_name': img_name}
+
 class FixedResize(object):
     def __init__(self, size):
         self.size = (size, size)  # size: (h, w)
@@ -155,11 +202,15 @@ class FixedResize(object):
     def __call__(self, sample):
         img = sample['image']
         mask = sample['label']
-
-        assert img.size == mask.size
-
+        img_name = sample['img_name']
         img = img.resize(self.size, Image.BILINEAR)
-        mask = mask.resize(self.size, Image.NEAREST)
-
-        return {'image': img,
+        if mask:
+            assert img.size == mask.size
+            mask = mask.resize(self.size, Image.NEAREST)
+        if img_name:
+            return {'image': img,
+                'label': mask,
+                'img_name':img_name}
+        else:
+            return {'image': img,
                 'label': mask}

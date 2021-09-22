@@ -24,12 +24,17 @@ class BasicDataset(Dataset):
         else:
             self.root = root
         self.split = split
+        
         self.base_dir = os.path.join(self.root, self.split)
         self.ignore_index = args.ignore_index
         self.args = args
         # print('args.ignore_index', args.ignore_index)
-        self.images_base = os.path.join(self.base_dir, 'image')
-        self.annotations_base = os.path.join(self.base_dir, 'label')
+        if args.testset_dir:
+            self.images_base =  args.testset_dir
+            self.annotations_base = None
+        else:
+            self.images_base = os.path.join(self.base_dir, 'image')
+            self.annotations_base = os.path.join(self.base_dir, 'label')
         # self.ids = [splitext(file)[0] for file in listdir(self.images_base) if not file.startswith('.')]
         self.img_ids = [file for file in listdir(self.images_base) if not file.startswith('.')]
         
@@ -53,18 +58,26 @@ class BasicDataset(Dataset):
         lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
 
         _img = Image.open(img_path).convert('RGB')
-        _tmp = np.array(Image.open(lbl_path), dtype=np.uint8)
-        _tmp = self.encode_segmap(_tmp)
-        _target = Image.fromarray(_tmp)
-
-
-        sample = {'image': _img, 'label': _target, 'img_name': img_name}
+        # _tmp = np.array(Image.open(lbl_path), dtype=np.uint8)
+        if self.args.testset_dir:
+            # w, h = _img.size
+            # _target = np.zeros((h,w))
+            # _target = Image.fromarray(_target)
+            _target = None
+        else:
+            _tmp = cv2.imread(lbl_path, 0)
+            _tmp = self.encode_segmap(_tmp)
+            _target = Image.fromarray(_tmp)
+        if self.split == 'train' or self.split == 'val': 
+            sample = {'image': _img, 'label': _target, 'img_name': None}
+        else:
+            sample = {'image': _img, 'label': _target, 'img_name': img_name}
 
         if self.split == 'train':
             return self.transform_train(sample)
         elif self.split == 'val':
             return self.transform_val(sample)
-        elif self.split == 'test':
+        elif self.split == 'test' or self.args.testset_dir:
             return self.transform_test(sample)
 
     def encode_segmap(self, mask):
@@ -74,11 +87,17 @@ class BasicDataset(Dataset):
         # for _validc in self.valid_classes:
         #     mask[mask == _validc] = self.class_map[_validc]
         # mask //= 2
-        mask[mask>0] = 1
+        # print(mask)
+        thres = 30
+        mask[mask>thres] = 1
+
+        # print(len(mask[mask>=0]), len(mask[mask==1]))
+        mask[mask<=thres] = 0
         return mask
 
     def transform_train(self, sample):
         composed_transforms = transforms.Compose([
+            tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
             tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index),
             tr.RandomHorizontalFlip(),
             tr.RandomRotate(degree = self.args.rotate_degree),
@@ -95,6 +114,7 @@ class BasicDataset(Dataset):
     def transform_val(self, sample):
 
         composed_transforms = transforms.Compose([
+            tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
             tr.FixScaleCrop(crop_size=self.args.crop_size),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
