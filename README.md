@@ -17,7 +17,10 @@
 | MobileNet | 16/16          | 70.81%     | [google drive](https://drive.google.com/open?id=1G9mWafUAj09P4KvGSRVzIsV_U5OqFLdt) |
 | DRN       | 16/16          | 78.87%     | [google drive](https://drive.google.com/open?id=131gZN_dKEXO79NknIQazPJ-4UmRrZAfI) |
 
-
+### Introduction
+This is a PyTorch implementation of [DeepLab-V3-Plus](https://arxiv.org/pdf/1802.02611). It
+can use Modified Aligned Xception and ResNet as backbone. Currently, we train DeepLab V3 Plus
+using Pascal VOC 2012, SBD, Cityscapes, and customer-made datasets.
 
 ### 如何提交代码
 
