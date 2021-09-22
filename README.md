@@ -1,14 +1,4 @@
-# pytorch-deeplab-xception (distributed training)
-
-**Update on 2018/12/06. Provide model trained on VOC and SBD datasets.**  
-
-**Update on 2018/11/24. Release newest version code, which fix some previous issues and also add support for new backbones and multi-gpu training. For previous code, please see in `previous` branch**  
-
-## TODO
-- [x] Support different backbones
-- [x] Support VOC, SBD, Cityscapes and COCO datasets
-- [x] Multi-GPU training
-
+# pytorch-deeplab (semantic segmentation, distributed training)
 
 
 | Backbone  | train/eval os  |mIoU in val |Pretrained Model|
@@ -70,6 +60,8 @@ git add *
 可是这样做之后再git push还是没有用，还是报同样的错误。 于是就用git push -f origin main强制push就成功了。（注意：大家千万不要随便用-f的操作，因为f意味着强制push，会覆盖掉远程的所有代码！）
 
 ## Acknowledgement
+[pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception.git)
+
 [PyTorch-Encoding](https://github.com/zhanghang1989/PyTorch-Encoding)
 
 [Synchronized-BatchNorm-PyTorch](https://github.com/vacancy/Synchronized-BatchNorm-PyTorch)
