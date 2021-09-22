@@ -4,7 +4,7 @@
 
 **Update on 2018/11/24. Release newest version code, which fix some previous issues and also add support for new backbones and multi-gpu training. For previous code, please see in `previous` branch**  
 
-### TODO
+## TODO
 - [x] Support different backbones
 - [x] Support VOC, SBD, Cityscapes and COCO datasets
 - [x] Multi-GPU training
@@ -17,13 +17,24 @@
 | MobileNet | 16/16          | 70.81%     | [google drive](https://drive.google.com/open?id=1G9mWafUAj09P4KvGSRVzIsV_U5OqFLdt) |
 | DRN       | 16/16          | 78.87%     | [google drive](https://drive.google.com/open?id=131gZN_dKEXO79NknIQazPJ-4UmRrZAfI) |
 
-### Introduction
+## Introduction
 This is a PyTorch implementation of [DeepLab-V3-Plus](https://arxiv.org/pdf/1802.02611). It
 can use Modified Aligned Xception and ResNet as backbone. Currently, we train DeepLab V3 Plus
 using Pascal VOC 2012, SBD, Cityscapes, and customer-made datasets.
 
-### 如何提交代码
+## How to train
+This is a PyTorch implementation of [DeepLab-V3-Plus](https://arxiv.org/pdf/1802.02611). It
+can use Modified Aligned Xception and ResNet as backbone. Currently, we train DeepLab V3 Plus
+using Pascal VOC 2012, SBD, Cityscapes, and customer-made datasets.
+### 1 Use slurm
+1.1 foreground running
+srun -N1 --cpus-per-task 32 --gres gpu:4 python train_main.py
+1.2 background running
+sbatch background_running.slurm
+### 2 directly use gpu machines
+CUDA_VISIBLE_DEVICES=0.1.2.3 python train_main.py
 
+## 如何提交代码
 1.git init
 
 #初始化本地仓库
@@ -57,7 +68,7 @@ git add *
 
 可是这样做之后再git push还是没有用，还是报同样的错误。 于是就用git push -f origin main强制push就成功了。（注意：大家千万不要随便用-f的操作，因为f意味着强制push，会覆盖掉远程的所有代码！）
 
-### Acknowledgement
+## Acknowledgement
 [PyTorch-Encoding](https://github.com/zhanghang1989/PyTorch-Encoding)
 
 [Synchronized-BatchNorm-PyTorch](https://github.com/vacancy/Synchronized-BatchNorm-PyTorch)
