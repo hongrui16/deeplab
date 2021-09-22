@@ -68,10 +68,11 @@ class BasicDataset(Dataset):
             _tmp = cv2.imread(lbl_path, 0)
             _tmp = self.encode_segmap(_tmp)
             _target = Image.fromarray(_tmp)
-        if self.split == 'train' or self.split == 'val': 
-            sample = {'image': _img, 'label': _target, 'img_name': None}
-        else:
-            sample = {'image': _img, 'label': _target, 'img_name': img_name}
+        # if self.split == 'train' or self.split == 'val': 
+        #     sample = {'image': _img, 'label': _target, 'img_name': None}
+        # else:
+        #     sample = {'image': _img, 'label': _target, 'img_name': img_name}
+        sample = {'image': _img, 'label': _target, 'img_name': img_name}
 
         if self.split == 'train':
             return self.transform_train(sample)

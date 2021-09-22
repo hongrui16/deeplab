@@ -19,22 +19,23 @@ class Normalize(object):
     def __call__(self, sample):
         img = sample['image']
         mask = sample['label']
-        img_name = sample['img_name']
+        # img_name = sample['img_name']
         img = np.array(img).astype(np.float32)
         if isinstance(mask, Image.Image):
             mask = np.array(mask).astype(np.float32)
         img /= 255.0
         img -= self.mean
         img /= self.std
-
-        if img_name:
-            return {'image': img,
-                'label': mask,
-                'img_name':img_name}
-        else:
-            return {'image': img,
-                'label': mask}
-
+        # if img_name:
+        #     return {'image': img,
+        #         'label': mask,
+        #         'img_name':img_name}
+        # else:
+        #     return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
 
 class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
@@ -45,7 +46,7 @@ class ToTensor(object):
         # torch image: C X H X W
         img = sample['image']
         mask = sample['label']
-        img_name = sample['img_name']
+        # img_name = sample['img_name']
         
         img = np.array(img).astype(np.float32).transpose((2, 0, 1))
         img = torch.from_numpy(img).float()
@@ -53,13 +54,16 @@ class ToTensor(object):
             mask = np.array(mask).astype(np.float32)
             mask = torch.from_numpy(mask).float()
 
-        if img_name:
-            return {'image': img,
-                'label': mask,
-                'img_name':img_name}
-        else:
-            return {'image': img,
-                'label': mask}
+        # if img_name:
+        #     return {'image': img,
+        #         'label': mask,
+        #         'img_name':img_name}
+        # else:
+        #     return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
 
 
 class RandomHorizontalFlip(object):
@@ -69,10 +73,11 @@ class RandomHorizontalFlip(object):
         if random.random() < 0.5:
             img = img.transpose(Image.FLIP_LEFT_RIGHT)
             mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
-
-        return {'image': img,
-                'label': mask}
-
+        # return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
 
 class RandomRotate(object):
     def __init__(self, degree):
@@ -84,9 +89,11 @@ class RandomRotate(object):
         rotate_degree = random.uniform(-1*self.degree, self.degree)
         img = img.rotate(rotate_degree, Image.BILINEAR)
         mask = mask.rotate(rotate_degree, Image.NEAREST)
-
-        return {'image': img,
-                'label': mask}
+        # return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
 
 
 class RandomGaussianBlur(object):
@@ -97,8 +104,11 @@ class RandomGaussianBlur(object):
             img = img.filter(ImageFilter.GaussianBlur(
                 radius=random.random()))
 
-        return {'image': img,
-                'label': mask}
+        # return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
 
 
 class RandomScaleCrop(object):
@@ -134,8 +144,11 @@ class RandomScaleCrop(object):
         img = img.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
         mask = mask.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
 
-        return {'image': img,
-                'label': mask}
+        # return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
 
 
 class FixScaleCrop(object):
@@ -161,9 +174,11 @@ class FixScaleCrop(object):
         img = img.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
         mask = mask.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
 
-        return {'image': img,
-                'label': mask}
-
+        # return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
 
 class ShortEdgeCrop(object):
     def __init__(self, hw_ratio = 1.5):
@@ -190,8 +205,11 @@ class ShortEdgeCrop(object):
         img = img.crop((x1, y1, x1 + ow, y1 + ow))
         mask = mask.crop((x1, y1, x1 + oh, y1 + oh))
 
-        return {'image': img,
-                'label': mask}
+        # return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
 
 # sample = {'image': _img, 'label': _target, 'img_name': img_name}
 
@@ -202,18 +220,21 @@ class FixedResize(object):
     def __call__(self, sample):
         img = sample['image']
         mask = sample['label']
-        img_name = sample['img_name']
+        # img_name = sample['img_name']
         if isinstance(mask, Image.Image):
             assert img.size == mask.size
             mask = mask.resize(self.size, Image.NEAREST)
         img = img.resize(self.size, Image.BILINEAR)
-        if img_name:
-            return {'image': img,
-                'label': mask,
-                'img_name':img_name}
-        else:
-            return {'image': img,
-                'label': mask}
+        # if img_name:
+        #     return {'image': img,
+        #         'label': mask,
+        #         'img_name':img_name}
+        # else:
+        #     return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
 
 class LimitResize(object):
     def __init__(self, size):
@@ -223,7 +244,7 @@ class LimitResize(object):
         img = sample['image']
         mask = sample['label']
         # print('type(mask)', type(mask))
-        img_name = sample['img_name']
+        # img_name = sample['img_name']
         w, h = img.size
         resize_flag = True
         if w > h > self.size:
@@ -239,10 +260,14 @@ class LimitResize(object):
                 assert img.size == mask.size
                 mask = mask.resize((ow, oh), Image.NEAREST)
             img = img.resize((ow, oh), Image.BILINEAR)
-        if img_name:
-            return {'image': img,
-                'label': mask,
-                'img_name':img_name}
-        else:
-            return {'image': img,
-                'label': mask}
+        # if img_name:
+        #     return {'image': img,
+        #         'label': mask,
+        #         'img_name':img_name}
+        # else:
+        #     return {'image': img,
+        #         'label': mask}
+        
+        sample['image'] = img
+        sample['label'] = mask
+        return sample

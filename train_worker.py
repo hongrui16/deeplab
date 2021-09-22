@@ -137,22 +137,22 @@ class distTrainer(object):
         for i, sample in enumerate(tbar):
             # if not i % 100 == 0:
             #     continue
-            # print(f'self.args.rank {self.args.rank} dataload time {round(time.time() - start, 3)}')
-            start = time.time()
+            # print(f'rank {self.args.rank} dataload time {round(time.time() - start, 3)}')
+            # start = time.time()
             image, target = sample['image'], sample['label']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
             self.optimizer.zero_grad()
-            start = time.time()
+            # start = time.time()
             output = self.model(image)
-            # print(f'self.args.rank {self.args.rank} inference time {round(time.time() - start, 3)}')
-            start = time.time()
+            # print(f'rank {self.args.rank} inference time {round(time.time() - start, 3)}')
+            # start = time.time()
             loss = self.criterion(output, target)
-            # print(f'self.args.rank {self.args.rank} loss calculation time {round(time.time() - start, 3)}')
-            start = time.time()
+            # print(f'rank {self.args.rank} loss calculation time {round(time.time() - start, 3)}')
+            # start = time.time()
             loss.backward()
-            # print(f'self.args.rank {self.args.rank} loss backward time {round(time.time() - start, 3)}')
+            # print(f'rank {self.args.rank} loss backward time {round(time.time() - start, 3)}')
             start = time.time()
             self.optimizer.step()
             train_loss += loss.item()
