@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-# @Author: Yihao Chen
-# @Date:   2021-08-16 16:53:03
-# @Last Modified by:   Yihao Chen
-# @Last Modified time: 2021-08-24 10:44:06
+# @Author: Hong Rui
+# @Date:   2021-09-16 16:53:03
+# @Last Modified by:   Hong Rui
 import argparse
 import random
 import shutil
@@ -143,24 +142,6 @@ parser.add_argument('--testOut_dir', type=str, default=None)
 
 args = parser.parse_args()
 
-
-
-def get_dict_url(args):
-    if args.node_rank == 0:
-        ip = socket.gethostbyname(socket.gethostname())
-        s = socket.socket()
-        s.bind(('', 0))          # Bind to a free port provided by the host.
-        port = s.getsockname()[1]  # Return the port number assigned.
-        args.dist_url = "tcp://{}:{}".format(ip, port)
-        with open(args.hostfile, "w") as f:
-            f.write(args.dist_url)
-    else:
-        import os
-        import time
-        while not os.path.exists(args.hostfile):
-            time.sleep(1)
-        with open(args.hostfile, "r") as f:
-            args.dist_url = f.read()
 
 def find_free_port():
     import socket
