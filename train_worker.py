@@ -233,13 +233,14 @@ class distTrainer(object):
             }, is_best)
 
 
-    def test(self, epoch):
+    def test(self):
         self.model.eval()
         self.evaluator.reset()
         tbar = tqdm(self.test_loader, desc='\r')
         test_loss = 0.0
-        if self.args.testOut_dir and not os.path.exists(self.args.testOut_dir):
-            os.makedirs(self.args.testOut_dir)
+
+        output_img_dir = self.Saver.experiment_dir
+
         for i, sample in enumerate(tbar):
             # if not i % 200 == 0:
             #     continue
@@ -264,7 +265,7 @@ class distTrainer(object):
             results = results[results==1]
             for _id in range(batch_size):
                 img_name = img_names[_id]
-                out_img_filepath = os.path.join(self.args.testOut_dir, img_name)
+                out_img_filepath = os.path.join(output_img_dir, img_name)
                 cv2.imwrite(out_img_filepath, results[_id])
                 
         if self.args.testValTrain == 1:

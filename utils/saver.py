@@ -14,13 +14,16 @@ class Saver(object):
             run_id = int(self.runs[-1].split('_')[-1]) + 1 if self.runs else 0
             self.experiment_dir = os.path.join(self.directory, 'experiment_{}'.format(str(run_id)))
         elif 0<=self.args.testValTrain<=1 and self.args.resume:
-            if not '/' in self.args.resume:
-                self.directory = f'./'
+            if self.args.testOut_dir:
+                self.experiment_dir = self.args.testOut_dir
             else:
-                self.directory = self.args.resume[self.args.resume.find(self.args.resume.split('/')[-1])-1] 
-            self.runs = sorted(glob.glob(os.path.join(self.directory, 'testResult_*')))
-            run_id = int(self.runs[-1].split('_')[-1]) + 1 if self.runs else 0
-            self.experiment_dir = os.path.join(self.directory, 'testResult_{}'.format(str(run_id)))
+                if not '/' in self.args.resume:
+                    self.directory = f'./'
+                else:
+                    self.directory = self.args.resume[self.args.resume.find(self.args.resume.split('/')[-1])-1] 
+                self.runs = sorted(glob.glob(os.path.join(self.directory, 'testResult_*')))
+                run_id = int(self.runs[-1].split('_')[-1]) + 1 if self.runs else 0
+                self.experiment_dir = os.path.join(self.directory, 'testResult_{}'.format(str(run_id)))
         else:
             return
         # print('self.args.rank', self.args.rank)
