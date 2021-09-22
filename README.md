@@ -13,14 +13,10 @@ can use Modified Aligned Xception and ResNet as backbone. Currently, we train De
 using Pascal VOC 2012, SBD, Cityscapes, and customer-made datasets.
 
 ## How to train
-This is a PyTorch implementation of [DeepLab-V3-Plus](https://arxiv.org/pdf/1802.02611). It
-can use Modified Aligned Xception and ResNet as backbone. Currently, we train DeepLab V3 Plus
-using Pascal VOC 2012, SBD, Cityscapes, and customer-made datasets.
 ### 1 Use slurm
-1.1 foreground running
+#### 1.1 foreground running
 srun -N1 --cpus-per-task 32 --gres gpu:4 python train_main.py
-
-1.2 background running
+#### 1.2 background running
 sbatch background_running.slurm
 ### 2 directly use gpu machines
 CUDA_VISIBLE_DEVICES=0.1.2.3 python train_main.py
