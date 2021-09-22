@@ -20,7 +20,10 @@ class Saver(object):
                 if not '/' in self.args.resume:
                     self.directory = f'./'
                 else:
-                    self.directory = self.args.resume[self.args.resume.find(self.args.resume.split('/')[-1])-1] 
+                    checkpoint_file = self.args.resume.split('/')[-1]
+                    start = self.args.resume.find(checkpoint_file)
+                    self.directory = self.args.resume[:start-1] 
+                # print('self.directory', self.directory)
                 self.runs = sorted(glob.glob(os.path.join(self.directory, 'testResult_*')))
                 run_id = int(self.runs[-1].split('_')[-1]) + 1 if self.runs else 0
                 self.experiment_dir = os.path.join(self.directory, 'testResult_{}'.format(str(run_id)))

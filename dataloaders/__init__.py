@@ -58,7 +58,7 @@ def make_data_loader(args, **kwargs):
             test_sampler = None
         train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=(train_sampler is None), drop_last=False, sampler=train_sampler, **kwargs)
         val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=(val_sampler is None), drop_last=False, sampler=val_sampler, **kwargs)
-        test_loader = DataLoader(test_set, batch_size=args.batch_size, shuffle=(test_sampler is None), drop_last=False, sampler=test_sampler, **kwargs)
+        test_loader = DataLoader(test_set, batch_size=args.test_batch_size, shuffle=(test_sampler is None), drop_last=False, sampler=test_sampler, **kwargs)
         return train_loader, val_loader, test_loader, num_class
 
     else:

@@ -142,6 +142,17 @@ def find_free_port():
 def main(args):
     import os
 
+    if args.testValTrain == 0:
+        print('only test')
+    elif args.testValTrain == 1:
+        print('test and val')
+    elif args.testValTrain == 2:
+        print('train and val')
+    elif args.testValTrain == 3:
+        print('only train')
+    else:
+        print('please select a mode (0: test, 1: testval, 2: trainval, 3: train)')
+    
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)

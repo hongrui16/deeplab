@@ -21,7 +21,7 @@ class Normalize(object):
         mask = sample['label']
         img_name = sample['img_name']
         img = np.array(img).astype(np.float32)
-        if mask:
+        if isinstance(mask, Image.Image):
             mask = np.array(mask).astype(np.float32)
         img /= 255.0
         img -= self.mean
@@ -49,7 +49,7 @@ class ToTensor(object):
         
         img = np.array(img).astype(np.float32).transpose((2, 0, 1))
         img = torch.from_numpy(img).float()
-        if mask:
+        if isinstance(mask, Image.Image):
             mask = np.array(mask).astype(np.float32)
             mask = torch.from_numpy(mask).float()
 
@@ -203,10 +203,42 @@ class FixedResize(object):
         img = sample['image']
         mask = sample['label']
         img_name = sample['img_name']
-        img = img.resize(self.size, Image.BILINEAR)
-        if mask:
+        if isinstance(mask, Image.Image):
             assert img.size == mask.size
             mask = mask.resize(self.size, Image.NEAREST)
+        img = img.resize(self.size, Image.BILINEAR)
+        if img_name:
+            return {'image': img,
+                'label': mask,
+                'img_name':img_name}
+        else:
+            return {'image': img,
+                'label': mask}
+
+class LimitResize(object):
+    def __init__(self, size):
+        self.size = size  # size: (h, w)
+
+    def __call__(self, sample):
+        img = sample['image']
+        mask = sample['label']
+        # print('type(mask)', type(mask))
+        img_name = sample['img_name']
+        w, h = img.size
+        resize_flag = True
+        if w > h > self.size:
+            oh = self.size
+            ow = int(self.size/h*w)
+        elif h > w > self.size:
+            oh = int(self.size/w*h)
+            ow = self.size
+        else:
+            resize_flag = False
+        if resize_flag:
+            if isinstance(mask, Image.Image):
+                assert img.size == mask.size
+                mask = mask.resize((ow, oh), Image.NEAREST)
+            img = img.resize((ow, oh), Image.BILINEAR)
         if img_name:
             return {'image': img,
                 'label': mask,

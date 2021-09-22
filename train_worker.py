@@ -233,17 +233,17 @@ class distTrainer(object):
             }, is_best)
 
 
-    def test(self):
+    def test(self, epoch = 0):
         self.model.eval()
         self.evaluator.reset()
         tbar = tqdm(self.test_loader, desc='\r')
         test_loss = 0.0
 
-        output_img_dir = self.Saver.experiment_dir
+        output_img_dir = self.saver.experiment_dir
 
         for i, sample in enumerate(tbar):
-            # if not i % 200 == 0:
-            #     continue
+            if self.args.test_batch_size*i > 200:
+                return
             image, target, img_names = sample['image'], sample['label'], sample['img_name']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
@@ -262,7 +262,7 @@ class distTrainer(object):
                 self.evaluator.add_batch(target, pred)
             batch_size = pred.shape[0]
             results = pred.copy()
-            results = results[results==1]
+            results[results==1] = 255
             for _id in range(batch_size):
                 img_name = img_names[_id]
                 out_img_filepath = os.path.join(output_img_dir, img_name)
