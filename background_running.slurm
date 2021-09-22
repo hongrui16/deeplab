@@ -7,4 +7,4 @@
 #SBATCH -t 600000000:00
 #SBATCH -o db.out
 
-python train_main.py 
+python train_main.py  --testValTrain 2

@@ -99,7 +99,7 @@ parser.add_argument('--no-val', action='store_true', default=False,
 
 
 # training hyper params
-parser.add_argument('--epochs', type=int, default=55, metavar='N',
+parser.add_argument('--epochs', type=int, default=65, metavar='N',
                     help='number of epochs to train (default: auto)')
 parser.add_argument('--start_epoch', type=int, default=0,
                     metavar='N', help='start epochs (default:0)')
