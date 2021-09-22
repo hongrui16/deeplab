@@ -8,8 +8,6 @@ import torch
 import torch.nn as nn
 import torch.distributed as dist
 from train_worker import distTrainer
-# from idea import build_module, Config, Runner
-# from idea.utils import get_logger, random_seed
 import os
 
 def main_worker(gpu, ngpus_per_node, args):
@@ -28,7 +26,6 @@ def main_worker(gpu, ngpus_per_node, args):
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
 
-    # print(f'calling {__file__}, {sys._getframe().f_lineno}')
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 
     if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
@@ -52,9 +49,6 @@ def main_worker(gpu, ngpus_per_node, args):
         }
         args.epochs = epoches[args.dataset.lower()]
 
-    # if args.batch_size is None:
-    #     args.batch_size = 4 * len(args.gpu_ids)
-
     if args.test_batch_size is None:
         args.test_batch_size = args.batch_size
 
@@ -66,18 +60,14 @@ def main_worker(gpu, ngpus_per_node, args):
             'basicdataset': 0.01,
 
         }
-        # args.lr = lrs[args.dataset.lower()] / (4 * len(args.gpu_ids)) * args.batch_size
-        args.lr = lrs[args.dataset.lower()]# / (4 * len(args.gpu_ids)) * args.batch_size
-
-    # print(f'calling {__file__}, {sys._getframe().f_lineno}')
+        args.lr = lrs[args.dataset.lower()]
 
     if args.checkname is None:
         args.checkname = 'deeplab-'+str(args.backbone)
     if args.master:
         print(args)
     torch.manual_seed(args.seed)
-    # return
-    # trainer = Trainer(args)
+
     trainer = distTrainer(args)
     print(f'rank {args.rank} Starting Epoch: {trainer.args.start_epoch}')
     print(f'rank {args.rank} Total Epoches: {trainer.args.epochs}')
