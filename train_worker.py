@@ -139,7 +139,7 @@ class distTrainer(object):
             #     continue
             # print(f'rank {self.args.rank} dataload time {round(time.time() - start, 3)}')
             # start = time.time()
-            image, target = sample['image'], sample['label']
+            image, target, img_names = sample['image'], sample['label'], sample['img_name']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
@@ -162,10 +162,11 @@ class distTrainer(object):
                 self.writer.add_scalar('train/total_loss_iter', loss.item(), i + num_img_tr * epoch)
 
             # # Show 10 * 3 inference results each epoch
-            # if self.args.master:
-            #     if i % (num_img_tr // 10) == 0:
-            #         global_step = i + num_img_tr * epoch
-            #         self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step)
+            if self.args.master:
+                interval = num_img_tr // 10 if num_img_tr // 10 else 1
+                if i % interval == 0:
+                    global_step = i + num_img_tr * epoch
+                    self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step)
         if self.args.master:
             self.writer.add_scalar('train/total_loss_epoch', train_loss, epoch)
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
@@ -190,7 +191,7 @@ class distTrainer(object):
         for i, sample in enumerate(tbar):
             # if not i % 200 == 0:
             #     continue
-            image, target = sample['image'], sample['label']
+            image, target, img_names = sample['image'], sample['label'], sample['img_name']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
             with torch.no_grad():
@@ -240,7 +241,7 @@ class distTrainer(object):
         test_loss = 0.0
 
         output_img_dir = self.saver.experiment_dir
-
+        num_img_tr = len(self.test_loader)
         for i, sample in enumerate(tbar):
             if self.args.test_batch_size*i > 200:
                 return
@@ -249,6 +250,13 @@ class distTrainer(object):
                 image, target = image.cuda(), target.cuda()
             with torch.no_grad():
                 output = self.model(image)
+
+            if self.args.master:
+                interval = num_img_tr // 10 if num_img_tr // 10 else 1
+                if i % interval == 0:
+                    global_step = i + num_img_tr * epoch
+                    self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step)
+            
             pred = output.data.cpu().numpy()
             pred = np.argmax(pred, axis=1)
             if self.args.testValTrain == 1:
@@ -267,7 +275,7 @@ class distTrainer(object):
                 img_name = img_names[_id]
                 out_img_filepath = os.path.join(output_img_dir, img_name)
                 cv2.imwrite(out_img_filepath, results[_id])
-                
+            
         if self.args.testValTrain == 1:
             # Fast test during the training
             Acc = self.evaluator.Pixel_Accuracy()

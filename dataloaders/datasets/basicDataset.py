@@ -90,10 +90,8 @@ class BasicDataset(Dataset):
         # mask //= 2
         # print(mask)
         thres = 30
+        mask[mask<=thres] = 0 # this must be before mask[mask>thres] = 1
         mask[mask>thres] = 1
-
-        # print(len(mask[mask>=0]), len(mask[mask==1]))
-        mask[mask<=thres] = 0
         return mask
 
     def transform_train(self, sample):
@@ -143,10 +141,26 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-im', '--input_dir', type=str, default=None)
     parser.add_argument('-om', '--output_dir', type=str, default=None)
-    parser.add_argument('--ignore_label', type=int, default=255)
+    parser.add_argument('--batch-size', type=int, default=16,
+                    metavar='N', help='input batch size for \
+                            training (default: auto)')
+    parser.add_argument('--test-batch-size', type=int, default=8,
+                        metavar='N', help='input batch size for \
+                                testing (default: auto)')
+    parser.add_argument('--workers', type=int, default=4,
+                        metavar='N', help='dataloader threads')
+    parser.add_argument('--hw_ratio', type=float, default=1.25)
+    parser.add_argument('--ignore_index', type=int, default=255)
+
     parser.add_argument('--base_size', type=int, default=640)
     parser.add_argument('--crop_size', type=int, default=640)
     parser.add_argument('--rotate_degree', type=int, default=15)
+    parser.add_argument('--dataset', type=str, default='basicDataset')
+    parser.add_argument('--dataset_dir', type=str, default=None, help='dataset dir')
+    parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: test, 1: testval, 2: trainval, 3: train')
+    parser.add_argument('--testset_dir', type=str, default=None, help='input test image dir')
+    parser.add_argument('--testOut_dir', type=str, default=None, help='test image output dir')
+
     args = parser.parse_args()
 
     output_dir = args.output_dir
@@ -156,39 +170,47 @@ if __name__ == '__main__':
     root = args.input_dir
 
     basicDataset_train = BasicDataset(args, root, split="train")
+    basicDataset_test = BasicDataset(args, root, split="test")
 
-    dataloader = DataLoader(basicDataset_train, batch_size=2, shuffle=False, num_workers=2)
+    train_loader = DataLoader(basicDataset_train, batch_size=2, shuffle=False, num_workers=2)
+    test_loader = DataLoader(basicDataset_test, batch_size=2, shuffle=False, num_workers=2)
 
-    for ii, sample in enumerate(dataloader):
-        batch_size = sample["image"].size()[0]
-        # print('batch_size: ', batch_size)
-        for jj in range(batch_size):
+    def save_img_mask(loader):
+        for ii, sample in enumerate(loader):
+            if ii == 3:
+                break
+            batch_size = sample["image"].size()[0]
+            # print('batch_size: ', batch_size)
+            for jj in range(batch_size):
 
-            img = sample['image'].numpy()
-            gt = sample['label'].numpy()
-            segmap = np.array(gt[jj]).astype(np.uint8)
-            # segmap = decode_segmap(segmap, dataset='cityscapes')
-            img_tmp = np.transpose(img[jj], axes=[1, 2, 0])
-            img_tmp *= (0.229, 0.224, 0.225)
-            img_tmp += (0.485, 0.456, 0.406)
-            img_tmp *= 255.0
-            img_tmp = img_tmp.astype(np.uint8)
-            
-            # plt.figure()
-            # plt.title('display')
-            # plt.subplot(211)
-            # plt.imshow(img_tmp)
-            # plt.subplot(212)
-            # plt.imshow(segmap)
-            # ax = plt.subplot(4, batch_size*2, ii*batch_size*2 + 2*jj+1), plt.imshow(img_tmp), plt.title(f'img_{ii*batch_size + jj}'), plt.xticks([]), plt.yticks([])
-            # ax = plt.subplot(4, batch_size*2, ii*batch_size*2 + 2*jj+2), plt.imshow(segmap*60), plt.title(f'mask_{ii*batch_size + jj}'), plt.xticks([]), plt.yticks([])
-            # if segmap.ndim == 2:
-            #     plt.gray()
+                img = sample['image'].numpy()
+                gt = sample['label'].numpy()
+                img_name =  sample['img_name']
+                img_name_perfix = img_name.split('.')[0]
+                segmap = np.array(gt[jj]).astype(np.uint8)
+                # segmap = decode_segmap(segmap, dataset='cityscapes')
+                img_tmp = np.transpose(img[jj], axes=[1, 2, 0])
+                img_tmp *= (0.229, 0.224, 0.225)
+                img_tmp += (0.485, 0.456, 0.406)
+                img_tmp *= 255.0
+                img_tmp = img_tmp.astype(np.uint8)
+                
+                # plt.figure()
+                # plt.title('display')
+                # plt.subplot(211)
+                # plt.imshow(img_tmp)
+                # plt.subplot(212)
+                # plt.imshow(segmap)
+                # ax = plt.subplot(4, batch_size*2, ii*batch_size*2 + 2*jj+1), plt.imshow(img_tmp), plt.title(f'img_{ii*batch_size + jj}'), plt.xticks([]), plt.yticks([])
+                # ax = plt.subplot(4, batch_size*2, ii*batch_size*2 + 2*jj+2), plt.imshow(segmap*60), plt.title(f'mask_{ii*batch_size + jj}'), plt.xticks([]), plt.yticks([])
+                # if segmap.ndim == 2:
+                #     plt.gray()
 
-            cv2.imwrite(os.path.join(output_dir, f'{ii*batch_size + jj}.jpg'), img_tmp)
-            cv2.imwrite(os.path.join(output_dir, f'{ii*batch_size + jj}.png'), segmap*60)
-        if ii == 3:
-            break
+                cv2.imwrite(os.path.join(output_dir, f'{img_name_perfix}.jpg'), img_tmp)
+                cv2.imwrite(os.path.join(output_dir, f'{img_name_perfix}.png'), segmap*60)
+
+    save_img_mask(train_loader)
+    save_img_mask(test_loader)
     # plt.show()
     # plt.show(block=True)
 
