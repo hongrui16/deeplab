@@ -21,7 +21,18 @@ sbatch background_running.slurm
 ### 2 directly use gpu machines
 CUDA_VISIBLE_DEVICES=0.1.2.3 python train_main.py
 
-## 如何提交代码
+## Acknowledgement
+[pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception.git)
+
+[PyTorch-Encoding](https://github.com/zhanghang1989/PyTorch-Encoding)
+
+[Synchronized-BatchNorm-PyTorch](https://github.com/vacancy/Synchronized-BatchNorm-PyTorch)
+
+[drn](https://github.com/fyu/drn)
+
+
+
+## how to push and pull code on GitHub
 1.git init
 
 #初始化本地仓库
@@ -54,12 +65,3 @@ git add *
 看网上很多人说是因为本地仓库的文件和远程仓库不一样，所以要先用命令git pull -f origin main将远程仓库的文件拉到本地：
 
 可是这样做之后再git push还是没有用，还是报同样的错误。 于是就用git push -f origin main强制push就成功了。（注意：大家千万不要随便用-f的操作，因为f意味着强制push，会覆盖掉远程的所有代码！）
-
-## Acknowledgement
-[pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception.git)
-
-[PyTorch-Encoding](https://github.com/zhanghang1989/PyTorch-Encoding)
-
-[Synchronized-BatchNorm-PyTorch](https://github.com/vacancy/Synchronized-BatchNorm-PyTorch)
-
-[drn](https://github.com/fyu/drn)
