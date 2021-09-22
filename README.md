@@ -37,7 +37,7 @@ CUDA_VISIBLE_DEVICES=0.1.2.3 python train_main.py
 
 #初始化本地仓库
 
-2.git remote add origin https://github.com/hongrui16/deeplab.git(或则 git:git的地址)
+2.git remote add origin https://github.com/hongrui16/deeplab.git (或git:git的地址)
 
 #关联本地仓库到远程仓库
 
