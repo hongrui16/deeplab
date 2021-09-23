@@ -32,12 +32,11 @@ class distWorker(object):
         # Define Saver
         self.saver = Saver(args)
         self.saver.save_experiment_config()
-
         if self.args.master:
             # Define Tensorboard Summary
             self.summary = TensorboardSummary(self.saver.experiment_dir)
             self.writer = self.summary.create_summary()
-                
+        
         # Define Dataloader
         kwargs = {'num_workers': args.workers, 'pin_memory': True}
         self.train_loader, self.val_loader, self.test_loader, self.nclass = make_data_loader(args, **kwargs)
@@ -140,6 +139,7 @@ class distWorker(object):
             # print(f'rank {self.args.rank} dataload time {round(time.time() - start, 3)}')
             # start = time.time()
             image, target, _ = sample['image'], sample['label'], sample['img_name']
+            # print('target', target.size(), target.type())
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
@@ -176,13 +176,13 @@ class distWorker(object):
 
         if self.args.no_val and self.args.master:
             # save checkpoint every epoch
-                is_best = False
-                self.saver.save_checkpoint({
-                    'epoch': epoch + 1,
-                    'state_dict': self.model.module.state_dict(),
-                    'optimizer': self.optimizer.state_dict(),
-                    'best_pred': self.best_pred,
-                }, is_best)
+            is_best = False
+            self.saver.save_checkpoint({
+                'epoch': epoch + 1,
+                'state_dict': self.model.module.state_dict(),
+                'optimizer': self.optimizer.state_dict(),
+                'best_pred': self.best_pred,
+            }, is_best)
         # start = time.time()
 
     def validation(self, epoch):
@@ -191,6 +191,7 @@ class distWorker(object):
         tbar = tqdm(self.val_loader, desc='\r')
         num_img_tr = len(self.val_loader)
         test_loss = 0.0
+        # return
         for i, sample in enumerate(tbar):
             # if not i % 200 == 0:
             #     continue
@@ -230,10 +231,14 @@ class distWorker(object):
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
             print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
             print('Loss: %.5f' % test_loss)
+            # self.args.log_file.write("Epoch: %d, Val, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
+            self.saver.write_log_to_txt("Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
 
         new_pred = mIoU
         if new_pred > self.best_pred and self.args.master:
             is_best = True
+            # self.args.log_file.write("Best Epoch: %d, Val, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
+            self.saver.write_log_to_txt("Best Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
             self.best_pred = new_pred
             self.saver.save_checkpoint({
                 'epoch': epoch + 1,
@@ -248,7 +253,7 @@ class distWorker(object):
         self.evaluator.reset()
         tbar = tqdm(self.test_loader, desc='\r')
         test_loss = 0.0
-
+        # return
         output_img_dir = self.saver.experiment_dir
         num_img_tr = len(self.test_loader)
         for i, sample in enumerate(tbar):
@@ -259,14 +264,14 @@ class distWorker(object):
                 output = self.model(image)
 
             if self.args.master:
-                interval = num_img_tr // 10 if num_img_tr // 10 else 1
+                interval = num_img_tr // 5 if num_img_tr // 5 else 1
                 if i % interval == 0:
                     global_step = i + num_img_tr * epoch
                     self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'test')
             
             pred = output.data.cpu().numpy()
             pred = np.argmax(pred, axis=1)
-            if self.args.testValTrain == 1 or self.args.testValTrain == 4:
+            if self.args.testValTrain >= 1:
                 loss = self.criterion(output, target)
                 test_loss += loss.item()
                 if self.args.master:
@@ -275,17 +280,16 @@ class distWorker(object):
                 target = target.cpu().numpy()
                 # Add batch sample into evaluator
                 self.evaluator.add_batch(target, pred)
-            batch_size = pred.shape[0]
             
             if self.args.dump_image:
                 results = pred.copy()
                 results[results==1] = 255
-                for _id in range(batch_size):
+                for _id in range(self.args.batch_size):
                     img_name = img_names[_id]
                     out_img_filepath = os.path.join(output_img_dir, img_name)
                     cv2.imwrite(out_img_filepath, results[_id])
                 
-        if (self.args.testValTrain == 1 or self.args.testValTrain == 4) and self.args.master:
+        if self.args.testValTrain >= 1 and self.args.master:
             # Fast test during the training
             Acc = self.evaluator.Pixel_Accuracy()
             Acc_class = self.evaluator.Pixel_Accuracy_Class()
@@ -300,6 +304,8 @@ class distWorker(object):
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
             print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
             print('Loss: %.5f' % test_loss)
+            # self.args.log_file.write("Epoch: %d, Tes, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
+            self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
 
 
 def main(args):
@@ -344,15 +350,15 @@ def main(args):
         args.checkname = 'deeplab-'+str(args.backbone)
     print(args)
     torch.manual_seed(args.seed)
-    trainer = distTrainer(args)
-    print('Starting Epoch:', trainer.args.start_epoch)
-    print('Total Epoches:', trainer.args.epochs)
-    for epoch in range(trainer.args.start_epoch, trainer.args.epochs):
-        trainer.training(epoch)
-        if not trainer.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
-            trainer.validation(epoch)
+    worker = distWorker(args)
+    print('Starting Epoch:', worker.args.start_epoch)
+    print('Total Epoches:', worker.args.epochs)
+    for epoch in range(worker.args.start_epoch, worker.args.epochs):
+        worker.training(epoch)
+        if not worker.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
+            worker.validation(epoch)
 
-    trainer.writer.close()
+    worker.writer.close()
 
 def plot_image():
     print('call plot image fun')

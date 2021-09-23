@@ -29,11 +29,15 @@ class Saver(object):
                 self.experiment_dir = os.path.join(self.directory, 'testResult_{}'.format(str(run_id)))
         else:
             return
+
+        self.logfile = os.path.join(self.experiment_dir, 'parameters.txt')
         # print('self.args.rank', self.args.rank)
         if not self.args.master:
             return
         if not os.path.exists(self.experiment_dir):
             os.makedirs(self.experiment_dir)
+        if os.path.exists(self.logfile):
+            os.remove(self.logfile)
 
     def save_checkpoint(self, state, is_best, filename='checkpoint.pth.tar'):
         """Saves checkpoint to disk"""
@@ -58,26 +62,34 @@ class Saver(object):
                         continue
                 max_miou = max(previous_miou)
                 if best_pred > max_miou:
-                    shutil.copyfile(filename, os.path.join(self.directory, 'model_best.pth.tar'))
+                    shutil.copyfile(filename, os.path.join(self.experiment_dir, 'model_best.pth.tar'))
             else:
-                shutil.copyfile(filename, os.path.join(self.directory, 'model_best.pth.tar'))
+                shutil.copyfile(filename, os.path.join(self.experiment_dir, 'model_best.pth.tar'))
 
     def save_experiment_config(self):
         if not self.args.master:
             return
-        logfile = os.path.join(self.experiment_dir, 'parameters.txt')
-        log_file = open(logfile, 'w')
-        # p = OrderedDict()
-        # p['datset'] = self.args.dataset
-        # p['backbone'] = self.args.backbone
-        # p['out_stride'] = self.args.out_stride
-        # p['lr'] = self.args.lr
-        # p['lr_scheduler'] = self.args.lr_scheduler
-        # p['loss_type'] = self.args.loss_type
-        # p['epoch'] = self.args.epochs
-        # p['base_size'] = self.args.base_size
-        # p['crop_size'] = self.args.crop_size
         p=vars(self.args)
+        log_file = open(self.logfile, "a+")
         for key, val in p.items():
             log_file.write(key + ':' + str(val) + '\n')
-        log_file.close()
+        log_file.write('\n')
+        log_file.close()# 
+        # return log_file
+        # logfile = os.path.join(self.experiment_dir, 'parameters.txt')
+        # self.args.log_file = open(logfile, 'w')
+        # for key, val in p.items():
+        #     self.args.log_file.write(key + ':' + str(val) + '\n')
+        # self.args.log_file.write('\n')
+
+    def write_log_to_txt(self, data):
+        assert isinstance(data, str)
+        if not self.args.master:
+            return
+        log_file = open(self.logfile, "a+")
+        if data.endswith('\n'):
+            log_file.write(data)
+        else:
+            log_file.write(data+'\n')
+        log_file.close()# 
+

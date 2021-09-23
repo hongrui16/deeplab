@@ -126,8 +126,8 @@ parser.add_argument('--rotate_degree', type=int, default=15)
 parser.add_argument('--n_classes', type=int, default=2)
 parser.add_argument('--dataset', type=str, default='basicDataset')
 parser.add_argument('--dataset_dir', type=str, default='/home/hongrui/project/metro_pro/dataset/1st_2000', help='dataset dir')
-parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: test, 1: testval, 2: trainval, 3: train, 4: train')
-parser.add_argument('--testset_dir', type=str, default=None, help='input test image dir')
+parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: infer, 1: test, 2: train, 3: trainval, 4: trainvaltest')
+parser.add_argument('--testset_dir', type=str, default=None, help='input test or inference image dir')
 parser.add_argument('--testOut_dir', type=str, default=None, help='test image output dir')
 parser.add_argument('--dump_image', action='store_true', default=False,
                     help='dump image when test')
@@ -145,17 +145,17 @@ def main(args):
     import os
 
     if args.testValTrain == 0:
-        print('only test')
+        print('only inference')
     elif args.testValTrain == 1:
-        print('test and val')
+        print('test (calculate metrics)')
     elif args.testValTrain == 2:
-        print('train and val')
+        print('only training')
     elif args.testValTrain == 3:
-        print('only train')
+        print('train and val')
     elif args.testValTrain == 4:
         print('train, val, and test')
     else:
-        print('please select a mode (0: test, 1: testval, 2: trainval, 3: train)')
+        print('please select a mode (0: infer, 1: test, 2: train, 3: trainval, 4: trainvaltest)')
         return
     if args.seed is not None:
         random.seed(args.seed)
@@ -166,11 +166,6 @@ def main(args):
                       'which can slow down your training considerably! '
                       'You may see unexpected behavior when restarting '
                       'from checkpoints.')
-
-    if args.gpu is not None:
-        warnings.warn('You have chosen a specific GPU. This will completely '
-                      'disable data parallelism.')
-    # slurm available
     
     if args.world_size == -1 and "SLURM_NPROCS" in os.environ:
         args.world_size = int(os.environ["SLURM_NPROCS"])
@@ -179,7 +174,7 @@ def main(args):
     else:
         args.world_size = 1
         args.rank = 0
-        jobid = '101'
+        jobid = f'{random.randint(1,20)}'
     hostfile = "dist_url." + jobid  + ".txt"
     if os.path.exists(hostfile):
         os.remove(hostfile)

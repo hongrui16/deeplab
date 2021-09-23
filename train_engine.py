@@ -71,19 +71,27 @@ def main_worker(gpu, ngpus_per_node, args):
     torch.manual_seed(args.seed)
     # return
     worker = distWorker(args)
+    # print('args.log_file', args.log_file)
+    # if args.master:
+    #     args.log_file.write('\n')
+
+    # return
     print(f'rank {args.rank} Starting Epoch: {worker.args.start_epoch}, Total Epoches: {worker.args.epochs}')
     if args.testValTrain >= 2:
         for epoch in range(worker.args.start_epoch, worker.args.epochs):
             worker.training(epoch)
             if not worker.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
                 worker.validation(epoch)
-            if epoch % 5 == 0 and args.testValTrain == 4:
+            if args.testValTrain == 4 and epoch % 1 == 0:
                 worker.test(epoch)
+            if args.master:
+                worker.saver.write_log_to_txt('\n')
+
+
     elif 0 <= args.testValTrain <= 1:
         worker.test()
     if args.master:
         worker.writer.close()
-
 
 
 
