@@ -249,11 +249,11 @@ class LimitResize(object):
         w, h = img.size
         resize_flag = True
         if w > h > self.size:
-            oh = self.size
-            ow = int(self.size/h*w)
-        elif h > w > self.size:
             oh = int(self.size/w*h)
             ow = self.size
+        elif h > w > self.size:
+            oh = self.size
+            ow = int(self.size/h*w)
         else:
             resize_flag = False
         if resize_flag:
