@@ -165,7 +165,7 @@ class distTrainer(object):
                 interval = num_img_tr // 10 if num_img_tr // 10 else 1
                 if i % interval == 0:
                     global_step = i + num_img_tr * epoch
-                    self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step)
+                    self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'train')
             
             # del sample
 
@@ -189,6 +189,7 @@ class distTrainer(object):
         self.model.eval()
         self.evaluator.reset()
         tbar = tqdm(self.val_loader, desc='\r')
+        num_img_tr = len(self.val_loader)
         test_loss = 0.0
         for i, sample in enumerate(tbar):
             # if not i % 200 == 0:
@@ -202,11 +203,17 @@ class distTrainer(object):
             test_loss += loss.item()
             if self.args.master:
                 tbar.set_description('Val loss: %.5f' % (test_loss / (i + 1)))
+                interval = num_img_tr // 10 if num_img_tr // 10 else 1
+                if i % interval == 0:
+                    global_step = i + num_img_tr * epoch
+                    self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'val')
+                    
             pred = output.data.cpu().numpy()
             target = target.cpu().numpy()
             pred = np.argmax(pred, axis=1)
             # Add batch sample into evaluator
             self.evaluator.add_batch(target, pred)
+            
 
         # Fast test during the training
         Acc = self.evaluator.Pixel_Accuracy()
@@ -257,7 +264,7 @@ class distTrainer(object):
                 interval = num_img_tr // 10 if num_img_tr // 10 else 1
                 if i % interval == 0:
                     global_step = i + num_img_tr * epoch
-                    self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step)
+                    self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'test')
             
             pred = output.data.cpu().numpy()
             pred = np.argmax(pred, axis=1)
