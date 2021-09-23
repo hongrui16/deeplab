@@ -126,7 +126,7 @@ parser.add_argument('--rotate_degree', type=int, default=15)
 parser.add_argument('--n_classes', type=int, default=2)
 parser.add_argument('--dataset', type=str, default='basicDataset')
 parser.add_argument('--dataset_dir', type=str, default='/home/hongrui/project/metro_pro/dataset/1st_2000', help='dataset dir')
-parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: test, 1: testval, 2: trainval, 3: train, 4: trainvaltest')
+parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: test, 1: testval, 2: trainval, 3: train, 4: train')
 parser.add_argument('--testset_dir', type=str, default=None, help='input test image dir')
 parser.add_argument('--testOut_dir', type=str, default=None, help='test image output dir')
 parser.add_argument('--dump_image', action='store_true', default=False,
@@ -152,9 +152,11 @@ def main(args):
         print('train and val')
     elif args.testValTrain == 3:
         print('only train')
+    elif args.testValTrain == 4:
+        print('train, val, and test')
     else:
         print('please select a mode (0: test, 1: testval, 2: trainval, 3: train)')
-    
+        return
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)
