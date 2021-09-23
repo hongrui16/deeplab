@@ -12,6 +12,9 @@ This is a PyTorch implementation of [DeepLab-V3-Plus](https://arxiv.org/pdf/1802
 can use Modified Aligned Xception and ResNet as backbone. Currently, we train DeepLab V3 Plus
 using Pascal VOC 2012, SBD, Cityscapes, and customer-made datasets.
 
+## Train, Val, and Test selection
+testValTrain: '-1: no, 0: test, 1: testval, 2: trainval, 3: train, 4: trainvaltest'
+
 ## How to train
 ### 1 Use slurm
 #### 1.1 foreground running
@@ -19,7 +22,7 @@ srun -N1 --cpus-per-task 32 --gres gpu:4 python train_main.py --testValTrain 2
 #### 1.2 background running
 sbatch background_running.slurm
 ### 2 directly use gpu machines
-CUDA_VISIBLE_DEVICES=0,1,2,3 python train_main.py --testValTrain 2
+CUDA_VISIBLE_DEVICES=0,1,2,3 python train_main.py --testValTrain 4 --resume run/basicDataset/deeplab-resnet/experiment_7/checkpoint.pth.tar --loss_type ce
 
 ## How to test or val
 ### 1 Use slurm
