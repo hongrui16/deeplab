@@ -99,14 +99,14 @@ parser.add_argument('--no-val', action='store_true', default=False,
 
 
 # training hyper params
-parser.add_argument('--epochs', type=int, default=75, metavar='N',
+parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train (default: auto)')
 parser.add_argument('--start_epoch', type=int, default=0,
                     metavar='N', help='start epochs (default:0)')
 parser.add_argument('--use-balanced-weights', action='store_true', default=False,
                     help='whether to use balanced weights (default: False)')
 
-parser.add_argument('--loss-type', type=str, default='ce',
+parser.add_argument('--loss_type', type=str, default='focal',
                     choices=['ce', 'focal', 'FSOhemCELoss'],
                     help='loss func type (default: focal)')
 parser.add_argument('--batch-size', type=int, default=8,
@@ -126,10 +126,11 @@ parser.add_argument('--rotate_degree', type=int, default=15)
 parser.add_argument('--n_classes', type=int, default=2)
 parser.add_argument('--dataset', type=str, default='basicDataset')
 parser.add_argument('--dataset_dir', type=str, default='/home/hongrui/project/metro_pro/dataset/1st_2000', help='dataset dir')
-parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: test, 1: testval, 2: trainval, 3: train')
+parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: test, 1: testval, 2: trainval, 3: train, 4: trainvaltest')
 parser.add_argument('--testset_dir', type=str, default=None, help='input test image dir')
 parser.add_argument('--testOut_dir', type=str, default=None, help='test image output dir')
-
+parser.add_argument('--dump_image', action='store_true', default=False,
+                    help='dump image when test')
 args = parser.parse_args()
 
 

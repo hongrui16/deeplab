@@ -26,7 +26,7 @@ from runx.logx import logx
 
 # print(f'calling {__file__}, {sys._getframe().f_lineno}')
 
-class distTrainer(object):
+class distWorker(object):
     def __init__(self, args):
         self.args = args
         # Define Saver
@@ -162,7 +162,7 @@ class distTrainer(object):
                 self.writer.add_scalar('train/total_loss_iter', loss.item(), i + num_img_tr * epoch)
 
                 # # Show 10 * 3 inference results each epoch
-                interval = num_img_tr // 10 if num_img_tr // 10 else 1
+                interval = num_img_tr // 5 if num_img_tr // 5 else 1
                 if i % interval == 0:
                     global_step = i + num_img_tr * epoch
                     self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'train')
@@ -194,7 +194,7 @@ class distTrainer(object):
         for i, sample in enumerate(tbar):
             # if not i % 200 == 0:
             #     continue
-            image, target, img_names = sample['image'], sample['label'], sample['img_name']
+            image, target, _ = sample['image'], sample['label'], sample['img_name']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
             with torch.no_grad():
@@ -203,7 +203,7 @@ class distTrainer(object):
             test_loss += loss.item()
             if self.args.master:
                 tbar.set_description('Val loss: %.5f' % (test_loss / (i + 1)))
-                interval = num_img_tr // 10 if num_img_tr // 10 else 1
+                interval = num_img_tr // 5 if num_img_tr // 5 else 1
                 if i % interval == 0:
                     global_step = i + num_img_tr * epoch
                     self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'val')
@@ -252,8 +252,6 @@ class distTrainer(object):
         output_img_dir = self.saver.experiment_dir
         num_img_tr = len(self.test_loader)
         for i, sample in enumerate(tbar):
-            if self.args.test_batch_size*i > 200:
-                return
             image, target, img_names = sample['image'], sample['label'], sample['img_name']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
@@ -268,39 +266,40 @@ class distTrainer(object):
             
             pred = output.data.cpu().numpy()
             pred = np.argmax(pred, axis=1)
-            if self.args.testValTrain == 1:
+            if self.args.testValTrain == 1 or self.args.testValTrain == 4:
                 loss = self.criterion(output, target)
                 test_loss += loss.item()
                 if self.args.master:
-                    tbar.set_description('Val loss: %.5f' % (test_loss / (i + 1)))
+                    tbar.set_description('Test loss: %.5f' % (test_loss / (i + 1)))
             
                 target = target.cpu().numpy()
                 # Add batch sample into evaluator
                 self.evaluator.add_batch(target, pred)
             batch_size = pred.shape[0]
-            results = pred.copy()
-            results[results==1] = 255
-            for _id in range(batch_size):
-                img_name = img_names[_id]
-                out_img_filepath = os.path.join(output_img_dir, img_name)
-                cv2.imwrite(out_img_filepath, results[_id])
             
-        if self.args.testValTrain == 1:
+            if self.args.dump_image:
+                results = pred.copy()
+                results[results==1] = 255
+                for _id in range(batch_size):
+                    img_name = img_names[_id]
+                    out_img_filepath = os.path.join(output_img_dir, img_name)
+                    cv2.imwrite(out_img_filepath, results[_id])
+                
+        if (self.args.testValTrain == 1 or self.args.testValTrain == 4) and self.args.master:
             # Fast test during the training
             Acc = self.evaluator.Pixel_Accuracy()
             Acc_class = self.evaluator.Pixel_Accuracy_Class()
             mIoU = self.evaluator.Mean_Intersection_over_Union()
             FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
-            if self.args.master:
-                self.writer.add_scalar('test/total_loss_epoch', test_loss, epoch)
-                self.writer.add_scalar('test/mIoU', mIoU, epoch)
-                self.writer.add_scalar('test/Acc', Acc, epoch)
-                self.writer.add_scalar('test/Acc_class', Acc_class, epoch)
-                self.writer.add_scalar('test/fwIoU', FWIoU, epoch)
-                print('Test:')
-                print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
-                print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
-                print('Loss: %.5f' % test_loss)
+            self.writer.add_scalar('test/total_loss_epoch', test_loss, epoch)
+            self.writer.add_scalar('test/mIoU', mIoU, epoch)
+            self.writer.add_scalar('test/Acc', Acc, epoch)
+            self.writer.add_scalar('test/Acc_class', Acc_class, epoch)
+            self.writer.add_scalar('test/fwIoU', FWIoU, epoch)
+            print('Test:')
+            print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
+            print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
+            print('Loss: %.5f' % test_loss)
 
 
 def main(args):
