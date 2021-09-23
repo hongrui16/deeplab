@@ -139,7 +139,7 @@ class distTrainer(object):
             #     continue
             # print(f'rank {self.args.rank} dataload time {round(time.time() - start, 3)}')
             # start = time.time()
-            image, target, img_names = sample['image'], sample['label'], sample['img_name']
+            image, target, _ = sample['image'], sample['label'], sample['img_name']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
@@ -153,7 +153,7 @@ class distTrainer(object):
             # start = time.time()
             loss.backward()
             # print(f'rank {self.args.rank} loss backward time {round(time.time() - start, 3)}')
-            start = time.time()
+            # start = time.time()
             self.optimizer.step()
             train_loss += loss.item()
             
@@ -161,12 +161,14 @@ class distTrainer(object):
                 tbar.set_description('Train loss: %.5f' % (train_loss / (i + 1)))
                 self.writer.add_scalar('train/total_loss_iter', loss.item(), i + num_img_tr * epoch)
 
-            # # Show 10 * 3 inference results each epoch
-            if self.args.master:
+                # # Show 10 * 3 inference results each epoch
                 interval = num_img_tr // 10 if num_img_tr // 10 else 1
                 if i % interval == 0:
                     global_step = i + num_img_tr * epoch
                     self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step)
+            
+            # del sample
+
         if self.args.master:
             self.writer.add_scalar('train/total_loss_epoch', train_loss, epoch)
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
@@ -181,7 +183,7 @@ class distTrainer(object):
                     'optimizer': self.optimizer.state_dict(),
                     'best_pred': self.best_pred,
                 }, is_best)
-        start = time.time()
+        # start = time.time()
 
     def validation(self, epoch):
         self.model.eval()

@@ -54,7 +54,7 @@ parser.add_argument('--multiprocessing-distributed', action='store_true', defaul
 parser.add_argument('--backbone', type=str, default='resnet',
                         choices=['resnet', 'xception', 'drn', 'mobilenet'],
                         help='backbone name (default: resnet)')
-parser.add_argument('--out-stride', type=int, default=16,
+parser.add_argument('--out-stride', type=int, default=8,
                     help='network output stride (default: 8)')
 
 parser.add_argument('--use-sbd', action='store_true', default=False,
@@ -99,17 +99,17 @@ parser.add_argument('--no-val', action='store_true', default=False,
 
 
 # training hyper params
-parser.add_argument('--epochs', type=int, default=65, metavar='N',
+parser.add_argument('--epochs', type=int, default=75, metavar='N',
                     help='number of epochs to train (default: auto)')
 parser.add_argument('--start_epoch', type=int, default=0,
                     metavar='N', help='start epochs (default:0)')
 parser.add_argument('--use-balanced-weights', action='store_true', default=False,
                     help='whether to use balanced weights (default: False)')
 
-parser.add_argument('--loss-type', type=str, default='focal',
-                    choices=['ce', 'focal'],
-                    help='loss func type (default: ce)')
-parser.add_argument('--batch-size', type=int, default=16,
+parser.add_argument('--loss-type', type=str, default='ce',
+                    choices=['ce', 'focal', 'FSOhemCELoss'],
+                    help='loss func type (default: focal)')
+parser.add_argument('--batch-size', type=int, default=8,
                     metavar='N', help='input batch size for \
                             training (default: auto)')
 parser.add_argument('--test-batch-size', type=int, default=8,
@@ -119,12 +119,12 @@ parser.add_argument('--workers', type=int, default=4,
                     metavar='N', help='dataloader threads')
 parser.add_argument('--hw_ratio', type=float, default=1.25)
 parser.add_argument('--ignore_index', type=int, default=255)
-parser.add_argument('--base_size', type=int, default=720)
-parser.add_argument('--crop_size', type=int, default=720)
+parser.add_argument('--base_size', type=int, default=640)
+parser.add_argument('--crop_size', type=int, default=640)
 parser.add_argument('--rotate_degree', type=int, default=15)
 parser.add_argument('--n_classes', type=int, default=2)
 parser.add_argument('--dataset', type=str, default='basicDataset')
-parser.add_argument('--dataset_dir', type=str, default=None, help='dataset dir')
+parser.add_argument('--dataset_dir', type=str, default='/home/hongrui/project/metro_pro/dataset/1st_2000', help='dataset dir')
 parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: test, 1: testval, 2: trainval, 3: train')
 parser.add_argument('--testset_dir', type=str, default=None, help='input test image dir')
 parser.add_argument('--testOut_dir', type=str, default=None, help='test image output dir')
@@ -177,8 +177,13 @@ def main(args):
         args.rank = 0
         jobid = '101'
     hostfile = "dist_url." + jobid  + ".txt"
+    if os.path.exists(hostfile):
+        os.remove(hostfile)
     if args.dist_file is not None:
-        args.dist_url = "file://{}.{}".format(os.path.realpath(args.dist_file), jobid)
+        url_file = f"{os.path.realpath(args.dist_file)}.{jobid}"
+        if os.path.exists(url_file):
+            os.remove(url_file)
+        args.dist_url = f"file://{url_file}"
     elif args.rank == 0:
         import socket
         ip = socket.gethostbyname(socket.gethostname())

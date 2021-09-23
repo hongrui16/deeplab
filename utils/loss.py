@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class SegmentationLosses(object):
     def __init__(self, weight=None, size_average=True, batch_average=True, ignore_index=255, cuda=False, args = None):
@@ -7,6 +8,9 @@ class SegmentationLosses(object):
             self.ignore_index = args.ignore_index
         else:
             self.ignore_index = ignore_index
+        if not weight:
+            ce_weight = [0.1, 0.3]
+            weight = torch.FloatTensor(ce_weight).cuda()
         self.weight = weight
         self.size_average = size_average
         self.batch_average = batch_average
@@ -18,6 +22,8 @@ class SegmentationLosses(object):
             return self.CrossEntropyLoss
         elif mode == 'focal':
             return self.FocalLoss
+        elif mode == 'FSOhemCELoss':
+            return self.FSOhemCELoss
         else:
             raise NotImplementedError
 
@@ -52,6 +58,43 @@ class SegmentationLosses(object):
             loss /= n
 
         return loss
+
+    def FSOhemCELoss(self, predict, target):
+        """
+            Args:
+                predict:(n, c, h, w)
+                target:(n, h, w)
+                weight (Tensor, optional): a manual rescaling weight given to each class.
+                                           If given, has to be a Tensor of size "nclasses"
+        """
+        print('predict.size(), target.size()', predict.size(), target.size())
+        self.reduction = 'elementwise_mean'
+        self.thresh = 0.7
+        self.min_kept = 50000
+        ce_weight = [0.1, 3]
+        weight = torch.FloatTensor(ce_weight).cuda()
+        self.ce_loss = nn.CrossEntropyLoss(weight=weight, ignore_index=self.ignore_index, reduction='none')
+
+        prob_out = F.softmax(predict, dim=1)
+        tmp_target = target.clone()
+        tmp_target[tmp_target == self.ignore_index] = 0
+        print('type(tmp_target.unsqueeze(1))', type(tmp_target.unsqueeze(1)))
+        prob = prob_out.gather(1, tmp_target.unsqueeze(1))
+        mask = target.contiguous().view(-1,) != self.ignore_index
+        mask[0] = 1  # Avoid `mask` being empty
+        sort_prob, sort_indices = prob.contiguous().view(-1,)[mask].contiguous().sort()
+        min_threshold = sort_prob[min(self.min_kept, sort_prob.numel() - 1)]
+        threshold = max(min_threshold, self.thresh)
+        loss_matirx = self.ce_loss(predict, target).contiguous().view(-1,)
+        sort_loss_matirx = loss_matirx[mask][sort_indices]
+        select_loss_matrix = sort_loss_matirx[sort_prob < threshold]
+        if self.reduction == 'sum':
+            return select_loss_matrix.sum()
+        elif self.reduction == 'elementwise_mean':
+            return select_loss_matrix.mean()
+        else:
+            raise NotImplementedError('Reduction Error!')
+
 
 if __name__ == "__main__":
     loss = SegmentationLosses(cuda=True)

@@ -100,8 +100,6 @@ class BasicDataset(Dataset):
             tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index),
             tr.RandomHorizontalFlip(),
             tr.RandomRotate(degree = self.args.rotate_degree),
-            # tr.RandomCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index),
-            
             tr.RandomGaussianBlur(),
             tr.FixScaleCrop(crop_size=self.args.crop_size),
             tr.FixedResize(size=self.args.crop_size),

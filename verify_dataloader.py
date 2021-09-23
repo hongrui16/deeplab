@@ -50,8 +50,8 @@ if __name__ == '__main__':
     os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-im', '--input_dir', type=str, default=None)
-    parser.add_argument('-om', '--output_dir', type=str, default=None)
+    parser.add_argument('-im', '--input_dir', type=str, default='/home/hongrui/project/metro_pro/dataset/1st_2000')
+    parser.add_argument('-om', '--output_dir', type=str, default='temp')
     parser.add_argument('--batch-size', type=int, default=16,
                     metavar='N', help='input batch size for \
                             training (default: auto)')
@@ -86,11 +86,11 @@ if __name__ == '__main__':
     basicDataset_test = basicDataset.BasicDataset(args, root, split="test")
 
     train_loader = DataLoader(basicDataset_train, batch_size=2, shuffle=False, num_workers=2)
-    test_loader = DataLoader(basicDataset_test, batch_size=2, shuffle=False, num_workers=2)
+    # test_loader = DataLoader(basicDataset_test, batch_size=2, shuffle=False, num_workers=2)
 
 
     save_img_mask(train_loader, args.output_dir)
-    save_img_mask(test_loader, args.output_dir)
+    # save_img_mask(test_loader, args.output_dir)
     # plt.show()
     # plt.show(block=True)
 

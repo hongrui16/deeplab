@@ -25,13 +25,15 @@ def main_worker(gpu, ngpus_per_node, args):
         # return
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
-
-    args.cuda = not args.no_cuda and torch.cuda.is_available()
+    # print(f'rank: {args.rank}, gpu: {gpu}')
+    print(f'calling {__file__}, {sys._getframe().f_lineno}, rank: {args.rank}, gpu: {gpu}')
 
     if not args.multiprocessing_distributed or (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
         args.master = True
     else:
         args.master = False
+    args.cuda = not args.no_cuda and torch.cuda.is_available()
+
 
     if args.sync_bn is None:
         if args.cuda and args.rank > 1:
@@ -67,7 +69,7 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.master:
         print(args)
     torch.manual_seed(args.seed)
-
+    # return
     trainer = distTrainer(args)
     print(f'rank {args.rank} Starting Epoch: {trainer.args.start_epoch}, Total Epoches: {trainer.args.epochs}')
     if args.testValTrain >= 2:

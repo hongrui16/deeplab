@@ -86,13 +86,14 @@ class RandomRotate(object):
     def __call__(self, sample):
         img = sample['image']
         mask = sample['label']
-        rotate_degree = random.uniform(-1*self.degree, self.degree)
-        img = img.rotate(rotate_degree, Image.BILINEAR)
-        mask = mask.rotate(rotate_degree, Image.NEAREST)
-        # return {'image': img,
-        #         'label': mask}
-        sample['image'] = img
-        sample['label'] = mask
+        if random.random() < 0.5:
+            rotate_degree = random.uniform(-1*self.degree, self.degree)
+            img = img.rotate(rotate_degree, Image.BILINEAR)
+            mask = mask.rotate(rotate_degree, Image.NEAREST)
+            # return {'image': img,
+            #         'label': mask}
+            sample['image'] = img
+            sample['label'] = mask
         return sample
 
 
@@ -202,8 +203,8 @@ class ShortEdgeCrop(object):
         # center crop
         x1 = int(round((w - ow) / 2.))
         y1 = int(round((h - oh) / 2.))
-        img = img.crop((x1, y1, x1 + ow, y1 + ow))
-        mask = mask.crop((x1, y1, x1 + oh, y1 + oh))
+        img = img.crop((x1, y1, x1 + ow, y1 + oh))
+        mask = mask.crop((x1, y1, x1 + ow, y1 + oh))
 
         # return {'image': img,
         #         'label': mask}

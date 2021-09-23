@@ -43,6 +43,7 @@ def make_data_loader(args, **kwargs):
     elif args.dataset == 'basicDataset':
         # print(f'calling {__file__}, {sys._getframe().f_lineno}')
         train_set = basicDataset.BasicDataset(args, split="train")
+        # train_set = basicDataset.BasicDataset(args, split="val")
         val_set = basicDataset.BasicDataset(args, split="val")
         test_set = basicDataset.BasicDataset(args, split="test")
         num_class = args.n_classes

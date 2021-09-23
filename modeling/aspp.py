@@ -63,6 +63,7 @@ class ASPP(nn.Module):
         self._init_weight()
 
     def forward(self, x):
+        
         x1 = self.aspp1(x)
         x2 = self.aspp2(x)
         x3 = self.aspp3(x)
@@ -74,7 +75,7 @@ class ASPP(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-
+        # print('output size', x.size())
         return self.dropout(x)
 
     def _init_weight(self):
