@@ -10,7 +10,7 @@
 ## Introduction
 This is a PyTorch implementation of [DeepLab-V3-Plus](https://arxiv.org/pdf/1802.02611). It
 can use Modified Aligned Xception and ResNet as backbone. Currently, we train DeepLab V3 Plus
-using Pascal VOC 2012, SBD, Cityscapes, and customer-made datasets.
+using Pascal VOC 2012, SBD, Cityscapes, and basicDataset(customer-made) datasets.
 
 ## Train, Val, and Test selection
 testValTrain: '-1: no, 0: test, 1: testval, 2: trainval, 3: train, 4: trainvaltest'
@@ -33,6 +33,31 @@ testValTrain = 1
 sbatch background_running.slurm
 ### 2 directly use gpu machines
 CUDA_VISIBLE_DEVICES=0,1,2,3 python train_main.py --testValTrain 1
+
+##prepare basicDataset(customer-made) datasets
+/datasets
+    /train
+        /image
+            a.jpg
+            ...
+        /label
+            a.png
+            ...
+    /val
+        /image
+            b.jpg
+            ...
+        /label
+            b.png
+            ...
+    /test
+        /image
+            c.jpg
+            ...
+        /label
+            c.png
+            ...
+
 
 ## Acknowledgement
 [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception.git)
