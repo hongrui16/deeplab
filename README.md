@@ -89,37 +89,42 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python train_main.py --testValTrain 1 --resume run/
 [drn](https://github.com/fyu/drn)
 
 
-
-## how to push and pull code on GitHub
-1.git init
-
-#初始化本地仓库
-
-2.git remote add origin https://github.com/hongrui16/deeplab.git (或git:git的地址)
-
-#关联本地仓库到远程仓库
-
+## How to push and pull code on GitHub
+1. 初始化本地仓库
+```
+git init
+```
+2. 关联本地仓库到远程仓库
+```
+git remote add origin https://github.com/hongrui16/deeplab.git
+```
+3. 添加要提交的文件到暂存区
+```
 git add *
-#添加要提交的文件到暂存区
+```
+4. 提交代码到文件控制仓库
+```
+git commit -m "init commint"
+```
+5. 将远程主机的更新，全部取回本地
+```
+git fetch origin
+```
 
-4.git commit -m "init commint"
+6. 拉取远程分支代码到本地
+```
+git pull origin main 
+```
+如果报错用这个 
+```
+git pull origin main --allow-unrelated-histories
+```
 
-#提交代码到文件控制仓库
+7. 提交本地分支(main)代码到远程分支(main)
+```
+git push -u origin main
+```
 
-5.git fetch origin
+### Q: 本地仓库的东西push到远程仓库时报错
 
-#将远程主机的更新，全部取回本地
-
-6.git pull origin main 如果报错用这个 git pull origin main --allow-unrelated-histories
-
-#拉取远程分支代码到本地
-
-7.git push -u origin main
-
-#提交本地分支(main)代码到远程分支(main)
-
-本地仓库的东西push到远程仓库时报错：
-
-看网上很多人说是因为本地仓库的文件和远程仓库不一样，所以要先用命令git pull -f origin main将远程仓库的文件拉到本地：
-
-可是这样做之后再git push还是没有用，还是报同样的错误。 于是就用git push -f origin main强制push就成功了。（注意：大家千万不要随便用-f的操作，因为f意味着强制push，会覆盖掉远程的所有代码！）
+A: 因为本地仓库的文件和远程仓库不一样，所以要先用命令git pull -f origin main将远程仓库的文件拉到本地. 可是这样做之后再git push还是没有用，还是报同样的错误。 于是就用git push -f origin main强制push就成功了。（注意：大家千万不要随便用-f的操作，因为f意味着强制push，会覆盖掉远程的所有代码！）
