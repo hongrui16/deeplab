@@ -43,10 +43,10 @@ using Pascal VOC 2012, SBD, Cityscapes, and basicDataset(customer-made) datasets
 ## Train, Val, and Test selection
 args.testValTrain: '-1: no, 0: infer, 1: test, 2: train, 3: trainval, 4: trainvaltest'
 ```
-    no: do nothing
-    infer: only do inference
-    test: inference and calculate metrics such as miou and fwiou
-    ...
+no: do nothing
+infer: only do inference
+test: inference and calculate metrics such as miou and fwiou
+...
 ```
 
 ## How to train
