@@ -94,8 +94,8 @@ parser.add_argument('--ft', action='store_true', default=False,
 # evaluation option
 parser.add_argument('--eval-interval', type=int, default=1,
                     help='evaluuation interval (default: 1)')
-parser.add_argument('--no_val', action='store_true', default=False,
-                    help='skip validation during training')
+# parser.add_argument('--no_val', action='store_true', default=False,
+#                     help='skip validation during training')
 
 
 # training hyper params
