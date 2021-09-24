@@ -112,7 +112,7 @@ parser.add_argument('--loss_type', type=str, default='focal',
 parser.add_argument('--batch-size', type=int, default=8,
                     metavar='N', help='input batch size for \
                             training (default: auto)')
-parser.add_argument('--test-batch-size', type=int, default=8,
+parser.add_argument('--test-batch-size', type=int, default=6,
                     metavar='N', help='input batch size for \
                             testing (default: auto)')
 parser.add_argument('--workers', type=int, default=4,
@@ -121,7 +121,7 @@ parser.add_argument('--hw_ratio', type=float, default=1.25)
 parser.add_argument('--ignore_index', type=int, default=255)
 parser.add_argument('--base_size', type=int, default=640)
 parser.add_argument('--crop_size', type=int, default=640)
-parser.add_argument('--max_size', type=int, default=1080)
+parser.add_argument('--max_size', type=int, default=1440)
 parser.add_argument('--rotate_degree', type=int, default=15)
 parser.add_argument('--n_classes', type=int, default=2)
 parser.add_argument('--dataset', type=str, default='basicDataset')

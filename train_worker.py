@@ -49,38 +49,32 @@ class distWorker(object):
                         sync_bn=args.sync_bn,
                         freeze_bn=args.freeze_bn)
 
-        train_params = [{'params': self.model.get_1x_lr_params(), 'lr': args.lr},
+        if args.testValTrain > 0:#testValTrain = 0, inference only
+            # Define Optimizer
+            train_params = [{'params': self.model.get_1x_lr_params(), 'lr': args.lr},
                         {'params': self.model.get_10x_lr_params(), 'lr': args.lr * 10}]
+            self.optimizer = torch.optim.SGD(train_params, momentum=args.momentum,
+                                        weight_decay=args.weight_decay, nesterov=args.nesterov)
 
-        # Define Optimizer
-        # print(f'args.rank {args.rank} Define Optimizer')
-        self.optimizer = torch.optim.SGD(train_params, momentum=args.momentum,
-                                    weight_decay=args.weight_decay, nesterov=args.nesterov)
-
-        # Define Criterion
-        # whether to use class balanced weights
-        if args.use_balanced_weights:
-            classes_weights_path = os.path.join(Path.db_root_dir(args.dataset), args.dataset+'_classes_weights.npy')
-            if os.path.isfile(classes_weights_path):
-                weight = np.load(classes_weights_path)
+            # Define Criterion
+            # whether to use class balanced weights
+            if args.use_balanced_weights:
+                classes_weights_path = os.path.join(Path.db_root_dir(args.dataset), args.dataset+'_classes_weights.npy')
+                if os.path.isfile(classes_weights_path):
+                    weight = np.load(classes_weights_path)
+                else:
+                    weight = calculate_weigths_labels(args.dataset, self.train_loader, self.nclass)
+                weight = torch.from_numpy(weight.astype(np.float32))
             else:
-                weight = calculate_weigths_labels(args.dataset, self.train_loader, self.nclass)
-            weight = torch.from_numpy(weight.astype(np.float32))
-        else:
-            weight = None
-        self.criterion = SegmentationLosses(weight=weight, cuda=args.cuda, args = args).build_loss(mode=args.loss_type)
-        
-        # print(f'calling {__file__}, {sys._getframe().f_lineno}')
-        # self.writer.add_text('my_log', 'Define Evaluator and scheduler')
-        # print(f'args.rank {args.rank} Define Evaluator and scheduler')
-        # Define Evaluator
-        self.evaluator = Evaluator(self.nclass)
-        # Define lr scheduler
-        self.scheduler = LR_Scheduler(args.lr_scheduler, args.lr,
-                                            args.epochs, len(self.train_loader), args = args)
+                weight = None
+            self.criterion = SegmentationLosses(weight=weight, cuda=args.cuda, args = args).build_loss(mode=args.loss_type)
+            
+            # Define Evaluator
+            self.evaluator = Evaluator(self.nclass)
+            # Define lr scheduler
+            self.scheduler = LR_Scheduler(args.lr_scheduler, args.lr,
+                                                args.epochs, len(self.train_loader), args = args)
 
-        # print(f'args.rank {args.rank} Define DataParallel')
-        # self.writer.add_text('my_log', 'Define DataParallel')
         # Using cuda
         # return
         if args.distributed:
@@ -98,33 +92,29 @@ class distWorker(object):
             torch.cuda.set_device(args.gpu)
             self.model = self.model.cuda(args.gpu)
         else:
+            # DataParallel will divide and allocate batch_size to all available GPUs
             self.model = torch.nn.DataParallel(self.model).cuda()
 
         # Resuming checkpoint
         self.best_pred = 0.0
-        if self.args.master:   
-            print(f'rank {args.rank} Define Evaluator and scheduler')
         if args.resume is not None:
             if not os.path.isfile(args.resume):
                 raise RuntimeError("=> no checkpoint found at '{}'" .format(args.resume))
-            # checkpoint = torch.load(args.resume)
             checkpoint = torch.load("checkpoint.pth", map_location=torch.device('cpu'))
             # model.load_state_dict(checkpoint["state_dict"])
             # 使用下面这种load方式会导致每个进程在GPU0多占用一部分显存，原因是默认load的位置是GPU0
             # checkpoint = torch.load("checkpoint.pth")
-            # model.load_state_dict(checkpoint["state_dict"])
 
             args.start_epoch = checkpoint['epoch']
             if args.cuda:
                 self.model.module.load_state_dict(checkpoint['state_dict'])
             else:
                 self.model.load_state_dict(checkpoint['state_dict'])
-            if not args.ft:
+            if not args.ft and args.testValTrain > 0:
                 self.optimizer.load_state_dict(checkpoint['optimizer'])
             self.best_pred = checkpoint['best_pred']
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.resume, checkpoint['epoch']))
-        # print(f'args.rank {args.rank} calling {__file__}, {sys._getframe().f_lineno}')
 
         # Clear start epoch if fine-tuning
         if args.ft:
@@ -137,7 +127,6 @@ class distWorker(object):
         num_img_tr = len(self.train_loader)
         # if self.args.master:
         #     print(f'rank {self.args.rank} num_img_tr: {num_img_tr}')
-        # print('num_img_tr: ', num_img_tr)
         start = 0
         for i, sample in enumerate(tbar):
             # if not i % 100 == 0:
@@ -173,8 +162,6 @@ class distWorker(object):
                     global_step = i + num_img_tr * epoch
                     self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'train')
             
-            # del sample
-
         if self.args.master:
             self.writer.add_scalar('train/total_loss_epoch', train_loss, epoch)
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
@@ -239,13 +226,11 @@ class distWorker(object):
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
             print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
             print('Loss: %.5f' % test_loss)
-            # self.args.log_file.write("Epoch: %d, Val, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
             self.saver.write_log_to_txt("Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
 
         new_pred = mIoU
         if new_pred > self.best_pred and self.args.master:
             is_best = True
-            # self.args.log_file.write("Best Epoch: %d, Val, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
             self.saver.write_log_to_txt("Best Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
             self.best_pred = new_pred
             self.saver.save_checkpoint({
@@ -312,7 +297,6 @@ class distWorker(object):
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
             print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
             print('Loss: %.5f' % test_loss)
-            # self.args.log_file.write("Epoch: %d, Tes, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
             self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
 
 

@@ -248,10 +248,10 @@ class LimitResize(object):
         # img_name = sample['img_name']
         w, h = img.size
         resize_flag = True
-        if w > h >= self.size:
+        if w > h and w > self.size:
             oh = int(self.size/w*h)
             ow = self.size
-        elif h > w >= self.size:
+        elif h > w and h > self.size:
             oh = self.size
             ow = int(self.size/h*w)
         else:
