@@ -107,7 +107,13 @@ class distWorker(object):
         if args.resume is not None:
             if not os.path.isfile(args.resume):
                 raise RuntimeError("=> no checkpoint found at '{}'" .format(args.resume))
-            checkpoint = torch.load(args.resume)
+            # checkpoint = torch.load(args.resume)
+            checkpoint = torch.load("checkpoint.pth", map_location=torch.device('cpu'))
+            # model.load_state_dict(checkpoint["state_dict"])
+            # 使用下面这种load方式会导致每个进程在GPU0多占用一部分显存，原因是默认load的位置是GPU0
+            # checkpoint = torch.load("checkpoint.pth")
+            # model.load_state_dict(checkpoint["state_dict"])
+
             args.start_epoch = checkpoint['epoch']
             if args.cuda:
                 self.model.module.load_state_dict(checkpoint['state_dict'])

@@ -131,6 +131,8 @@ parser.add_argument('--testset_dir', type=str, default=None, help='input test or
 parser.add_argument('--testOut_dir', type=str, default=None, help='test image output dir')
 parser.add_argument('--dump_image', action='store_true', default=False,
                     help='dump image when test')
+parser.add_argument('--alpha', type=float, default=0.5,
+                    help='focal loss alpha')
 args = parser.parse_args()
 
 

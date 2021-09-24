@@ -16,6 +16,7 @@ class SegmentationLosses(object):
         self.size_average = size_average
         self.batch_average = batch_average
         self.cuda = cuda
+        self.alpha = args.alpha
 
     def build_loss(self, mode='ce'):
         """Choices: ['ce' or 'focal']"""
@@ -56,6 +57,7 @@ class SegmentationLosses(object):
 
         logpt = -criterion(logit, target.long())
         pt = torch.exp(logpt)
+        alpha = self.alpha
         if alpha is not None:
             logpt *= alpha
         loss = -((1 - pt) ** gamma) * logpt
