@@ -96,7 +96,7 @@ git init
 ```
 2. 关联本地仓库到远程仓库
 ```
-git remote add origin https://github.com/hongrui16/deeplab.git
+git remote add origin https://github.com/User/Repo.git
 ```
 3. 添加要提交的文件到暂存区
 ```
