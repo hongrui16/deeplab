@@ -56,6 +56,7 @@ test: do inference and calculate metrics such as miou and fwiou
 srun -N1 --cpus-per-task 32 --gres gpu:4 python train_main.py --testValTrain 2
 ```
 #### 1.2 background running
+set "args.testValTrain = 2, 3, or 4" and then run the command below
 ```
 sbatch background_running.slurm
 ```
@@ -70,7 +71,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python train_main.py --testValTrain 4 --resume run/
 srun -N1 --cpus-per-task 32 --gres gpu:4 python train_main.py --testValTrain 1
 ```
 #### 1.2 background running
-set "testValTrain = 1" and then run the command below
+set "args.testValTrain = 1" and then run the command below
 ```
 sbatch background_running.slurm
 ```
