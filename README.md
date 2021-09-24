@@ -34,7 +34,8 @@ sbatch background_running.slurm
 ### 2 directly use gpu machines
 CUDA_VISIBLE_DEVICES=0,1,2,3 python train_main.py --testValTrain 1
 
-## prepare basicDataset(customer-made) datasets
+## Prepare basicDataset(customer-made) datasets
+
 '''
 /datasets
     /train
