@@ -80,7 +80,8 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.testValTrain >= 2:
         for epoch in range(worker.args.start_epoch, worker.args.epochs):
             worker.training(epoch)
-            if not worker.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
+            # if not worker.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
+            if args.testValTrain > 2 and epoch % args.eval_interval == (args.eval_interval - 1):
                 worker.validation(epoch)
             if args.testValTrain == 4 and epoch % 1 == 0:
                 worker.test(epoch)

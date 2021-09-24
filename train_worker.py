@@ -180,7 +180,9 @@ class distWorker(object):
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
             print('Loss: %.5f' % train_loss)
 
-        if self.args.no_val and self.args.master:
+        # if self.args.no_val and self.args.master:
+        if self.args.testValTrain == 2 and self.args.master:
+            # testValTrain == 2 only train
             # save checkpoint every epoch
             is_best = False
             self.saver.save_checkpoint({
@@ -315,56 +317,7 @@ class distWorker(object):
 
 
 def main(args):
-    args.cuda = not args.no_cuda and torch.cuda.is_available()
-    if args.cuda:
-        try:
-            args.gpu_ids = [int(s) for s in args.gpu_ids.split(',')]
-        except ValueError:
-            raise ValueError('Argument --gpu_ids must be a comma-separated list of integers only')
-
-    if args.sync_bn is None:
-        if args.cuda and len(args.gpu_ids) > 1:
-            args.sync_bn = True
-        else:
-            args.sync_bn = False
-
-    # default settings for epochs, batch_size and lr
-    if args.epochs is None:
-        epoches = {
-            'coco': 30,
-            'cityscapes': 200,
-            'pascal': 50,
-        }
-        args.epochs = epoches[args.dataset.lower()]
-
-    if args.batch_size is None:
-        args.batch_size = 4 * len(args.gpu_ids)
-
-    if args.test_batch_size is None:
-        args.test_batch_size = args.batch_size
-
-    if args.lr is None:
-        lrs = {
-            'coco': 0.1,
-            'cityscapes': 0.01,
-            'pascal': 0.007,
-        }
-        args.lr = lrs[args.dataset.lower()] / (4 * len(args.gpu_ids)) * args.batch_size
-
-
-    if args.checkname is None:
-        args.checkname = 'deeplab-'+str(args.backbone)
-    print(args)
-    torch.manual_seed(args.seed)
-    worker = distWorker(args)
-    print('Starting Epoch:', worker.args.start_epoch)
-    print('Total Epoches:', worker.args.epochs)
-    for epoch in range(worker.args.start_epoch, worker.args.epochs):
-        worker.training(epoch)
-        if not worker.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
-            worker.validation(epoch)
-
-    worker.writer.close()
+    pass
 
 def plot_image():
     print('call plot image fun')
