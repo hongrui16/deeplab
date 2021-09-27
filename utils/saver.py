@@ -8,6 +8,7 @@ class Saver(object):
 
     def __init__(self, args):
         self.args = args
+        self.output_mask_dir = None
         if self.args.testValTrain > 1:
             self.directory = os.path.join('run', args.dataset, args.checkname)
             self.runs = sorted(glob.glob(os.path.join(self.directory, 'experiment_*')))

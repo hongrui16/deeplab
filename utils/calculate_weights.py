@@ -3,7 +3,7 @@ from tqdm import tqdm
 import numpy as np
 from mypath import Path
 
-def calculate_weigths_labels(dataset, dataloader, num_classes):
+def calculate_weigths_labels(dataset, dataloader, num_classes, args = None):
     # Create an instance from the data loader
     z = np.zeros((num_classes,))
     # Initialize tqdm
@@ -24,6 +24,7 @@ def calculate_weigths_labels(dataset, dataloader, num_classes):
         class_weights.append(class_weight)
     ret = np.array(class_weights)
     classes_weights_path = os.path.join(Path.db_root_dir(dataset), dataset+'_classes_weights.npy')
-    np.save(classes_weights_path, ret)
+    if args.master:
+        np.save(classes_weights_path, ret)
 
     return ret

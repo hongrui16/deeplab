@@ -8,7 +8,7 @@ class SegmentationLosses(object):
             self.ignore_index = args.ignore_index
         else:
             self.ignore_index = ignore_index
-        if not weight and args.n_classes==2 and 'metro_pro' in args.dataset_dir:
+        if not weight is None and args.n_classes==2 and 'metro_pro' in args.dataset_dir:
             self.ce_weight = [0.1, 0.3]
             self.weight = None
         else:
