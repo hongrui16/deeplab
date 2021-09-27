@@ -92,7 +92,7 @@ parser.add_argument('--checkname', type=str, default=None,
 parser.add_argument('--ft', action='store_true', default=False,
                     help='finetuning on a different dataset')
 # evaluation option
-parser.add_argument('--eval-interval', type=int, default=1,
+parser.add_argument('--eval_interval', type=int, default=1,
                     help='evaluuation interval (default: 1)')
 # parser.add_argument('--no_val', action='store_true', default=False,
 #                     help='skip validation during training')
@@ -103,16 +103,16 @@ parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train (default: auto)')
 parser.add_argument('--start_epoch', type=int, default=0,
                     metavar='N', help='start epochs (default:0)')
-parser.add_argument('--use-balanced-weights', action='store_true', default=False,
+parser.add_argument('--use_balanced_weights', action='store_true', default=False,
                     help='whether to use balanced weights (default: False)')
 
 parser.add_argument('--loss_type', type=str, default='focal',
                     choices=['ce', 'focal', 'FSOhemCELoss'],
                     help='loss func type (default: focal)')
-parser.add_argument('--batch-size', type=int, default=8,
+parser.add_argument('--batch_size', type=int, default=8,
                     metavar='N', help='input batch size for \
                             training (default: auto)')
-parser.add_argument('--test-batch-size', type=int, default=16,
+parser.add_argument('--test_batch_size', type=int, default=16,
                     metavar='N', help='input batch size for \
                             testing (default: auto)')
 parser.add_argument('--workers', type=int, default=4,
