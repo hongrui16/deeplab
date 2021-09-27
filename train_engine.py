@@ -83,7 +83,7 @@ def main_worker(gpu, ngpus_per_node, args):
             # if not worker.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
             if args.testValTrain > 2 and epoch % args.eval_interval == (args.eval_interval - 1):
                 worker.validation(epoch)
-            if args.testValTrain == 4 and epoch % 1 == 0:
+            if args.testValTrain == 4 and epoch % 5 == 0:
                 worker.test(epoch)
             if args.master:
                 worker.saver.write_log_to_txt('\n')

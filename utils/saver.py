@@ -27,6 +27,7 @@ class Saver(object):
                 self.runs = sorted(glob.glob(os.path.join(self.directory, 'testResult_*')))
                 run_id = int(self.runs[-1].split('_')[-1]) + 1 if self.runs else 0
                 self.experiment_dir = os.path.join(self.directory, 'testResult_{}'.format(str(run_id)))
+                self.output_mask_dir = os.path.join(self.experiment_dir, 'infer_mask')
         else:
             return
 
@@ -36,6 +37,8 @@ class Saver(object):
             return
         if not os.path.exists(self.experiment_dir):
             os.makedirs(self.experiment_dir)
+        if self.output_mask_dir and not os.path.exists(self.output_mask_dir):
+            os.makedirs(self.output_mask_dir)
         if os.path.exists(self.logfile):
             os.remove(self.logfile)
 

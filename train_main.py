@@ -112,7 +112,7 @@ parser.add_argument('--loss_type', type=str, default='focal',
 parser.add_argument('--batch-size', type=int, default=8,
                     metavar='N', help='input batch size for \
                             training (default: auto)')
-parser.add_argument('--test-batch-size', type=int, default=6,
+parser.add_argument('--test-batch-size', type=int, default=16,
                     metavar='N', help='input batch size for \
                             testing (default: auto)')
 parser.add_argument('--workers', type=int, default=4,
@@ -128,7 +128,7 @@ parser.add_argument('--dataset', type=str, default='basicDataset')
 parser.add_argument('--dataset_dir', type=str, default='/home/hongrui/project/metro_pro/dataset/1st_2000', help='dataset dir')
 parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: infer, 1: test, 2: train, 3: trainval, 4: trainvaltest')
 parser.add_argument('--testset_dir', type=str, default=None, help='input test or inference image dir')
-parser.add_argument('--testOut_dir', type=str, default=None, help='test image output dir')
+parser.add_argument('--testOut_dir', type=str, default=None, help='inference and test output dir')
 parser.add_argument('--dump_image', action='store_true', default=False,
                     help='dump image when test')
 parser.add_argument('--alpha', type=float, default=0.5,

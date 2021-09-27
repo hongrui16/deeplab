@@ -49,13 +49,16 @@ class distWorker(object):
                         sync_bn=args.sync_bn,
                         freeze_bn=args.freeze_bn)
 
-        if args.testValTrain > 0:#testValTrain = 0, inference only
+        if args.testValTrain > 1:#train
             # Define Optimizer
             train_params = [{'params': self.model.get_1x_lr_params(), 'lr': args.lr},
                         {'params': self.model.get_10x_lr_params(), 'lr': args.lr * 10}]
             self.optimizer = torch.optim.SGD(train_params, momentum=args.momentum,
                                         weight_decay=args.weight_decay, nesterov=args.nesterov)
-
+            # Define lr scheduler
+            self.scheduler = LR_Scheduler(args.lr_scheduler, args.lr,
+                                                args.epochs, len(self.train_loader), args = args)
+        if args.testValTrain > 0:#test
             # Define Criterion
             # whether to use class balanced weights
             if args.use_balanced_weights:
@@ -71,10 +74,7 @@ class distWorker(object):
             
             # Define Evaluator
             self.evaluator = Evaluator(self.nclass)
-            # Define lr scheduler
-            self.scheduler = LR_Scheduler(args.lr_scheduler, args.lr,
-                                                args.epochs, len(self.train_loader), args = args)
-
+            
         # Using cuda
         # return
         if args.distributed:
@@ -100,7 +100,7 @@ class distWorker(object):
         if args.resume is not None:
             if not os.path.isfile(args.resume):
                 raise RuntimeError("=> no checkpoint found at '{}'" .format(args.resume))
-            checkpoint = torch.load("checkpoint.pth", map_location=torch.device('cpu'))
+            checkpoint = torch.load(args.resume, map_location=torch.device('cpu'))
             # model.load_state_dict(checkpoint["state_dict"])
             # 使用下面这种load方式会导致每个进程在GPU0多占用一部分显存，原因是默认load的位置是GPU0
             # checkpoint = torch.load("checkpoint.pth")
@@ -110,7 +110,7 @@ class distWorker(object):
                 self.model.module.load_state_dict(checkpoint['state_dict'])
             else:
                 self.model.load_state_dict(checkpoint['state_dict'])
-            if not args.ft and args.testValTrain > 0:
+            if not args.ft and args.testValTrain > 1:
                 self.optimizer.load_state_dict(checkpoint['optimizer'])
             self.best_pred = checkpoint['best_pred']
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -247,7 +247,6 @@ class distWorker(object):
         tbar = tqdm(self.test_loader, desc='\r')
         test_loss = 0.0
         # return
-        output_img_dir = self.saver.experiment_dir
         num_img_tr = len(self.test_loader)
         for i, sample in enumerate(tbar):
             image, target, img_names = sample['image'], sample['label'], sample['img_name']
@@ -279,8 +278,9 @@ class distWorker(object):
                 results[results==1] = 255
                 for _id in range(self.args.batch_size):
                     img_name = img_names[_id]
-                    out_img_filepath = os.path.join(output_img_dir, img_name)
-                    cv2.imwrite(out_img_filepath, results[_id])
+                    infer_mask_name = f"{img_name.split('.')[0]}_infer.jpg"
+                    out_res_filepath = os.path.join(self.saver.output_mask_dir, infer_mask_name)
+                    cv2.imwrite(out_res_filepath, results[_id])
                 
         if self.args.testValTrain >= 1 and self.args.master:
             # Fast test during the training
