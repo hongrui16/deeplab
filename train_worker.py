@@ -276,11 +276,35 @@ class distWorker(object):
             if self.args.dump_image:
                 results = pred.copy()
                 results[results==1] = 255
+                labels_exists = False
+                if isinstance(target, np.ndarray):                    
+                    labels = target.copy()
+                    labels[labels==1] = 255
+                    labels_exists = True
+                elif isinstance(target, torch.Tensor): 
+                    labels = target.cpu().numpy()
+                    labels[labels==1] = 255
+                    labels_exists = True
+                else:
+                    pass
                 for _id in range(self.args.batch_size):
+                    img_tmp = np.transpose(image[_id].cpu().numpy(), axes=[1, 2, 0])
+                    img_tmp *= (0.229, 0.224, 0.225)
+                    img_tmp += (0.485, 0.456, 0.406)
+                    img_tmp *= 255.0
+                    img_tmp = img_tmp.astype(np.uint8)
                     img_name = img_names[_id]
-                    infer_mask_name = f"{img_name.split('.')[0]}_infer.jpg"
-                    out_res_filepath = os.path.join(self.saver.output_mask_dir, infer_mask_name)
-                    cv2.imwrite(out_res_filepath, results[_id])
+                    out_img_filepath = os.path.join(self.saver.output_mask_dir, img_name)
+                    cv2.imwrite(out_img_filepath, img_tmp)
+
+                    infer_mask_name = f"{img_name.split('.')[0]}_infer.jpg"                    
+                    out_infer_mask_filepath = os.path.join(self.saver.output_mask_dir, infer_mask_name)
+                    cv2.imwrite(out_infer_mask_filepath, results[_id])
+                    
+                    if labels_exists:
+                        label_name = f"{img_name.split('.')[0]}_GT.jpg"
+                        out_label_filepath = os.path.join(self.saver.output_mask_dir, label_name)
+                        cv2.imwrite(out_label_filepath, labels[_id])
                 
         if self.args.testValTrain >= 1 and self.args.master:
             # Fast test during the training
