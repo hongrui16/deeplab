@@ -68,7 +68,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python train_main.py --testValTrain 4 --resume run/
 ### 1 Use slurm
 #### 1.1 foreground running
 ```
-srun -N1 --cpus-per-task 32 --gres gpu:4 python train_main.py --testValTrain 1
+srun -N1 --cpus-per-task 32 --gres gpu:2 python train_main.py --testValTrain 1 --resume run/basicDataset/deeplab-resnet/experiment_4/model_best.pth.tar --dump_image
 ```
 #### 1.2 background running
 set "args.testValTrain = 1" and then run the command below
@@ -77,7 +77,7 @@ sbatch background_running.slurm
 ```
 ### 2 directly use gpu machines
 ```
-CUDA_VISIBLE_DEVICES=0,1,2,3 python train_main.py --testValTrain 1 --resume run/basicDataset/deeplab-resnet/experiment_7/checkpoint.pth.tar
+CUDA_VISIBLE_DEVICES=0,1 python train_main.py --testValTrain 1 --resume run/basicDataset/deeplab-resnet/experiment_4/model_best.pth.tar --dump_image
 ```
 
 ## Acknowledgement

@@ -76,7 +76,6 @@ class distWorker(object):
             self.evaluator = Evaluator(self.nclass)
             
         # Using cuda
-        # return
         if args.distributed:
             if args.gpu is not None:
                 torch.cuda.set_device(args.gpu) 
@@ -292,6 +291,7 @@ class distWorker(object):
                     img_tmp *= (0.229, 0.224, 0.225)
                     img_tmp += (0.485, 0.456, 0.406)
                     img_tmp *= 255.0
+                    img_tmp = img_tmp[:,:,::-1]
                     img_tmp = img_tmp.astype(np.uint8)
                     img_name = img_names[_id]
                     out_img_filepath = os.path.join(self.saver.output_mask_dir, img_name)
