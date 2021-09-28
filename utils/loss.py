@@ -12,6 +12,7 @@ class SegmentationLosses(object):
             self.ce_weight = [0.1, 0.3]
             self.weight = None
         else:
+            self.ce_weight = [0.5, 0.5]
             self.weight = weight
         self.size_average = size_average
         self.batch_average = batch_average

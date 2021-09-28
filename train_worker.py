@@ -264,6 +264,12 @@ class distWorker(object):
             pred = np.argmax(pred, axis=1)
             if self.args.testValTrain >= 1:
                 loss = self.criterion(output, target)
+                # print('target.size()', target.size()) #torch.Size([16, 607, 1080])
+                # print('output.size()', output.size()) #torch.Size([16, 2, 607, 1080])
+                # print('loss', loss) #tensor(0.0021, device='cuda:2')
+                # for _id in range(self.args.test_batch_size):
+                #     self.saver.write_loss_to_txt(f'{img_names[_id]} {str(loss.item())}')
+                
                 test_loss += loss.item()
                 if self.args.master:
                     tbar.set_description('Test loss: %.5f' % (test_loss / (i + 1)))
@@ -286,7 +292,7 @@ class distWorker(object):
                     labels_exists = True
                 else:
                     pass
-                for _id in range(self.args.batch_size):
+                for _id in range(self.args.test_batch_size):
                     img_tmp = np.transpose(image[_id].cpu().numpy(), axes=[1, 2, 0])
                     img_tmp *= (0.229, 0.224, 0.225)
                     img_tmp += (0.485, 0.456, 0.406)

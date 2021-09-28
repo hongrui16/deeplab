@@ -106,7 +106,7 @@ parser.add_argument('--start_epoch', type=int, default=0,
 parser.add_argument('--use_balanced_weights', action='store_true', default=False,
                     help='whether to use balanced weights (default: False)')
 
-parser.add_argument('--loss_type', type=str, default='focal',
+parser.add_argument('--loss_type', type=str, default='ce',
                     choices=['ce', 'focal', 'FSOhemCELoss'],
                     help='loss func type (default: focal)')
 parser.add_argument('--batch_size', type=int, default=8,

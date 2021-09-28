@@ -33,6 +33,7 @@ class Saver(object):
             return
 
         self.logfile = os.path.join(self.experiment_dir, 'parameters.txt')
+        self.lossfile = 'loss.txt'
         # print('self.args.rank', self.args.rank)
         if not self.args.master:
             return
@@ -42,6 +43,7 @@ class Saver(object):
             os.makedirs(self.output_mask_dir)
         if os.path.exists(self.logfile):
             os.remove(self.logfile)
+        self.lossfile = 'loss.txt'
 
     def save_checkpoint(self, state, is_best, filename='checkpoint.pth.tar'):
         """Saves checkpoint to disk"""
@@ -97,3 +99,14 @@ class Saver(object):
             log_file.write(data+'\n')
         log_file.close()# 
 
+
+    def write_loss_to_txt(self, data):
+        assert isinstance(data, str)
+        # if not self.args.master:
+        #     return
+        loss_file = open(self.lossfile, "a+")
+        if data.endswith('\n'):
+            loss_file.write(data)
+        else:
+            loss_file.write(data+'\n')
+        loss_file.close()# 
