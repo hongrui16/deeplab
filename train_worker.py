@@ -242,7 +242,8 @@ class distWorker(object):
 
     def test(self, epoch = 0):
         self.model.eval()
-        self.evaluator.reset()
+        if self.args.testValTrain >= 1:
+            self.evaluator.reset()
         tbar = tqdm(self.test_loader, desc='\r')
         test_loss = 0.0
         # return
