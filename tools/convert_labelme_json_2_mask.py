@@ -44,25 +44,25 @@ def select_images(args):
                     shutil.move(img_filepath, out_img_filepath)
 
 
-def labelme_json_to_dataset_fun(json_file, out_dir):
+def labelme_json_to_dataset_fun(json_filepath, out_dir):
  
     if not osp.exists(out_dir):
         os.mkdir(out_dir)
        
-    if '\\' in json_file:
-        json_name = json_file.split('\\')[-1]
-    elif '/' in json_file:
-        json_name = json_file.split('/')[-1]
+    if '\\' in json_filepath:
+        json_name = json_filepath.split('\\')[-1]
+    elif '/' in json_filepath:
+        json_name = json_filepath.split('/')[-1]
     else:
-        json_name = json_file
+        json_name = json_filepath
 
     prefix_name = json_name.split('.')[0]
 
-    data = json.load(open(json_file))
+    data = json.load(open(json_filepath))
     imageData = data.get("imageData")
 
     if not imageData:
-        imagePath = os.path.join(os.path.dirname(json_file), data["imagePath"])
+        imagePath = os.path.join(os.path.dirname(json_filepath), data["imagePath"])
         with open(imagePath, "rb") as f:
             imageData = f.read()
             imageData = base64.b64encode(imageData).decode("utf-8")
@@ -91,6 +91,30 @@ def labelme_json_to_dataset_fun(json_file, out_dir):
     # Image.fromarray(img).save(osp.join(out_dir, "img.png"))
     utils.lblsave(out_label_filepath, lbl)
     print('Saved to: %s' % out_label_filepath)
+
+
+def delete_imageData_from_labelme_json(json_filepath, out_dir):
+ 
+    if not osp.exists(out_dir):
+        os.mkdir(out_dir)
+       
+    if '\\' in json_filepath:
+        json_name = json_filepath.split('\\')[-1]
+    elif '/' in json_filepath:
+        json_name = json_filepath.split('/')[-1]
+    else:
+        json_name = json_filepath
+
+    prefix_name = json_name.split('.')[0]
+
+    data = json.load(open(json_filepath))
+    if not 'imageData' in data:
+        return None
+    # print(data, type(data))
+    data.pop('imageData')
+    return data
+    
+
 
 def convert_json_2_mask(args):
     img_filepath    = args.img_filepath
@@ -136,6 +160,25 @@ def split_train_val_dataset(args):
         shutil.move(ori_img_filepath, val_img_filepath)
         shutil.move(ori_label_filepath, val_label_filepath)
 
+def convert_json(args):
+    input_dir   = args.input_dir
+    output_dir      = args.output_dir
+
+    files = os.listdir(input_dir)
+    for i, name in enumerate(files):
+        print(f'processing {name} {i+1}/{len(files)}')
+        if '.json' in name:
+            json_filepath = os.path.join(input_dir, name)
+            anno_dict = delete_imageData_from_labelme_json(json_filepath, output_dir)
+            if anno_dict is None:
+                continue
+            new_json_filepath = os.path.join(output_dir, name)
+
+            with open(new_json_filepath, 'w') as f:
+                json.dump(anno_dict, f, indent=4)
+            
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='aligment')
@@ -153,4 +196,5 @@ if __name__ == '__main__':
     # compose()
     # test()
     # open_alg_fun()
-    convert_json_2_mask(args)
+    # convert_json_2_mask(args)
+    convert_json(args)
