@@ -67,7 +67,11 @@ class ToTensor(object):
 
 
 class RandomHorizontalFlip(object):
+    def __init__(self, args = None):
+        self.args = args
     def __call__(self, sample):
+        if self.args.distinguish_left_right_semantic:
+            return sample
         img = sample['image']
         mask = sample['label']
         if random.random() < 0.5:
@@ -113,10 +117,11 @@ class RandomGaussianBlur(object):
 
 
 class RandomScaleCrop(object):
-    def __init__(self, base_size, crop_size, fill=0):
+    def __init__(self, base_size, crop_size, fill=0, args = None):
         self.base_size = base_size
         self.crop_size = crop_size
         self.fill = fill
+        self.args = args
 
     def __call__(self, sample):
         img = sample['image']

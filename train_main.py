@@ -133,6 +133,8 @@ parser.add_argument('--dump_image', action='store_true', default=False,
                     help='dump image when test')
 parser.add_argument('--alpha', type=float, default=0.5,
                     help='focal loss alpha')
+parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=False,
+                    help='distinguish left and right rail semantic segmentation')
 args = parser.parse_args()
 
 

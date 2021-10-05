@@ -39,6 +39,21 @@ using Pascal VOC 2012, SBD, Cityscapes, and basicDataset(customer-made) datasets
             c.png
             ...
 ```
+## Metro Label Name to Value
+```
+metro_label_name_to_value = {"left_1": 1, "right_1": 2, "left_2": 3, "right_2": 4, 
+                                         "left_3": 5, "right_3": 6, "left_4": 7, "right_4": 8,
+                                         "left_5": 9, "right_5": 10, "left_6": 11, "right_6": 12}
+for shape in sorted(data["shapes"], key=lambda x: x["label"]):
+    label_name = shape["label"]
+    if label_name in metro_label_name_to_value:
+        label_value = (metro_label_name_to_value[label_name])*20
+        metro_label_name_to_value[label_name] = label_value
+    else:
+        label_value = 250
+        metro_label_name_to_value[label_name] = label_value
+```
+
 
 ## Train, Val, and Test selection
 args.testValTrain: '-1: no, 0: infer, 1: test, 2: train, 3: trainval, 4: trainvaltest'

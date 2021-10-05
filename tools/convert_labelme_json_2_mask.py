@@ -211,6 +211,59 @@ def split_train_val_dataset_2nd(args):
         shutil.move(ori_label_filepath, out_label_filepath)
 
 
+def split_train_val_dataset_3rd(args):
+    input_dir = args.inp
+    output_dir      = args.oup
+
+    val_ratio = 0.25
+
+    output_tr_img_dir = os.path.join(output_dir, 'train', 'image')
+    output_tr_mask_dir = os.path.join(output_dir, 'train', 'json')
+
+    output_val_img_dir = os.path.join(output_dir, 'val', 'image')
+    output_val_mask_dir = os.path.join(output_dir, 'val', 'json')
+
+    if output_tr_img_dir and not os.path.exists(output_tr_img_dir):
+        os.makedirs(output_tr_img_dir)
+    if output_tr_mask_dir and not os.path.exists(output_tr_mask_dir):
+        os.makedirs(output_tr_mask_dir)
+    if output_val_img_dir and not os.path.exists(output_val_img_dir):
+        os.makedirs(output_val_img_dir)
+    if output_val_mask_dir and not os.path.exists(output_val_mask_dir):
+        os.makedirs(output_val_mask_dir)
+
+    names = os.listdir(input_dir)
+    json_names = []
+    for name in names:
+        if '.json' in name:
+            json_names.append(name)
+    random.shuffle(json_names)
+    total_num = len(json_names)
+    val_num = int(val_ratio*total_num)
+    cnt = 1
+    for i, json_name in enumerate(json_names):
+        print(f'processing {json_name} {i+1}/{len(json_names)}')
+        img_name = json_name.replace('.json', '.jpg')
+        ori_img_filepath = os.path.join(input_dir, img_name)
+        if not os.path.exists(ori_img_filepath):
+            continue
+        
+        ori_json_filepath = os.path.join(input_dir, json_name)
+        
+        if cnt < val_num:
+            output_img_dir = output_val_img_dir
+            output_mask_dir = output_val_mask_dir
+        else:
+            output_img_dir = output_tr_img_dir
+            output_mask_dir = output_tr_mask_dir
+
+        out_img_flepath = os.path.join(output_img_dir, img_name)
+        out_json_filepath = os.path.join(output_mask_dir, json_name)
+
+        shutil.move(ori_img_filepath, out_img_flepath)
+        shutil.move(ori_json_filepath, out_json_filepath)
+        cnt += 1
+
 def match_mask_for_dataset(args):
     input_img_dir = args.input_dir
     output_dir      = args.output_dir
@@ -323,6 +376,202 @@ def convert_json(args):
             with open(new_json_filepath, 'w') as f:
                 json.dump(anno_dict, f, indent=4)
             
+def find_unmatched_image(args):
+    input_dir   = args.inp
+    output_dir      = args.oup
+
+
+    dirs = ['train', 'test', 'val']
+    for d in dirs:
+        input_d_dir = os.path.join(input_dir, d)
+        input_img_dir = os.path.join(input_d_dir, 'image')
+        input_json_dir = os.path.join(input_d_dir, 'json')
+
+        img_names = os.listdir(input_img_dir)
+        json_names = os.listdir(input_json_dir)
+        output_img_dir = os.path.join(output_dir, 'unmatched', d, 'image')
+
+        for i, img_name in enumerate(img_names):
+            print(f'processing {img_name} {i+1}/{len(img_names)}')
+            if not '.jpg' in img_name:
+                continue
+            j_name = img_name.replace('.jpg', '.json')
+            if j_name in json_names:
+                continue
+            ori_img_filepath = os.path.join(input_img_dir, img_name)
+            out_img_filepath = os.path.join(output_img_dir, img_name)
+            if not os.path.exists(output_img_dir):
+                os.makedirs(output_img_dir)
+            shutil.move(ori_img_filepath, out_img_filepath)
+
+            
+def find_unmatched_image_and_json(args):
+    input_dir   = args.inp
+    output_dir      = args.oup
+
+    output_dir = 'todo'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    dirs = ['train', 'val']
+    for d in dirs:
+        input_d_dir = os.path.join(input_dir, d)
+        input_img_dir = os.path.join(input_d_dir, 'image')
+        input_json_dir = os.path.join(input_d_dir, 'json')
+        input_mask_dir = os.path.join(input_d_dir, 'mask')
+
+        ref_mask_names = os.listdir(input_mask_dir)
+        img_names = os.listdir(input_img_dir)
+        json_names = os.listdir(input_json_dir)
+
+        for i, img_name in enumerate(img_names):
+            print(f'processing {img_name} {i+1}/{len(img_names)}')
+            if not '.jpg' in img_name:
+                continue
+            mask_name = img_name.replace('.jpg', '.png')
+            if mask_name in ref_mask_names:
+                continue
+            ori_img_filepath = os.path.join(input_img_dir, img_name)
+            out_img_filepath = os.path.join(output_dir, img_name)
+            
+            shutil.move(ori_img_filepath, out_img_filepath)
+
+        for i, img_name in enumerate(json_names):
+            print(f'processing {img_name} {i+1}/{len(img_names)}')
+            if not '.json' in img_name:
+                continue
+            mask_name = img_name.replace('.json', '.png')
+            if mask_name in ref_mask_names:
+                continue
+            ori_json_filepath = os.path.join(input_json_dir, img_name)
+            out_img_filepath = os.path.join(output_dir, img_name)
+            
+            shutil.move(ori_json_filepath, out_img_filepath)
+           
+# def find_json_for_val(args):
+#     input_dir   = args.inp
+#     output_dir      = args.oup
+
+
+#     val_img_dir = os.path.join(input_dir, 'train', 'image')
+#     train_json_dir = os.path.join(input_dir, 'val', 'json')
+
+#     img_names = os.listdir(val_img_dir)
+#     json_names = os.listdir(train_json_dir)
+#     output_img_dir = os.path.join(output_dir, 'unmatched', d, 'image')
+
+#     for i, img_name in enumerate(img_names):
+#         print(f'processing {img_name} {i+1}/{len(img_names)}')
+#         if not '.jpg' in img_name:
+#             continue
+#         j_name = img_name.replace('.jpg', '.json')
+        
+#         ori_img_filepath = os.path.join(input_img_dir, img_name)
+#         out_img_filepath = os.path.join(output_img_dir, img_name)
+#         if not os.path.exists(output_img_dir):
+#             os.makedirs(output_img_dir)
+#         shutil.move(ori_img_filepath, out_img_filepath)
+
+def count_dataset():
+
+    train_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/train/image'
+    val_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/val/image'
+    test_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/image'
+
+    train_mask_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/train/mask'
+    val_mask_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/val/mask'
+    test_mask_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/mask'
+
+    train_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/train/json'
+    val_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/val/json'
+    test_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/json'
+
+    train_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/train/label'
+    val_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/val/label'
+    test_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/label'
+
+    todo_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/todo'
+
+
+    train_img_names = os.listdir(train_img_dir)
+    val_img_names = os.listdir(val_img_dir)
+    test_img_names = os.listdir(test_img_dir)
+    
+    train_json_names = os.listdir(train_json_dir)
+    val_json_names = os.listdir(val_json_dir)
+    test_json_names = os.listdir(test_json_dir)
+
+    train_mask_names = os.listdir(train_mask_dir)
+    val_mask_names = os.listdir(val_mask_dir)
+    test_mask_names = os.listdir(test_mask_dir) 
+    
+    
+    train_label_names = os.listdir(train_label_dir)
+    val_label_names = os.listdir(val_label_dir)
+    test_label_names = os.listdir(test_label_dir)
+
+    todo_names = os.listdir(todo_dir)
+
+    print(f'image train: {len(train_img_names)}, test: {len(test_img_names)}, val: {len(val_img_names)}')
+    print(f'json  train: {len(train_json_names)}, test: {len(test_json_names)}, val: {len(val_json_names)}')
+    print(f'label train: {len(train_label_names)}, test: {len(test_label_names)}, val: {len(val_label_names)}')
+    print(f'mask  train: {len(train_mask_names)}, test: {len(test_mask_names)}, val: {len(val_mask_names)}')
+
+    print(f'todo: {len(todo_names)}')
+
+def convert_json_to_label(args):
+    input_dir   = args.inp
+    # output_dir      = args.oup
+
+
+    dirs = ['train', 'test', 'val']
+    for d in dirs:
+        input_d_dir = os.path.join(input_dir, d)
+        input_img_dir = os.path.join(input_d_dir, 'image')
+        input_json_dir = os.path.join(input_d_dir, 'json')
+        # input_mask_dir = os.path.join(input_d_dir, 'mask')
+        output_label_dir = os.path.join(input_d_dir, 'label')
+        if not os.path.exists(output_label_dir):
+            os.makedirs(output_label_dir)
+        # img_names = os.listdir(inpßut_img_dir)
+        json_names = os.listdir(input_json_dir)
+
+        for i, json_name in enumerate(json_names):
+            print(f'processing {json_name} {i+1}/{len(json_names)}')
+            img_name = json_name.replace('.json', '.jpg')
+            ori_img_filepath = os.path.join(input_img_dir, img_name)
+            if not os.path.exists(ori_img_filepath):
+                continue
+            label_file_name = json_name.replace('.json', '.png')
+            ori_json_filepath = os.path.join(input_json_dir, json_name)
+            data = json.load(open(ori_json_filepath))
+            img = cv2.imread(ori_img_filepath)
+            
+            metro_label_name_to_value = {"left_1": 1, "right_1": 2, "left_2": 3, "right_2": 4, 
+                                         "left_3": 5, "right_3": 6, "left_4": 7, "right_4": 8,
+                                         "left_5": 9, "right_5": 10, "left_6": 11, "right_6": 12}
+            for shape in sorted(data["shapes"], key=lambda x: x["label"]):
+                label_name = shape["label"]
+                if label_name in metro_label_name_to_value:
+                    label_value = (metro_label_name_to_value[label_name])*20
+                    metro_label_name_to_value[label_name] = label_value
+                else:
+                    label_value = 250
+                    metro_label_name_to_value[label_name] = label_value
+            lbl, _ = utils.shapes_to_label(
+                img.shape, data["shapes"], metro_label_name_to_value
+            )
+            # lbl *= 100
+            # print(lbl[lbl>100], lbl.max())
+            # print('lbl', lbl.shape)
+            out_label_filepath = os.path.join(output_label_dir, label_file_name)
+            # utils.lblsave(out_label_filepath, lbl)
+            cv2.imwrite(out_label_filepath, lbl)
+            
+            print('Saved to: %s' % out_label_filepath)
+            # return
+                    
+            
 
 
 if __name__ == '__main__':
@@ -330,6 +579,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='aligment')
     # parser.add_argument('-if', '--img_filepath', type=str, default='images\\rail_06.jpg')
     parser.add_argument('-if', '--img_filepath', type=str, default=None)
+
+    parser.add_argument('--inp', type=str, default=None)
+    parser.add_argument('--oup', type=str, default=None)
 
     parser.add_argument('-im', '--input_dir', type=str, default=None)
 
@@ -345,4 +597,12 @@ if __name__ == '__main__':
     # open_alg_fun()
     # convert_json_2_mask(args)
     # convert_json(args) 
-    match_json_for_dataset(args)
+    # match_json_for_dataset(args)
+    # find_unmatched_image(args)
+    # find_unmatched_image_and_json(args)
+
+
+    # split_train_val_dataset_3rd(args)
+    convert_json_to_label(args)
+
+    count_dataset()

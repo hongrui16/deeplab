@@ -67,6 +67,11 @@ class BasicDataset(Dataset):
         else:
             _tmp = cv2.imread(lbl_path, 0)
             _tmp = self.encode_segmap(_tmp)
+            if self.args.distinguish_left_right_semantic and _tmp.max() > 2 and not self.split == 'test':
+                # multiple rails, if in semantic segmentation, the image should be discarded.
+                w, h = _img.size
+                _img = Image.new("RGB", (w, h))
+                _tmp = np.zeros((h,w), dtype=np.uint8)
             _target = Image.fromarray(_tmp)
        
         sample = {'image': _img, 'label': _target, 'img_name': img_name}
@@ -86,16 +91,32 @@ class BasicDataset(Dataset):
         #     mask[mask == _validc] = self.class_map[_validc]
         # mask //= 2
         # print(mask)
-        thres = 30
-        mask[mask<=thres] = 0 # this must be before mask[mask>thres] = 1
-        mask[mask>thres] = 1
+        '''
+        metro_label_name_to_value = {"left_1": 1, "right_1": 2, "left_2": 3, "right_2": 4, 
+                                         "left_3": 5, "right_3": 6, "left_4": 7, "right_4": 8,
+                                         "left_5": 9, "right_5": 10, "left_6": 11, "right_6": 12}
+        for shape in sorted(data["shapes"], key=lambda x: x["label"]):
+            label_name = shape["label"]
+            if label_name in metro_label_name_to_value:
+                label_value = (metro_label_name_to_value[label_name])*20
+                metro_label_name_to_value[label_name] = label_value
+            else:
+                label_value = 250
+                metro_label_name_to_value[label_name] = label_value
+        '''
+        if self.args.distinguish_left_right_semantic:
+            mask = mask/20
+        else:
+            thres = 20
+            mask[mask<thres] = 0 # this must be before mask[mask>=thres] = 1
+            mask[mask>=thres] = 1
         return mask
 
     def transform_train(self, sample):
         composed_transforms = transforms.Compose([
             tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
             tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index),
-            tr.RandomHorizontalFlip(),
+            tr.RandomHorizontalFlip(self.args),
             tr.RandomRotate(degree = self.args.rotate_degree),
             tr.RandomGaussianBlur(),
             tr.FixScaleCrop(crop_size=self.args.crop_size),

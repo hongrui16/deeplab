@@ -62,7 +62,7 @@ class distWorker(object):
             # Define Criterion
             # whether to use class balanced weights
             if args.use_balanced_weights:
-                classes_weights_path = os.path.join(Path.db_root_dir(args.dataset), args.dataset+'_classes_weights.npy')
+                classes_weights_path = os.path.join(Path.db_root_dir(args.dataset, args), args.dataset+'_classes_weights.npy')
                 if os.path.isfile(classes_weights_path):
                     weight = np.load(classes_weights_path)
                 else:
