@@ -124,10 +124,14 @@ class RandomScaleCrop(object):
         self.args = args
 
     def __call__(self, sample):
+        if self.args.distinguish_left_right_semantic:
+            short_size = random.randint(int(self.base_size * 0.7), int(self.base_size * 1.05))
+        else:
+            short_size = random.randint(int(self.base_size * 0.7), int(self.base_size * 1.25))
         img = sample['image']
         mask = sample['label']
         # random scale (short edge)
-        short_size = random.randint(int(self.base_size * 0.7), int(self.base_size * 1.25))
+        
         w, h = img.size
         if h > w:
             ow = short_size
