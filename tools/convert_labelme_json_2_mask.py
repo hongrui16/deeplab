@@ -137,6 +137,7 @@ def split_train_val_dataset(args):
     input_img_dir = args.input_dir
     output_img_dir      = args.output_dir
 
+    train_2_val_ratio = 0.25
     input_label_dir = input_img_dir.replace('image', 'label')
     output_label_dir = output_img_dir.replace('image', 'label')
     if output_img_dir and not os.path.exists(output_img_dir):
@@ -159,6 +160,151 @@ def split_train_val_dataset(args):
 
         shutil.move(ori_img_filepath, val_img_filepath)
         shutil.move(ori_label_filepath, val_label_filepath)
+
+def split_train_val_dataset_2nd(args):
+    input_img_dir = args.input_dir
+    output_dir      = args.output_dir
+
+    val_ratio = 0.25
+    input_mask_dir = input_img_dir.replace('img', 'ano')
+
+    output_tr_img_dir = os.path.join(output_dir, 'train', 'image')
+    output_tr_mask_dir = os.path.join(output_dir, 'train', 'mask')
+
+    output_val_img_dir = os.path.join(output_dir, 'val', 'image')
+    output_val_mask_dir = os.path.join(output_dir, 'val', 'mask')
+
+    if output_tr_img_dir and not os.path.exists(output_tr_img_dir):
+        os.makedirs(output_tr_img_dir)
+    if output_tr_mask_dir and not os.path.exists(output_tr_mask_dir):
+        os.makedirs(output_tr_mask_dir)
+    if output_val_img_dir and not os.path.exists(output_val_img_dir):
+        os.makedirs(output_val_img_dir)
+    if output_val_mask_dir and not os.path.exists(output_val_mask_dir):
+        os.makedirs(output_val_mask_dir)
+
+    img_names = os.listdir(input_img_dir)
+    random.shuffle(img_names)
+    total_num = len(img_names)
+    val_num = int(val_ratio*total_num)
+    for i, img_name in enumerate(img_names):
+        print(f'processing {img_name} {i+1}/{len(img_names)}')
+        if not '.jpg' in img_name:
+            continue
+
+        if i > val_num:
+            output_img_dir = output_tr_img_dir
+            output_mask_dir = output_tr_mask_dir
+        else:
+            output_img_dir = output_val_img_dir
+            output_mask_dir = output_val_mask_dir
+
+        ori_img_filepath = os.path.join(input_img_dir, img_name)
+        out_img_flepath = os.path.join(output_img_dir, img_name)
+        shutil.move(ori_img_filepath, out_img_flepath)
+
+        label_name = img_name.replace('.jpg', '.png') 
+        ori_label_filepath = os.path.join(input_mask_dir, label_name)
+        if not os.path.exists(ori_label_filepath):
+            continue
+        out_label_filepath = os.path.join(output_mask_dir, label_name)
+        shutil.move(ori_label_filepath, out_label_filepath)
+
+
+def match_mask_for_dataset(args):
+    input_img_dir = args.input_dir
+    output_dir      = args.output_dir
+
+
+    output_tr_img_dir = os.path.join(output_dir, 'train', 'image')
+    output_tr_mask_dir = os.path.join(output_dir, 'train', 'mask')
+
+    output_val_img_dir = os.path.join(output_dir, 'val', 'image')
+    output_val_mask_dir = os.path.join(output_dir, 'val', 'mask')
+
+    if output_tr_img_dir and not os.path.exists(output_tr_img_dir):
+        os.makedirs(output_tr_img_dir)
+    if output_tr_mask_dir and not os.path.exists(output_tr_mask_dir):
+        os.makedirs(output_tr_mask_dir)
+    if output_val_img_dir and not os.path.exists(output_val_img_dir):
+        os.makedirs(output_val_img_dir)
+    if output_val_mask_dir and not os.path.exists(output_val_mask_dir):
+        os.makedirs(output_val_mask_dir)
+
+    train_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/train/image'
+    val_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/val/image'
+    img_names = os.listdir(input_img_dir)
+    train_img_names = os.listdir(train_img_dir)
+    val_img_names = os.listdir(val_img_dir)
+
+    # random.shuffle(img_names)
+    # val_num = int(val_ratio*total_num)
+
+    for i, img_name in enumerate(img_names):
+        print(f'processing {img_name} {i+1}/{len(img_names)}')
+        if not '.jpg' in img_name:
+            continue
+
+        if img_name in train_img_names:
+            output_img_dir = output_tr_img_dir
+            output_mask_dir = output_tr_mask_dir
+        elif img_name in val_img_names:
+            output_img_dir = output_val_img_dir
+            output_mask_dir = output_val_mask_dir
+
+        ori_img_filepath = os.path.join(input_img_dir, img_name)
+
+        label_name = img_name.replace('.jpg', '.png') 
+        out_label_filepath = os.path.join(output_mask_dir, label_name)
+
+        shutil.move(ori_img_filepath, out_label_filepath)
+
+
+def match_json_for_dataset(args):
+    input_json_dir = args.input_dir
+    output_dir      = args.output_dir
+
+
+    output_tr_json_dir = os.path.join(output_dir, 'train', 'json')
+    output_test_json_dir = os.path.join(output_dir, 'test', 'json')
+    output_val_json_dir = os.path.join(output_dir, 'val', 'json')
+
+    if output_tr_json_dir and not os.path.exists(output_tr_json_dir):
+        os.makedirs(output_tr_json_dir)
+    if output_test_json_dir and not os.path.exists(output_test_json_dir):
+        os.makedirs(output_test_json_dir)
+    if output_val_json_dir and not os.path.exists(output_val_json_dir):
+        os.makedirs(output_val_json_dir)
+    
+    train_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/train/image'
+    val_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/val/image'
+    test_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/image'
+
+    train_img_names = os.listdir(train_img_dir)
+    val_img_names = os.listdir(val_img_dir)
+    test_img_names = os.listdir(test_img_dir)
+
+    json_names = os.listdir(input_json_dir)
+
+    # random.shuffle(img_names)
+    # val_num = int(val_ratio*total_num)
+
+    for i, j_name in enumerate(json_names):
+        print(f'processing {j_name} {i+1}/{len(json_names)}')
+        if not '.json' in j_name:
+            continue
+        img_name = j_name.replace('.json', '.jpg')
+        if img_name in train_img_names:
+            output_json_dir = output_tr_json_dir
+        elif img_name in val_img_names:
+            output_json_dir = output_val_json_dir
+        elif img_name in test_img_names:
+            output_json_dir = output_test_json_dir
+
+        ori_json_filepath = os.path.join(input_json_dir, j_name)
+        out_json_filepath = os.path.join(output_json_dir, j_name)
+
+        shutil.move(ori_json_filepath, out_json_filepath)
 
 def convert_json(args):
     input_dir   = args.input_dir
@@ -193,8 +339,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     # split_train_val_dataset(args)
+    # split_train_val_dataset_2nd(args)
     # compose()
     # test()
     # open_alg_fun()
     # convert_json_2_mask(args)
-    convert_json(args)
+    # convert_json(args) 
+    match_json_for_dataset(args)
