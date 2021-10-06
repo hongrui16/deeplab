@@ -67,7 +67,7 @@ class BasicDataset(Dataset):
         else:
             _tmp = cv2.imread(lbl_path, 0)
             _tmp = self.encode_segmap(_tmp)
-            if self.args.distinguish_left_right_semantic and _tmp.max() > 2 and not self.split == 'test':
+            if self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 1:
                 # multiple rails, if in semantic segmentation, the image should be discarded.
                 w, h = _img.size
                 _img = Image.new("RGB", (w, h))
@@ -115,7 +115,7 @@ class BasicDataset(Dataset):
     def transform_train(self, sample):
         composed_transforms = transforms.Compose([
             tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
-            tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index),
+            tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
             tr.RandomHorizontalFlip(self.args),
             tr.RandomRotate(degree = self.args.rotate_degree),
             tr.RandomGaussianBlur(),

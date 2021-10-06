@@ -2,16 +2,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-def decode_seg_map_sequence(label_masks, dataset='pascal'):
+def decode_seg_map_sequence(label_masks, dataset='pascal', args = None):
     rgb_masks = []
     for label_mask in label_masks:
-        rgb_mask = decode_segmap(label_mask, dataset)
+        rgb_mask = decode_segmap(label_mask, dataset, args = args)
         rgb_masks.append(rgb_mask)
     rgb_masks = torch.from_numpy(np.array(rgb_masks).transpose([0, 3, 1, 2]))
     return rgb_masks
 
 
-def decode_segmap(label_mask, dataset, plot=False):
+def decode_segmap(label_mask, dataset, plot=False, args = None):
     """Decode segmentation class labels into a color image
     Args:
         label_mask (np.ndarray): an (M,N) array of integer values denoting
@@ -28,7 +28,7 @@ def decode_segmap(label_mask, dataset, plot=False):
         n_classes = 19
         label_colours = get_cityscapes_labels()
     elif dataset == 'basicDataset':
-        n_classes = 2
+        n_classes = args.n_classes
         label_colours = get_basicdataset_labels()
     else:
         raise NotImplementedError

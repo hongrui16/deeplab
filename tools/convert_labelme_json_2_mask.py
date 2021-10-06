@@ -571,7 +571,31 @@ def convert_json_to_label(args):
             print('Saved to: %s' % out_label_filepath)
             # return
                     
+def find_images_for_train_and_val(args):
+    input_dir   = args.inp
+    # output_dir      = args.oup
+
+
+    dirs = ['train', 'test', 'val']
+    ori_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/Part3'
+    ori_names = os.listdir(ori_img_dir)
+
+    for d in dirs:
+        input_d_dir = os.path.join(input_dir, d)
+        img_dir = os.path.join(input_d_dir, 'image')
+        img_names = os.listdir(img_dir)
+
+        for i, img_name in enumerate(img_names):
+            print(f'processing {img_name} {i+1}/{len(img_names)}')
+            if not '.jpg' in img_name:
+                continue
+            if not img_name in ori_names:
+                continue
+            ori_img_filepath = os.path.join(ori_img_dir, img_name)
+            out_img_filepath = os.path.join(img_dir, img_name)
             
+            shutil.copy(ori_img_filepath, out_img_filepath)
+
 
 
 if __name__ == '__main__':
@@ -603,6 +627,6 @@ if __name__ == '__main__':
 
 
     # split_train_val_dataset_3rd(args)
-    convert_json_to_label(args)
-
+    # convert_json_to_label(args)
+    find_images_for_train_and_val(args)
     count_dataset()

@@ -12,7 +12,7 @@ class SegmentationLosses(object):
             self.ce_weight = [0.1, 0.3]
             self.weight = None
         else:
-            self.ce_weight = [0.5, 0.5]
+            self.ce_weight = [1/args.n_classes for _ in range(args.n_classes)]
             self.weight = weight
         self.size_average = size_average
         self.batch_average = batch_average
@@ -33,8 +33,8 @@ class SegmentationLosses(object):
     def CrossEntropyLoss(self, logit, target):
         n, c, h, w = logit.size()
         # print('loss target', target.size(), target.type())
-        if self.weight:
-            weight = self.weight
+        if not self.weight is None:
+            weight = self.weight.cuda()
         else:
             weight = torch.FloatTensor(self.ce_weight).cuda()
         criterion = nn.CrossEntropyLoss(weight=weight, ignore_index=self.ignore_index,
@@ -80,8 +80,8 @@ class SegmentationLosses(object):
         self.reduction = 'elementwise_mean'
         self.thresh = 0.7
         self.min_kept = 50000
-        if self.weight:
-            weight = self.weight
+        if not self.weight is None:
+            weight = self.weight.cuda()
         else:
             weight = torch.FloatTensor(self.ce_weight).cuda()
         # ce_weight = [0.1, 3]

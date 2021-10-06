@@ -34,7 +34,7 @@ class distWorker(object):
         self.saver.save_experiment_config()
         if self.args.master:
             # Define Tensorboard Summary
-            self.summary = TensorboardSummary(self.saver.experiment_dir)
+            self.summary = TensorboardSummary(self.saver.experiment_dir, args = args)
             self.writer = self.summary.create_summary()
         
         # Define Dataloader
@@ -128,8 +128,8 @@ class distWorker(object):
         #     print(f'rank {self.args.rank} num_img_tr: {num_img_tr}')
         start = 0
         for i, sample in enumerate(tbar):
-            # if not i % 100 == 0:
-            #     continue
+            if not i % 20 == 0 and self.args.debug:
+                continue
             # print(f'rank {self.args.rank} dataload time {round(time.time() - start, 3)}')
             # start = time.time()
             image, target, _ = sample['image'], sample['label'], sample['img_name']
@@ -187,8 +187,8 @@ class distWorker(object):
         test_loss = 0.0
         # return
         for i, sample in enumerate(tbar):
-            # if not i % 200 == 0:
-            #     continue
+            if not i % 20 == 0 and self.args.debug:
+                continue
             image, target, _ = sample['image'], sample['label'], sample['img_name']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
@@ -249,6 +249,8 @@ class distWorker(object):
         # return
         num_img_tr = len(self.test_loader)
         for i, sample in enumerate(tbar):
+            if not i % 20 == 0 and self.args.debug:
+                continue
             image, target, img_names = sample['image'], sample['label'], sample['img_name']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
