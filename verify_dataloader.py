@@ -1,6 +1,3 @@
-# from labelme2coco.labelme2coco import labelme2coco_custom
-# from labelme2coco import convert_customer_dataset
-import labelme2coco
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import argparse
@@ -12,7 +9,7 @@ import torch
 import sys
 import cv2
 import numpy as np
-from tools.custom_train import instance_custom_training
+
 
 
 def save_img_mask(loader, output_dir):
@@ -69,18 +66,6 @@ def varify_forward(args):
     save_img_mask(train_loader, args.output_dir)
 
 
-def pixellib_vis(args):
-    input_dir   = args.inp
-
-
-    vis_img = instance_custom_training()
-    # vis_img = instance_custom_dataset_model_training()
-
-    # vis_img.load_dataset(input_dir)
-    vis_img.load_customer_dataset(input_dir)
-
-    # vis_img.load_dataset("Nature")
-    vis_img.visualize_sample()
 
 
 if __name__ == '__main__':
