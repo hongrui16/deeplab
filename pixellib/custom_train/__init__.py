@@ -35,7 +35,7 @@ import sys
 
 class instance_custom_training:
     def __init__(self):
-        print(f'calling {__file__}, {sys._getframe().f_lineno}')
+        # print(f'calling {__file__}, {sys._getframe().f_lineno}')
         self.model_dir = os.getcwd()
 
         
@@ -87,7 +87,7 @@ class instance_custom_training:
     
     
     def load_customer_dataset(self, dataset):
-        print(f'calling {__file__}, {sys._getframe().f_lineno}')
+        # print(f'calling {__file__}, {sys._getframe().f_lineno}')
 
         labelme_folder1 = os.path.abspath(os.path.join(dataset, "train"))
 

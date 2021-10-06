@@ -154,7 +154,7 @@ class labelme2coco_custom(object):
             labelme_folder: folder that contains labelme annotations and image files
             save_json_path: path for coco json to be saved
         """
-        print(f'calling {__file__}, {sys._getframe().f_code.co_name}, {sys._getframe().f_lineno}')
+        # print(f'calling {__file__}, {sys._getframe().f_code.co_name}, {sys._getframe().f_lineno}')
 
         self.save_json_path = save_json_path
         self.images = []
@@ -195,7 +195,7 @@ class labelme2coco_custom(object):
 
     def image(self, data, num, json_path):
         image = {}
-        print(f'calling {__file__}, {sys._getframe().f_code.co_name}, {sys._getframe().f_lineno}')
+        # print(f'calling {__file__}, {sys._getframe().f_code.co_name}, {sys._getframe().f_lineno}')
 
         # get image path
         # _, img_extension = os.path.splitext(data["imagePath"])
