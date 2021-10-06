@@ -25,6 +25,11 @@ import os.path as osp
 from labelme import utils
 import imgviz
 import random
+import pixellib
+# from pixellib.custom_train import instance_custom_training
+# from custom_train import instance_custom_dataset_model_training
+# from pixellib_local.custom_train import instance_custom_training
+
 
 
 def labelme_json_to_dataset_fun(json_filepath, out_dir):
@@ -188,6 +193,7 @@ def convert_json_to_label(args):
             print('Saved to: %s' % out_label_filepath)
             # return
 
+   
 
 
 if __name__ == '__main__':
@@ -206,7 +212,7 @@ if __name__ == '__main__':
     parser.add_argument('-tw', '--target_width', type=int, default=1920)
 
     args = parser.parse_args()
-    # split_train_val_dataset(args)
+    pixellib_vis(args)
     # split_train_val_dataset_2nd(args)
     # compose()
     # test()

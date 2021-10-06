@@ -1,13 +1,18 @@
+# from labelme2coco.labelme2coco import labelme2coco_custom
+# from labelme2coco import convert_customer_dataset
+import labelme2coco
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import argparse
 import os
-from dataloaders.datasets import cityscapes, coco, combine_dbs, pascal, sbd, basicDataset
+# from dataloaders.datasets import cityscapes, coco, combine_dbs, pascal, sbd, basicDataset
+from dataloaders.datasets import basicDataset
 from torch.utils.data import DataLoader
 import torch
 import sys
 import cv2
 import numpy as np
+from tools.custom_train import instance_custom_training
 
 
 def save_img_mask(loader, output_dir):
@@ -44,12 +49,48 @@ def save_img_mask(loader, output_dir):
             cv2.imwrite(os.path.join(output_dir, f'{img_name_perfix}.jpg'), img_tmp)
             cv2.imwrite(os.path.join(output_dir, f'{img_name_perfix}.png'), segmap*60)
 
+def varify_forward(args):
+    # output_dir = args.output_dir
+    # if output_dir and not os.path.exists(output_dir):
+    #     os.makedirs(output_dir)
+
+    if args.output_dir and not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+
+    root = args.input_dir
+
+    basicDataset_train = basicDataset.BasicDataset(args, root, split="train")
+    basicDataset_test = basicDataset.BasicDataset(args, root, split="test")
+
+    train_loader = DataLoader(basicDataset_train, batch_size=2, shuffle=False, num_workers=2)
+    # test_loader = DataLoader(basicDataset_test, batch_size=2, shuffle=False, num_workers=2)
+
+
+    save_img_mask(train_loader, args.output_dir)
+
+
+def pixellib_vis(args):
+    input_dir   = args.inp
+
+
+    vis_img = instance_custom_training()
+    # vis_img = instance_custom_dataset_model_training()
+
+    # vis_img.load_dataset(input_dir)
+    vis_img.load_customer_dataset(input_dir)
+
+    # vis_img.load_dataset("Nature")
+    vis_img.visualize_sample()
+
+
 if __name__ == '__main__':
     # from dataloaders.utils import decode_segmap
 
     os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--inp', type=str, default=None)
+
     parser.add_argument('-im', '--input_dir', type=str, default='/home/hongrui/project/metro_pro/dataset/1st_2000')
     parser.add_argument('-om', '--output_dir', type=str, default='temp')
     parser.add_argument('--batch-size', type=int, default=16,
@@ -73,23 +114,7 @@ if __name__ == '__main__':
     parser.add_argument('--testOut_dir', type=str, default=None, help='test image output dir')
     args = parser.parse_args()
 
-    # output_dir = args.output_dir
-    # if output_dir and not os.path.exists(output_dir):
-    #     os.makedirs(output_dir)
-
-    if args.output_dir and not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
-
-    root = args.input_dir
-
-    basicDataset_train = basicDataset.BasicDataset(args, root, split="train")
-    basicDataset_test = basicDataset.BasicDataset(args, root, split="test")
-
-    train_loader = DataLoader(basicDataset_train, batch_size=2, shuffle=False, num_workers=2)
-    # test_loader = DataLoader(basicDataset_test, batch_size=2, shuffle=False, num_workers=2)
-
-
-    save_img_mask(train_loader, args.output_dir)
+    
     # save_img_mask(test_loader, args.output_dir)
     # plt.show()
     # plt.show(block=True)
