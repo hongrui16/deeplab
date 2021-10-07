@@ -499,6 +499,29 @@ def find_images_for_train_and_val(args):
             
             shutil.copy(ori_img_filepath, out_img_filepath)
 
+def find_GT_for_inference(args):
+    input_dir   = args.inp
+    
+    test_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/label'
+
+    ori_names = os.listdir(input_dir)
+
+    img_names = []
+    for i, ori_name in enumerate(ori_names):
+        if '.jpg' in ori_name:
+            img_names.append(ori_name)
+    for i, img_name in enumerate(img_names):
+        print(f'processing {img_name} {i+1}/{len(img_names)}')
+        
+        ori_gt_name = img_name.replace('.jpg', '.png')
+        out_gt_name = f"{img_name.split('.')[0]}_GT.png"
+        ori_gt_filepath = os.path.join(test_label_dir, ori_gt_name)
+        if os.path.exists(ori_gt_filepath):
+            out_gt_filepath = os.path.join(input_dir, out_gt_name)
+            print(out_gt_filepath)
+            shutil.copy(ori_gt_filepath, out_gt_filepath)
+        print()
+
 
 
 if __name__ == '__main__':
@@ -533,6 +556,9 @@ if __name__ == '__main__':
     # convert_json_to_label(args)
     # find_images_for_train_and_val(args)
 
-    find_unannonated_image_and_json(args)
+    # find_unannonated_image_and_json(args)
+    find_GT_for_inference(args)
 
+
+    
     count_dataset()
