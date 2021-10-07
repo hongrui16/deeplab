@@ -247,6 +247,7 @@ class distWorker(object):
         tbar = tqdm(self.test_loader, desc='\r')
         test_loss = 0.0
         # return
+        label_normalize_unit = 20
         num_img_tr = len(self.test_loader)
         for i, sample in enumerate(tbar):
             if not i % 10 == 0 and self.args.debug:
@@ -282,20 +283,17 @@ class distWorker(object):
                 self.evaluator.add_batch(target, pred)
             
             if self.args.dump_image:
-                results = pred.copy()
-                results[results==1] = 255
-                labels_exists = False
+                results = pred.copy()*label_normalize_unit
+                # results[results==1] = 255
                 if isinstance(target, np.ndarray):                    
-                    labels = target.copy()
-                    labels[labels==1] = 255
-                    labels_exists = True
+                    labels = target.copy()*label_normalize_unit
+                    # labels[labels==1] = 255
                 elif isinstance(target, torch.Tensor): 
-                    labels = target.cpu().numpy()
-                    labels[labels==1] = 255
-                    labels_exists = True
+                    labels = target.cpu().numpy()*label_normalize_unit
+                    # labels[labels==1] = 255
                 else:
                     pass
-                for _id in range(self.args.test_batch_size):
+                for _id in range(len(image)):
                     img_tmp = np.transpose(image[_id].cpu().numpy(), axes=[1, 2, 0])
                     img_tmp *= (0.229, 0.224, 0.225)
                     img_tmp += (0.485, 0.456, 0.406)
@@ -306,11 +304,11 @@ class distWorker(object):
                     out_img_filepath = os.path.join(self.saver.output_mask_dir, img_name)
                     cv2.imwrite(out_img_filepath, img_tmp)
 
-                    infer_mask_name = f"{img_name.split('.')[0]}_infer.jpg"                    
+                    infer_mask_name = f"{img_name.split('.')[0]}_infer.png"                    
                     out_infer_mask_filepath = os.path.join(self.saver.output_mask_dir, infer_mask_name)
                     cv2.imwrite(out_infer_mask_filepath, results[_id])
                     
-                    if labels_exists:
+                    if self.args.testValTrain >= 1:
                         label_name = f"{img_name.split('.')[0]}_GT.jpg"
                         out_label_filepath = os.path.join(self.saver.output_mask_dir, label_name)
                         cv2.imwrite(out_label_filepath, labels[_id])

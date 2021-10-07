@@ -31,7 +31,7 @@ class BasicDataset(Dataset):
         # print('args.ignore_index', args.ignore_index)
         if args.testset_dir:
             self.images_base =  args.testset_dir
-            self.annotations_base = None
+            self.annotations_base = ''
         else:
             self.images_base = os.path.join(self.base_dir, 'image')
             self.annotations_base = os.path.join(self.base_dir, 'label')
@@ -58,18 +58,20 @@ class BasicDataset(Dataset):
         lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
 
         _img = Image.open(img_path).convert('RGB')
+        w, h = _img.size
+
         # _tmp = np.array(Image.open(lbl_path), dtype=np.uint8)
         if self.args.testset_dir:
             # w, h = _img.size
             # _target = np.zeros((h,w))
             # _target = Image.fromarray(_target)
-            _target = None
+            _tmp = np.zeros((h,w), dtype=np.uint8)
+            _target = Image.fromarray(_tmp)
         else:
             _tmp = cv2.imread(lbl_path, 0)
             _tmp = self.encode_segmap(_tmp)
             if self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 1:
                 # multiple rails, if in semantic segmentation, the image should be discarded.
-                w, h = _img.size
                 _img = Image.new("RGB", (w, h))
                 _tmp = np.zeros((h,w), dtype=np.uint8)
             _target = Image.fromarray(_tmp)
