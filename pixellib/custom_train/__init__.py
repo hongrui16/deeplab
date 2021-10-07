@@ -92,7 +92,7 @@ class instance_custom_training:
         labelme_folder1 = os.path.abspath(os.path.join(dataset, "train"))
 
         #dir where the converted json files will be saved
-        save_json_path1 = os.path.abspath(os.path.join(dataset, "train.json"))
+        save_json_path1 = os.path.abspath(os.path.join(dataset, "train", "train.json"))
         
         #conversion of individual labelme json files into a single json file        
         labelme2coco.labelme2coco_custom(labelme_folder1, save_json_path1)
@@ -106,7 +106,7 @@ class instance_custom_training:
         labelme_folder2 = os.path.abspath(os.path.join(dataset, "test"))
 
         #dir where the converted json files will be saved
-        save_json_path2 = os.path.abspath(os.path.join(dataset, "test.json"))
+        save_json_path2 = os.path.abspath(os.path.join(dataset, "test", "test.json"))
         
         
         #conversion of individual labelme json files into a single json file  
@@ -120,7 +120,7 @@ class instance_custom_training:
         labelme_folder3 = os.path.abspath(os.path.join(dataset, "val"))
 
         #dir where the converted json files will be saved
-        save_json_path3 = os.path.abspath(os.path.join(dataset, "val.json"))
+        save_json_path3 = os.path.abspath(os.path.join(dataset, "val", "val.json"))
         
         
         #conversion of individual labelme json files into a single json file  

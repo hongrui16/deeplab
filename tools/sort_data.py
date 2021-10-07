@@ -308,7 +308,7 @@ def find_unmatched_image_and_json(args):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    dirs = ['train', 'val']
+    dirs = ['train', 'val', 'test']
     for d in dirs:
         input_d_dir = os.path.join(input_dir, d)
         input_img_dir = os.path.join(input_d_dir, 'image')
@@ -342,7 +342,66 @@ def find_unmatched_image_and_json(args):
             out_img_filepath = os.path.join(output_dir, img_name)
             
             shutil.move(ori_json_filepath, out_img_filepath)
-           
+
+            
+def find_unannonated_image_and_json(args):
+    input_dir   = args.inp
+    # output_dir      = args.oup
+
+    output_dir = input_dir
+
+    dirs = ['train', 'val', 'test']
+    for d in dirs:
+        input_d_dir = os.path.join(input_dir, d)
+        input_img_dir = os.path.join(input_d_dir, 'image')
+        input_json_dir = os.path.join(input_d_dir, 'json')
+        input_mask_dir = os.path.join(input_d_dir, 'mask')
+
+        output_img_dir = os.path.join(output_dir, 'EmptyJson', d, 'image')
+        output_json_dir = os.path.join(output_dir, 'EmptyJson', d, 'json')
+
+        if not os.path.exists(output_img_dir):
+            os.makedirs(output_img_dir)        
+        if not os.path.exists(output_json_dir):
+            os.makedirs(output_json_dir)
+
+        json_names = os.listdir(input_json_dir)
+
+        for i, json_name in enumerate(json_names):
+            if not '.json' in json_name:
+                continue
+            
+            ori_json_filepath = os.path.join(input_json_dir, json_name)
+            print(f'processing {ori_json_filepath} {i+1}/{len(json_names)}')
+
+            data = json.load(open(ori_json_filepath))
+            # print(data)
+            if 'shapes' in data and len(data['shapes']) > 0:
+                if 'points' in data['shapes'][0] and len(data['shapes'][0]['points']) > 0:
+                    pass
+            else:
+                # print('error')
+                # print(data)
+                # print('shapes' in data)
+                # print(len(data['shapes']) > 0)
+                # print('points' in data['shapes'][0])
+                # print(len(data['shapes'][0]['points']))
+            
+                img_name = json_name.replace('.json', '.jpg')
+
+                out_json_filepath = os.path.join(output_json_dir, json_name)
+                # print('output_img_dir', output_img_dir)
+                print('out_json_filepath', out_json_filepath)
+                
+                ori_img_filepath = os.path.join(input_img_dir, img_name)
+                # print('ori_img_filepath', ori_img_filepath)
+                out_img_filepath = os.path.join(output_img_dir, img_name)
+                print('out_img_filepath', out_img_filepath)
+
+                shutil.move(ori_json_filepath, out_json_filepath)   
+                shutil.move(ori_img_filepath, out_img_filepath)
+            print()
+      
 # def find_json_for_val(args):
 #     input_dir   = args.inp
 #     output_dir      = args.oup
@@ -472,5 +531,8 @@ if __name__ == '__main__':
 
     # split_train_val_dataset_3rd(args)
     # convert_json_to_label(args)
-    find_images_for_train_and_val(args)
+    # find_images_for_train_and_val(args)
+
+    find_unannonated_image_and_json(args)
+
     count_dataset()

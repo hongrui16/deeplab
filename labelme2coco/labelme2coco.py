@@ -148,7 +148,7 @@ class labelme2coco(object):
         json.dump(self.data_coco, open(self.save_json_path, 'w', encoding='utf-8'), indent=4, separators=(',', ': '), cls=MyEncoder)
 
 class labelme2coco_custom(object):
-    def __init__(self, data_folder='', save_json_path='./new.json', image_folder_name = 'image', json_folder_name = 'json'):
+    def __init__(self, data_folder='', save_json_path='./new.json', image_folder_name = 'image', json_folder_name = 'json', dataset = 'metro'):
         """
         Args:
             labelme_folder: folder that contains labelme annotations and image files
@@ -166,8 +166,10 @@ class labelme2coco_custom(object):
         self.width = 0
         self.json_folder = os.path.join(data_folder, json_folder_name)
         self.image_folder = os.path.join(data_folder, image_folder_name)
+        self.dataset = dataset
         # create save dir
         save_json_dir = os.path.dirname(save_json_path)
+
         create_dir(save_json_dir)
 
         # get json list
@@ -178,6 +180,7 @@ class labelme2coco_custom(object):
 
     def data_transfer(self):
         for num, json_path in enumerate(self.labelme_json):
+            print(f'processing {json_path} {num}/{len(self.labelme_json)}')
             with open(json_path, 'r') as fp:
                 # load json
                 data = json.load(fp)
@@ -201,7 +204,7 @@ class labelme2coco_custom(object):
         # _, img_extension = os.path.splitext(data["imagePath"])
         # image_path = json_path.replace(".json", img_extension)
         image_path = os.path.join(self.image_folder, data["imagePath"])
-        print('image_path', image_path)
+        # print('image_path', image_path)
         img_shape = read_image_shape_as_dict(image_path)
         height, width = img_shape['height'], img_shape['width']
 

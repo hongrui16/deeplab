@@ -24,7 +24,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--inp', type=str, default=None)
 
-    parser.add_argument('-im', '--input_dir', type=str, default='/home/hongrui/project/metro_pro/dataset/1st_2000')
+    parser.add_argument('-im', '--input_dir', type=str, default='/home/hongrui/project/metro_pro/dataset/1st_5000')
     parser.add_argument('-om', '--output_dir', type=str, default='temp')
     
     args = parser.parse_args()
