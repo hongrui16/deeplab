@@ -187,7 +187,7 @@ class distWorker(object):
         test_loss = 0.0
         # return
         for i, sample in enumerate(tbar):
-            if not i % 20 == 0 and self.args.debug:
+            if not i % 15 == 0 and self.args.debug:
                 continue
             image, target, _ = sample['image'], sample['label'], sample['img_name']
             if self.args.cuda:
@@ -249,7 +249,7 @@ class distWorker(object):
         # return
         num_img_tr = len(self.test_loader)
         for i, sample in enumerate(tbar):
-            if not i % 20 == 0 and self.args.debug:
+            if not i % 10 == 0 and self.args.debug:
                 continue
             image, target, img_names = sample['image'], sample['label'], sample['img_name']
             if self.args.cuda:

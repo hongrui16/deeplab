@@ -3,6 +3,7 @@ import shutil
 import torch
 from collections import OrderedDict
 import glob
+from time import gmtime, strftime
 
 class Saver(object):
 
@@ -53,24 +54,22 @@ class Saver(object):
         torch.save(state, filename)
         if is_best:
             best_pred = state['best_pred']
-            with open(os.path.join(self.experiment_dir, 'best_pred.txt'), 'w') as f:
+            best_pred_filepath = os.path.join(self.experiment_dir, 'best_pred.txt')
+            with open(best_pred_filepath, 'w') as f:
                 f.write(str(best_pred))
-            if self.runs:
-                previous_miou = [0.0]
-                for run in self.runs:
-                    run_id = run.split('_')[-1]
-                    path = os.path.join(self.directory, 'experiment_{}'.format(str(run_id)), 'best_pred.txt')
-                    if os.path.exists(path):
-                        with open(path, 'r') as f:
-                            miou = float(f.readline())
-                            previous_miou.append(miou)
-                    else:
-                        continue
-                max_miou = max(previous_miou)
-                if best_pred > max_miou:
-                    shutil.copyfile(filename, os.path.join(self.experiment_dir, 'model_best.pth.tar'))
-            else:
-                shutil.copyfile(filename, os.path.join(self.experiment_dir, 'model_best.pth.tar'))
+            # if self.runs:
+            #     previous_miou = [0.0]
+            #     if os.path.exists(best_pred_filepath):
+            #         with open(best_pred_filepath, 'r') as f:
+            #             miou = float(f.readline())
+            #             previous_miou.append(miou)
+                
+            #     max_miou = max(previous_miou)
+            #     if best_pred > max_miou:
+            #         shutil.copyfile(filename, os.path.join(self.experiment_dir, 'model_best.pth.tar'))
+            # else:
+                # shutil.copyfile(filename, os.path.join(self.experiment_dir, 'model_best.pth.tar'))
+            shutil.copyfile(filename, os.path.join(self.experiment_dir, 'model_best.pth.tar'))
 
     def save_experiment_config(self):
         if not self.args.master:
@@ -80,6 +79,10 @@ class Saver(object):
         for key, val in p.items():
             log_file.write(key + ':' + str(val) + '\n')
         log_file.write('\n')
+        current_time = strftime("%Y-%m-%d-%H-%M-%S", gmtime())
+        log_file.write('current_time' + ':' + str(current_time) + '\n')
+        log_file.write('\n')
+
         log_file.close()# 
         # return log_file
         # logfile = os.path.join(self.experiment_dir, 'parameters.txt')

@@ -106,7 +106,7 @@ parser.add_argument('--start_epoch', type=int, default=0,
 parser.add_argument('--use_balanced_weights', action='store_true', default=True,
                     help='whether to use balanced weights (default: False)')
 
-parser.add_argument('--loss_type', type=str, default='FSOhemCELoss',
+parser.add_argument('--loss_type', type=str, default='ce',
                     choices=['ce', 'focal', 'FSOhemCELoss'],
                     help='loss func type (default: focal)')
 parser.add_argument('--batch_size', type=int, default=8,
@@ -123,7 +123,7 @@ parser.add_argument('--base_size', type=int, default=640)
 parser.add_argument('--crop_size', type=int, default=640)
 parser.add_argument('--max_size', type=int, default=1080)
 parser.add_argument('--rotate_degree', type=int, default=15)
-parser.add_argument('--n_classes', type=int, default=2)
+parser.add_argument('--n_classes', type=int, default=3)
 parser.add_argument('--dataset', type=str, default='basicDataset')
 parser.add_argument('--dataset_dir', type=str, default='/home/hongrui/project/metro_pro/dataset/1st_5000', help='dataset dir')
 parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: infer, 1: test, 2: train, 3: trainval, 4: trainvaltest')
@@ -133,10 +133,10 @@ parser.add_argument('--dump_image', action='store_true', default=False,
                     help='dump image when test')
 parser.add_argument('--alpha', type=float, default=0.5,
                     help='focal loss alpha')
-parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=False,
+parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=True,
                     help='distinguish left and right rail semantic segmentation')
 parser.add_argument('--debug', action='store_true', default=False,
-                    help='dump image when test')
+                    help='debug flag')
 args = parser.parse_args()
 
 
