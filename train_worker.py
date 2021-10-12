@@ -247,8 +247,9 @@ class distWorker(object):
         tbar = tqdm(self.test_loader, desc='\r')
         test_loss = 0.0
         # return
-        label_normalize_unit = 20
+        # label_normalize_unit = 20
         num_img_tr = len(self.test_loader)
+        # print('num_img_tr', num_img_tr)
         for i, sample in enumerate(tbar):
             if not i % 10 == 0 and self.args.debug:
                 continue
@@ -294,6 +295,7 @@ class distWorker(object):
                 else:
                     pass
                 labels = self.postprocess(labels)
+                # print('len(image)', len(image))
                 for _id in range(len(image)):
                     img_tmp = np.transpose(image[_id].cpu().numpy(), axes=[1, 2, 0])
                     img_tmp *= (0.229, 0.224, 0.225)
@@ -311,7 +313,7 @@ class distWorker(object):
                     
                     # if self.args.testValTrain >= 1:
                     if labels[_id].any() > 0:
-                        label_name = f"{img_name.split('.')[0]}_GT.jpg"
+                        label_name = f"{img_name.split('.')[0]}_GT.png"
                         out_label_filepath = os.path.join(self.saver.output_mask_dir, label_name)
                         cv2.imwrite(out_label_filepath, labels[_id])
                 

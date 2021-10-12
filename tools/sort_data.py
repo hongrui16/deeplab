@@ -557,7 +557,7 @@ if __name__ == '__main__':
     # find_images_for_train_and_val(args)
 
     # find_unannonated_image_and_json(args)
-    find_GT_for_inference(args)
+    # find_GT_for_inference(args)
 
 
     
