@@ -25,6 +25,7 @@ import os.path as osp
 from labelme import utils
 import imgviz
 import random
+from utils import *
 
 def select_images(args):
     img_filepath    = args.img_filepath
@@ -503,6 +504,7 @@ def find_GT_for_inference(args):
     input_dir   = args.inp
     
     test_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/label'
+    
 
     ori_names = os.listdir(input_dir)
 
@@ -522,7 +524,25 @@ def find_GT_for_inference(args):
             shutil.copy(ori_gt_filepath, out_gt_filepath)
         print()
 
+def relocate_rail_regin_in_images(args):
+    old_test_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/image'
+    old_test_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/json'
+    old_test_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/label'
 
+    output_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/image'
+    output_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/json'
+    output_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/label'
+
+    if not os.path.exists(output_img_dir):
+        os.makedirs(output_img_dir)        
+    if not os.path.exists(output_json_dir):
+        os.makedirs(output_json_dir)
+    if not os.path.exists(output_label_dir):
+        os.makedirs(output_label_dir)
+    
+    sorted_test_imgs_filepath = '/home/hongrui/project/metro_pro/dataset/1st_5000/sorted_test_imgs.txt'
+    sorted_test_imgs = read_txt_to_list(sorted_test_imgs_filepath)
+    
 
 if __name__ == '__main__':
 
@@ -561,4 +581,4 @@ if __name__ == '__main__':
 
 
     
-    count_dataset()
+    # count_dataset()

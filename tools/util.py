@@ -5,7 +5,6 @@ import numpy as np
 import random
 import shutil
 
-
 def write_list_to_txt(txt_filepath, lists):
     f = open(txt_filepath, "a+")
     for l in lists:
@@ -18,7 +17,7 @@ def read_txt_to_list(txt_filepath):
         lines = f.readlines()
         for line in lines:
             lists.append(line.strip('\n'))
-    print(len(lists))
+    # print(len(lists))
     return lists
 
 
