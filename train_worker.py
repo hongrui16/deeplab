@@ -335,9 +335,10 @@ class distWorker(object):
             self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
 
     def postprocess(self, img):
-        max_id = img.max()
-        ratio = 255//max_id
-        img *= ratio
+        # max_id = img.max()
+        # ratio = 255//max_id
+        # img *= ratio
+        img *= 40
         return img
 
 
