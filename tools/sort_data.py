@@ -467,10 +467,10 @@ def count_dataset():
 
     todo_names = os.listdir(todo_dir)
 
-    print(f'image train: {len(train_img_names)}, test: {len(test_img_names)}, val: {len(val_img_names)}')
-    print(f'json  train: {len(train_json_names)}, test: {len(test_json_names)}, val: {len(val_json_names)}')
+    print(f'image train: {len(train_img_names)},   test: {len(test_img_names)},   val: {len(val_img_names)}')
+    print(f'json  train: {len(train_json_names)},  test: {len(test_json_names)},  val: {len(val_json_names)}')
     print(f'label train: {len(train_label_names)}, test: {len(test_label_names)}, val: {len(val_label_names)}')
-    print(f'mask  train: {len(train_mask_names)}, test: {len(test_mask_names)}, val: {len(val_mask_names)}')
+    print(f'mask  train: {len(train_mask_names)},  test: {len(test_mask_names)},  val: {len(val_mask_names)}')
 
     print(f'todo: {len(todo_names)}')
 
@@ -571,7 +571,7 @@ def relocate_rail_regin_in_images(args):
         if left_x_pos < w//2 < right_x_pos:
             shutil.copy(img_filepath, out_img_filepath)
             shutil.copy(label_filepath, out_label_filepath)
-            shutil.copy(json_filepath, out_json_filepath)
+            # shutil.copy(json_filepath, out_json_filepath)
         else:
 
             mid_x_pos = (left_x_pos + right_x_pos)//2
