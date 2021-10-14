@@ -106,9 +106,10 @@ class Inference(object):
         return pred
       
     def postprocess(self, infer):
-        max_id = infer.max()
-        ratio = 255//max_id
-        infer *= ratio
+        # max_id = infer.max()
+        # ratio = 255//max_id
+        # infer *= ratio
+        infer *= 40
         return infer
 
                 
