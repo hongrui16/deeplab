@@ -25,7 +25,7 @@ import os.path as osp
 from labelme import utils
 import imgviz
 import random
-from utils import *
+from util import *
 
 def select_images(args):
     img_filepath    = args.img_filepath
@@ -524,6 +524,8 @@ def find_GT_for_inference(args):
             shutil.copy(ori_gt_filepath, out_gt_filepath)
         print()
 
+
+
 def relocate_rail_regin_in_images(args):
     old_test_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/image'
     old_test_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/json'
@@ -542,7 +544,53 @@ def relocate_rail_regin_in_images(args):
     
     sorted_test_imgs_filepath = '/home/hongrui/project/metro_pro/dataset/1st_5000/sorted_test_imgs.txt'
     sorted_test_imgs = read_txt_to_list(sorted_test_imgs_filepath)
-    
+    cnt = 1
+    for i, img_name in enumerate(sorted_test_imgs):
+        
+        print(f'processing {img_name} {cnt} {i+1}/{len(sorted_test_imgs)}')
+        img_prefix = img_name.split('.')[0]
+        
+        img_filepath = os.path.join(old_test_img_dir, img_name)
+        label_filepath = os.path.join(old_test_label_dir, img_prefix + '.png')
+        json_filepath = os.path.join(old_test_json_dir, img_prefix + '.json')
+        
+
+        out_img_filepath = os.path.join(output_img_dir, img_name)
+        out_label_filepath = os.path.join(output_label_dir, img_prefix + '.png')
+        out_json_filepath = os.path.join(output_json_dir, img_prefix + '.json')
+
+        img = cv2.imread(img_filepath).astype(np.uint8)
+        h, w, _ = img.shape
+        label = cv2.imread(label_filepath, 0).astype(np.uint8)
+        try:
+            left_x_pos, right_x_pos = find_bottom_lane_location_in_labels(label)
+        except Exception as e:
+            continue
+            
+        # print(f"h {h}, w {w}, left_x_pos {left_x_pos}, right_x_pos {right_x_pos}")
+        if left_x_pos < w//2 < right_x_pos:
+            shutil.copy(img_filepath, out_img_filepath)
+            shutil.copy(label_filepath, out_label_filepath)
+            shutil.copy(json_filepath, out_json_filepath)
+        else:
+
+            mid_x_pos = (left_x_pos + right_x_pos)//2
+            offset = w//2 - mid_x_pos
+            abs_offset = int(abs(offset))
+            zero_img_block = np.zeros((h,abs_offset,3), dtype=np.uint8)
+            zero_label_block = np.zeros((h,abs_offset), dtype=np.uint8)
+            if offset < 0:
+                new_img = np.concatenate((img[:,abs_offset:], zero_img_block), axis=1)
+                new_label = np.concatenate((label[:,abs_offset:], zero_label_block), axis=1)
+
+            else:
+                new_img = np.concatenate((zero_img_block, img[:,:w-abs_offset]), axis=1)
+                new_label = np.concatenate((zero_label_block, label[:,:w-abs_offset]), axis=1)
+
+            cv2.imwrite(out_img_filepath, new_img)
+            cv2.imwrite(out_label_filepath, new_label)
+        cnt += 1
+        # return
 
 if __name__ == '__main__':
 
@@ -580,5 +628,5 @@ if __name__ == '__main__':
     # find_GT_for_inference(args)
 
 
-    
+    relocate_rail_regin_in_images(args)
     # count_dataset()

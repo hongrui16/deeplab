@@ -38,7 +38,7 @@ def find_bottom_lane_location_in_labels(label):
     max_y_right = right_lane.nonzero()[0].max()
     max_y = min(max_y_left, max_y_right)
     left_x_pos = left_lane[max_y-20:max_y].nonzero()[1].mean()
-    right_x_pos = right_lane[max_y-50:max_y].nonzero()[1].mean()
+    right_x_pos = right_lane[max_y-20:max_y].nonzero()[1].mean()
     return left_x_pos, right_x_pos
 
 if __name__ == '__main__':
