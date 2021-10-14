@@ -35,6 +35,7 @@ class RailInference(object):
              )])
 
         print(f'Define network...')
+        
         self.model = DeepLab(num_classes   = args.n_classes,
                              backbone      = args.backbone,
                              output_stride = args.out_stride,
@@ -42,6 +43,8 @@ class RailInference(object):
                              freeze_bn     = args.freeze_bn)
 
         # Load weight
+        if args.gpu_id:
+            os.environ["CUDA_VISIBLE_DEVICES"]=args.gpu_id
         print(f'Load weight from {args.resume}')
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         # self.model.load_state_dict(torch.load(args.resume), strict=False)
@@ -144,7 +147,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='IDEA Training')
 
     
-    parser.add_argument('--gpu', default='0', type=str,
+    parser.add_argument('--gpu_id', default='0', type=str,
                         help='GPU id to use.')
 
     parser.add_argument('--backbone', type=str, default='resnet',
