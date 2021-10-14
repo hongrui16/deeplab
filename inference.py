@@ -21,7 +21,7 @@ from modeling.deeplab import *
 
 
 
-class Inference(object):
+class RailInference(object):
     def __init__(self, args):
         self.args = args
         self.max_size = args.max_size
