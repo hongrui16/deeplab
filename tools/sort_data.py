@@ -568,7 +568,8 @@ def relocate_rail_regin_in_images(args):
             continue
             
         # print(f"h {h}, w {w}, left_x_pos {left_x_pos}, right_x_pos {right_x_pos}")
-        if left_x_pos < w//2 < right_x_pos:
+        rail_width = right_x_pos - left_x_pos
+        if left_x_pos + rail_width//4 < w//2 < right_x_pos - rail_width//4:
             shutil.copy(img_filepath, out_img_filepath)
             shutil.copy(label_filepath, out_label_filepath)
             # shutil.copy(json_filepath, out_json_filepath)
