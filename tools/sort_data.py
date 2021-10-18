@@ -629,5 +629,5 @@ if __name__ == '__main__':
     # find_GT_for_inference(args)
 
 
-    relocate_rail_regin_in_images(args)
-    # count_dataset()
+    # relocate_rail_regin_in_images(args)
+    count_dataset()

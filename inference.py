@@ -147,7 +147,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='IDEA Training')
 
     
-    parser.add_argument('--gpu_id', default='0', type=str,
+    parser.add_argument('--gpu_id', default=None, type=str,
                         help='GPU id to use.')
 
     parser.add_argument('--backbone', type=str, default='resnet',

@@ -92,9 +92,13 @@ sbatch background_running.slurm
 ```
 ### 2 directly use gpu machines
 ```
-CUDA_VISIBLE_DEVICES=0,1 python train_main.py --testValTrain 1 --resume run/basicDataset/deeplab-resnet/experiment_4/model_best.pth.tar --dump_image
+CUDA_VISIBLE_DEVICES=0,1 python train_main.py --testValTrain 1 --resume run/basicDataset/deeplab-resnet/experiment_*/model_best.pth.tar --dump_image
 ```
-
+## Inference only
+This is for development.
+```
+python inference.py --resume run/basicDataset/deeplab-resnet/experiment_*/model_best.pth.tar --gpu_id .......
+```
 ## Acknowledgement
 [pytorch-deeplab-xception](https://github.com/jfzhang95/pytorch-deeplab-xception.git)
 
