@@ -35,7 +35,6 @@ class RailInference(object):
              )])
 
         print(f'Define network...')
-        
         self.model = DeepLab(num_classes   = args.n_classes,
                              backbone      = args.backbone,
                              output_stride = args.out_stride,
@@ -45,9 +44,12 @@ class RailInference(object):
         # Load weight
         if args.gpu_id:
             os.environ["CUDA_VISIBLE_DEVICES"]=args.gpu_id
-        print(f'Load weight from {args.resume}')
+            print(f'using GPU:{args.gpu_id}')
+        else:
+            print(f'using CPU')
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         # self.model.load_state_dict(torch.load(args.resume), strict=False)
+        print(f'Load weight from {args.resume}')
         self.model.load_state_dict(torch.load(args.resume))
         self.model = self.model.to(device)
         self.model.eval()
@@ -91,7 +93,7 @@ class RailInference(object):
             resize_flag = False
         if resize_flag:
             image = image.resize((ow, oh), Image.BILINEAR)
-        image = transform(image)
+        image = self.transform(image)
         image = torch.unsqueeze(image, 0).to(self.device)
         return image
 
@@ -124,7 +126,7 @@ def main(args):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    inference_engine = Inference(args)
+    inference_engine = RailInference(args)
 
     img_names = os.listdir(input_dir)
 
@@ -156,8 +158,6 @@ if __name__ == "__main__":
     parser.add_argument('--out-stride', type=int, default=8,
                         help='network output stride (default: 8)')
 
-    parser.add_argument('--use-sbd', action='store_true', default=False,
-                        help='whether to use SBD dataset (default: False)')
 
     parser.add_argument('--sync-bn', type=bool, default=False,
                         help='whether to use sync bn (default: auto)')
