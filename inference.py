@@ -24,7 +24,6 @@ from modeling.deeplab import *
 class RailInference(object):
     def __init__(self, args):
         self.args = args
-        self.max_size = args.max_size
         self.mean=(0.485, 0.456, 0.406)
         self.std=(0.229, 0.224, 0.225)
         self.transform = transforms.Compose([            #[1]
@@ -33,25 +32,41 @@ class RailInference(object):
              mean=[0.485, 0.456, 0.406],                #[6]
              std=[0.229, 0.224, 0.225]                  #[7]
              )])
+        # num_classes   = args.n_classes    if args.n_classes else 3
+        # backbone      = args.backbone     if args.backbone  else 'resnet'
+        # output_stride = args.out_stride   if args.out_stride else 8
+        # sync_bn       = args.sync_bn      if not args.sync_bn is None else False
+        # freeze_bn     = args.freeze_bn    if not args.freeze_bn is None else False
+        # max_size      = args.max_size     if args.max_size else 1080
+
+        num_classes   = 3
+        backbone      = 'resnet'
+        output_stride = 8
+        sync_bn       = False
+        freeze_bn     = False
+        max_size      = 1080
+
+        self.max_size = max_size
 
         print(f'Define network...')
-        self.model = DeepLab(num_classes   = args.n_classes,
-                             backbone      = args.backbone,
-                             output_stride = args.out_stride,
-                             sync_bn       = args.sync_bn,
-                             freeze_bn     = args.freeze_bn)
+        
+        self.model = DeepLab(num_classes   = num_classes,
+                             backbone      = backbone,
+                             output_stride = output_stride,
+                             sync_bn       = sync_bn,
+                             freeze_bn     = freeze_bn)
 
-        # Load weight
+        
         if args.gpu_id:
             os.environ["CUDA_VISIBLE_DEVICES"]=args.gpu_id
-            print(f'using GPU:{args.gpu_id}')
-        else:
-            print(f'using CPU')
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        # self.model.load_state_dict(torch.load(args.resume), strict=False)
+        self.model = self.model.to(self.device)
+
+        # Load weight
         print(f'Load weight from {args.resume}')
-        self.model.load_state_dict(torch.load(args.resume))
-        self.model = self.model.to(device)
+        checkpoint = torch.load(args.resume, map_location=torch.device('cpu'))
+        self.model.load_state_dict(checkpoint['state_dict'])
+        
         self.model.eval()
         print("Initialization finished")
 
