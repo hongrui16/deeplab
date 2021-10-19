@@ -121,9 +121,12 @@ class RailInference(object):
             print('wrong data type')
         with torch.no_grad():
             output = self.model(image)
-        pred = torch.max(output, dim=1)
-        pred = pred.squeeze(0).cpu().numpy()
+        # print('output', output)
+        pred = output.data.cpu().numpy()
+        pred = np.argmax(pred, axis=1)
+        pred = np.squeeze(pred, 0)
         return pred
+      
       
     def postprocess(self, infer):
         # max_id = infer.max()
