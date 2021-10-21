@@ -17,7 +17,7 @@ class Saver(object):
             self.experiment_dir = os.path.join(self.directory, 'experiment_{}'.format(str(run_id)))
         elif 0<=self.args.testValTrain<=1 and self.args.resume:
             if self.args.testOut_dir:
-                self.experiment_dir = self.args.testOut_dir
+                self.directory = self.args.testOut_dir
             else:
                 if not '/' in self.args.resume:
                     self.directory = f'./'
@@ -26,10 +26,10 @@ class Saver(object):
                     start = self.args.resume.find(checkpoint_file)
                     self.directory = self.args.resume[:start-1] 
                 # print('self.directory', self.directory)
-                self.runs = sorted(glob.glob(os.path.join(self.directory, 'testResult_*')))
-                run_id = int(self.runs[-1].split('_')[-1]) + 1 if self.runs else 0
-                self.experiment_dir = os.path.join(self.directory, 'testResult_{}'.format(str(run_id)))
-                self.output_mask_dir = os.path.join(self.experiment_dir, 'infer_mask')
+            self.runs = sorted(glob.glob(os.path.join(self.directory, 'testResult_*')))
+            run_id = int(self.runs[-1].split('_')[-1]) + 1 if self.runs else 0
+            self.experiment_dir = os.path.join(self.directory, 'testResult_{}'.format(str(run_id)))
+            self.output_mask_dir = os.path.join(self.experiment_dir, 'infer_mask')
         else:
             return
 
