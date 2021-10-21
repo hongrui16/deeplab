@@ -13,10 +13,10 @@ import sys
 import time
 from PIL import Image
 from torchvision import transforms
-
+import random
 from modeling.sync_batchnorm.replicate import patch_replication_callback
 from modeling.deeplab import *
-
+from tools.util import *
 # print(f'calling {__file__}, {sys._getframe().f_lineno}')
 
 
@@ -97,7 +97,6 @@ class RailInference(object):
     def preprocess_pil(self, image):
         w, h = image.size
         resize_flag = True
-        h, w, _ = image.shape
         if w > h and w > self.max_size:
             oh = int(self.max_size/w*h)
             ow = self.max_size
@@ -126,7 +125,23 @@ class RailInference(object):
         pred = np.argmax(pred, axis=1)
         pred = np.squeeze(pred, 0)
         return pred
-      
+    
+    
+    def inference_only(self, image):
+        if isinstance(image, Image.Image):
+            image = self.preprocess_pil(image)
+        elif isinstance(image, np.ndarray):
+            image = self.preprocess_np(image)
+        else:
+            print('wrong data type')
+        with torch.no_grad():
+            output = self.model(image)
+        # print('output', output)
+        pred = output.data.cpu().numpy()
+        # pred = np.argmax(pred, axis=1)
+        pred = np.squeeze(pred, 0)
+        pred = np.transpose(pred, axes=[1, 2, 0])
+        return pred
       
     def postprocess(self, infer):
         # max_id = infer.max()
@@ -135,7 +150,67 @@ class RailInference(object):
         infer *= 40
         return infer
 
+
+
                 
+
+def verify_threshold(args):
+    input_dir   = args.testset_dir
+    output_dir  = args.testOut_dir
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    inference_engine = RailInference(args)
+
+    img_names = os.listdir(input_dir)
+
+    def based_on_threshold(pre, thres):
+        # print('pre.ndim', pre.ndim)
+        # res = np.zeros(pre.shape[:2])
+        for i in range(pre.ndim):
+            p = pre[:,:,i]
+            p[p < thres] = 0
+            p[p >= thres] = i
+            # res += p
+            # pre[:,:,i][pre[:,:,i] < thres] = 0
+            # pre[:,:,i][pre[:,:,i] >= thres] = i
+        res = np.sum(pre, axis=2)
+        # print('res.shape', res.shape)
+        # print(res)
+        return res
+
+    thres = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+    random.shuffle(img_names)
+    for i, img_name in enumerate(img_names):
+        mask_name = []
+        res = []
+        print(f'processing {img_name} {i+1}/{len(img_names)}')
+        ori_img_filepath = os.path.join(input_dir, img_name)
+
+        img = cv2.imread(ori_img_filepath)
+        res.append(img)
+        mask_name.append('img')
+
+        ori_infer = inference_engine.inference_only(img)
+
+        arg_max = np.argmax(ori_infer, axis=2)
+        arg_max = colorize_mask_to_bgr(arg_max)
+        res.append(arg_max)
+        mask_name.append('arg_max')
+
+        for j in range(len(thres)):
+            temp = based_on_threshold(ori_infer.copy(), thres[j])
+            temp = colorize_mask_to_bgr(temp)
+            res.append(temp.copy())
+            mask_name.append(f'thres {thres[j]}')
+
+        infer_mask_name = f"{img_name.split('.')[0]}_infer.jpg"                    
+        out_infer_filepath = os.path.join(output_dir, infer_mask_name)
+        plot_and_save_complex_func(res,  mask_name, out_infer_filepath)
+        # cv2.imwrite(out_infer_filepath, infer)
+        if i > 100:
+            return
 
 def main(args):
     input_dir   = args.testset_dir
@@ -153,42 +228,40 @@ def main(args):
         ori_img_filepath = os.path.join(input_dir, img_name)
 
         img = Image.open(ori_img_filepath)
-        infer = inference_engine.inference(img)
-        infer = inference_engine.postprocess(infer)
+        infer = inference_engine.inference_only(img)
+        # infer = inference_engine.postprocess(infer)
 
         infer_mask_name = f"{img_name.split('.')[0]}_infer.png"                    
         out_infer_filepath = os.path.join(output_dir, infer_mask_name)
-        cv2.imwrite(out_infer_filepath, infer)
+        # cv2.imwrite(out_infer_filepath, infer)
+        cv2.imwrite(out_infer_filepath, (infer*255).astype(np.uint8))
     
 
 
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='IDEA Training')
-
-    
-    parser.add_argument('--gpu_id', default=None, type=str,
-                        help='GPU id to use.')
-
     parser.add_argument('--backbone', type=str, default='resnet',
                             choices=['resnet', 'xception', 'drn', 'mobilenet'],
                             help='backbone name (default: resnet)')
     parser.add_argument('--out-stride', type=int, default=8,
                         help='network output stride (default: 8)')
-
-
     parser.add_argument('--sync-bn', type=bool, default=False,
                         help='whether to use sync bn (default: auto)')
     parser.add_argument('--freeze-bn', type=bool, default=False,
                         help='whether to freeze bn parameters (default: False)')
+    parser.add_argument('--max_size', type=int, default=1080)
+    parser.add_argument('--n_classes', type=int, default=3)
+
     # checking point
     parser.add_argument('--resume', type=str, default=None,
                         help='put the path to resuming file if needed')
-    parser.add_argument('--max_size', type=int, default=1080)
-    parser.add_argument('--n_classes', type=int, default=3)
-    parser.add_argument('--testset_dir', type=str, default=None, help='input test or inference image dir')
-    parser.add_argument('--testOut_dir', type=str, default=None, help='inference and test output dir')
+    parser.add_argument('-g', '--gpu_id', default=None, type=str,
+                        help='GPU id to use.')
+    parser.add_argument('-im', '--testset_dir', type=str, default=None, help='input test or inference image dir')
+    parser.add_argument('-om', '--testOut_dir', type=str, default=None, help='inference and test output dir')
     
     args = parser.parse_args()
     main(args)
+    # verify_threshold(args)
     # plot_image()

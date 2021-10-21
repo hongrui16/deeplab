@@ -72,6 +72,8 @@ class distWorker(object):
                 weight = None
             self.criterion = SegmentationLosses(weight=weight, cuda=args.cuda, args = args).build_loss(mode=args.loss_type)
             
+            if self.args.infer_thresholds:
+                self.evaluators = [Evaluator(self.nclass) for _ in range(len(self.args.infer_thresholds))]
             # Define Evaluator
             self.evaluator = Evaluator(self.nclass)
             
@@ -265,8 +267,9 @@ class distWorker(object):
                     global_step = i + num_img_tr * epoch
                     self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'test')
             
-            pred = output.data.cpu().numpy()
-            pred = np.argmax(pred, axis=1)
+            infer = output.data.cpu().numpy()
+            ori_infer = infer.copy()
+            pred = np.argmax(infer, axis=1)
             if self.args.testValTrain >= 1:
                 loss = self.criterion(output, target)
                 # print('target.size()', target.size()) #torch.Size([16, 607, 1080])
@@ -282,7 +285,12 @@ class distWorker(object):
                 target = target.cpu().numpy()
                 # Add batch sample into evaluator
                 self.evaluator.add_batch(target, pred)
-            
+                if self.args.infer_thresholds:
+                    for j in range(len(self.evaluators)):
+                        thres = self.args.infer_thresholds[j]
+                        mask_by_thres = self.sel_ch_based_on_threshold(ori_infer, thres)
+                        self.evaluators[j].add_batch(target, mask_by_thres)
+
             if self.args.dump_image:
                 results = self.postprocess(pred.copy())
                 # results[results==1] = 255
@@ -328,11 +336,16 @@ class distWorker(object):
             self.writer.add_scalar('test/Acc', Acc, epoch)
             self.writer.add_scalar('test/Acc_class', Acc_class, epoch)
             self.writer.add_scalar('test/fwIoU', FWIoU, epoch)
+            
             print('Test:')
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
             print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
             print('Loss: %.5f' % test_loss)
             self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
+            if self.args.infer_thresholds:
+                for i in range(len(self.args.infer_thresholds)):
+                    mIoU_temp = self.evaluators[i].Mean_Intersection_over_Union()
+                    self.saver.write_log_to_txt(f'test/mIoU@thres_{self.args.infer_thresholds[i]}: {mIoU_temp}, epoch: {epoch}')
 
     def postprocess(self, img):
         # max_id = img.max()
@@ -340,6 +353,22 @@ class distWorker(object):
         # img *= ratio
         img *= 40
         return img
+
+    def sel_ch_based_on_threshold(self, pre, thres):
+        # print('pre.ndim', pre.ndim)
+        # res = np.zeros(pre.shape[1:])
+        bt, ch, h, w = pre.shape
+        for i in range(ch):
+            p = pre[:,i]
+            p[p < thres] = 0
+            p[p >= thres] = i
+            # res += p
+            # pre[:,:,i][pre[:,:,i] < thres] = 0
+            # pre[:,:,i][pre[:,:,i] >= thres] = i
+        res = np.sum(pre, axis=1)
+        # print('res.shape', res.shape)
+        # print(res)
+        return res
 
 
 def main(args):
