@@ -11,6 +11,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import sys
 import time
+from scipy.special import softmax
 
 from mypath import Path
 from dataloaders import make_data_loader
@@ -269,6 +270,7 @@ class distWorker(object):
             
             infer = output.data.cpu().numpy()
             ori_infer = infer.copy()
+            ori_infer = softmax(ori_infer, axis=1)
             pred = np.argmax(infer, axis=1)
             if self.args.testValTrain >= 1:
                 loss = self.criterion(output, target)
@@ -284,22 +286,35 @@ class distWorker(object):
             
                 target = target.cpu().numpy()
                 # Add batch sample into evaluator
+                # pred = pred.astype(np.float64)
+                # print('target.dtype', target.dtype, target.shape, 'pred.dtype', pred.dtype, pred.shape)
                 self.evaluator.add_batch(target, pred)
+                # print('')
                 if self.args.infer_thresholds:
                     for j in range(len(self.evaluators)):
                         thres = self.args.infer_thresholds[j]
-                        mask_by_thres = self.sel_ch_based_on_threshold(ori_infer, thres)
+                        mask_by_thres = self.sel_ch_based_on_threshold(ori_infer.copy(), thres)
+                        mask_by_thres[mask_by_thres == 3] = pred[mask_by_thres == 3]
+                        # print('mask_by_thres.max', mask_by_thres.max(), mask_by_thres[mask_by_thres==3])
+                        # print('target.dtype', target.dtype, target.shape, 'mask_by_thres.dtype', mask_by_thres.dtype, mask_by_thres.shape)
                         self.evaluators[j].add_batch(target, mask_by_thres)
+                # print('end')
+            if self.args.dump_raw_prediction:
+                raw_pre = np.transpose(ori_infer, axes=[0, 2, 3, 1])
+                # print('raw_pre.shape', raw_pre.shape)
+                assert raw_pre.shape[-1] == 3
+                for _id in range(len(raw_pre)):
+                    img_name = img_names[_id]
+                    infer_mask_name = f"{img_name.split('.')[0]}_infer.png"                    
+                    out_infer_mask_filepath = os.path.join(self.saver.output_mask_dir, infer_mask_name)
+                    cv2.imwrite(out_infer_mask_filepath, (255*raw_pre[_id]).astype(np.uint8))
 
             if self.args.dump_image:
                 results = self.postprocess(pred.copy())
-                # results[results==1] = 255
                 if isinstance(target, np.ndarray):                    
                     labels = target.copy()
-                    # labels[labels==1] = 255
                 elif isinstance(target, torch.Tensor): 
                     labels = target.cpu().numpy()
-                    # labels[labels==1] = 255
                 else:
                     pass
                 labels = self.postprocess(labels)
@@ -368,7 +383,7 @@ class distWorker(object):
         res = np.sum(pre, axis=1)
         # print('res.shape', res.shape)
         # print(res)
-        return res
+        return res.astype(np.int64)
 
 
 def main(args):

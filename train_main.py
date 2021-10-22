@@ -125,19 +125,23 @@ parser.add_argument('--max_size', type=int, default=1080)
 parser.add_argument('--rotate_degree', type=int, default=15)
 parser.add_argument('--n_classes', type=int, default=3)
 parser.add_argument('--dataset', type=str, default='basicDataset')
-parser.add_argument('--dataset_dir', type=str, default='/home/hongrui/project/metro_pro/dataset/1st_5000', help='dataset dir')
+parser.add_argument('--dataset_dir', type=str, default='/comp_robot/hongrui/metro_pro/dataset/1st_5000', help='dataset dir')
 parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: infer, 1: test, 2: train, 3: trainval, 4: trainvaltest')
 parser.add_argument('--testset_dir', type=str, default=None, help='input test or inference image dir')
 parser.add_argument('--testOut_dir', type=str, default=None, help='inference and test output dir')
 parser.add_argument('--dump_image', action='store_true', default=False,
                     help='dump image when test')
+parser.add_argument('--dump_raw_prediction', action='store_true', default=False,
+                    help='dump raw predictiontest')
 parser.add_argument('--alpha', type=float, default=0.5,
                     help='focal loss alpha')
 parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=True,
                     help='distinguish left and right rail semantic segmentation')
 parser.add_argument('--debug', action='store_true', default=False,
                     help='debug flag')
-parser.add_argument('--infer_thresholds', type=float, default=[0.1, 0.2, 0.3, 0.4, 0.6, 0.8, 0.9])
+parser.add_argument('--infer_thresholds', type=float, default=None
+                                        #[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98]
+                    )
 args = parser.parse_args()
 
 

@@ -9,6 +9,8 @@ import torch.nn as nn
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
+from scipy.special import softmax
+
 import sys
 import time
 from PIL import Image
@@ -141,6 +143,7 @@ class RailInference(object):
         # pred = np.argmax(pred, axis=1)
         pred = np.squeeze(pred, 0)
         pred = np.transpose(pred, axes=[1, 2, 0])
+        pred = softmax(pred, axis=2)
         return pred
       
     def postprocess(self, infer):
@@ -180,7 +183,7 @@ def verify_threshold(args):
         # print(res)
         return res
 
-    thres = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+    thres = [0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.9]
     random.shuffle(img_names)
     for i, img_name in enumerate(img_names):
         mask_name = []
@@ -262,6 +265,6 @@ if __name__ == "__main__":
     parser.add_argument('-om', '--testOut_dir', type=str, default=None, help='inference and test output dir')
     
     args = parser.parse_args()
-    main(args)
-    # verify_threshold(args)
+    # main(args)
+    verify_threshold(args)
     # plot_image()
