@@ -8,11 +8,13 @@ class Evaluator(object):
 
     def Pixel_Accuracy(self):
         Acc = np.diag(self.confusion_matrix).sum() / self.confusion_matrix.sum()
+        Acc = round(Acc, 4)
         return Acc
 
     def Pixel_Accuracy_Class(self):
         Acc = np.diag(self.confusion_matrix) / self.confusion_matrix.sum(axis=1)
         Acc = np.nanmean(Acc)
+        Acc = round(Acc, 4)
         return Acc
 
     def Mean_Intersection_over_Union(self):
@@ -20,6 +22,7 @@ class Evaluator(object):
                     np.sum(self.confusion_matrix, axis=1) + np.sum(self.confusion_matrix, axis=0) -
                     np.diag(self.confusion_matrix))
         MIoU = np.nanmean(MIoU)
+        MIoU = round(MIoU, 4)
         return MIoU
 
     def Frequency_Weighted_Intersection_over_Union(self):
@@ -29,6 +32,7 @@ class Evaluator(object):
                     np.diag(self.confusion_matrix))
 
         FWIoU = (freq[freq > 0] * iu[freq > 0]).sum()
+        FWIoU = round(FWIoU, 4)
         return FWIoU
 
     def _generate_matrix(self, gt_image, pre_image):

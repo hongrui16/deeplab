@@ -301,6 +301,15 @@ class distWorker(object):
                 # print('end')
             if self.args.dump_raw_prediction:
                 raw_pre = np.transpose(ori_infer, axes=[0, 2, 3, 1])
+
+                if isinstance(target, np.ndarray):                    
+                    labels = target.copy()
+                elif isinstance(target, torch.Tensor): 
+                    labels = target.cpu().numpy()
+                else:
+                    pass
+                labels = self.postprocess(labels)
+                
                 # print('raw_pre.shape', raw_pre.shape)
                 assert raw_pre.shape[-1] == 3
                 for _id in range(len(raw_pre)):
@@ -308,6 +317,10 @@ class distWorker(object):
                     infer_mask_name = f"{img_name.split('.')[0]}_infer.png"                    
                     out_infer_mask_filepath = os.path.join(self.saver.output_mask_dir, infer_mask_name)
                     cv2.imwrite(out_infer_mask_filepath, (255*raw_pre[_id]).astype(np.uint8))
+
+                    label_name = f"{img_name.split('.')[0]}_GT.png"
+                    out_label_filepath = os.path.join(self.saver.output_mask_dir, label_name)
+                    cv2.imwrite(out_label_filepath, labels[_id])
 
             if self.args.dump_image:
                 results = self.postprocess(pred.copy())
@@ -339,7 +352,7 @@ class distWorker(object):
                         label_name = f"{img_name.split('.')[0]}_GT.png"
                         out_label_filepath = os.path.join(self.saver.output_mask_dir, label_name)
                         cv2.imwrite(out_label_filepath, labels[_id])
-                
+
         if self.args.testValTrain >= 1 and self.args.master:
             # Fast test during the training
             Acc = self.evaluator.Pixel_Accuracy()
@@ -377,9 +390,6 @@ class distWorker(object):
             p = pre[:,i]
             p[p < thres] = 0
             p[p >= thres] = i
-            # res += p
-            # pre[:,:,i][pre[:,:,i] < thres] = 0
-            # pre[:,:,i][pre[:,:,i] >= thres] = i
         res = np.sum(pre, axis=1)
         # print('res.shape', res.shape)
         # print(res)

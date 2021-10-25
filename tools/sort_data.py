@@ -527,23 +527,31 @@ def find_GT_for_inference(args):
 
 
 def relocate_rail_regin_in_images(args):
-    old_test_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/image'
-    old_test_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/json'
-    old_test_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/label'
+    # old_test_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/image'
+    old_test_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000/val/image'
 
-    output_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/image'
-    output_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/json'
-    output_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/label'
+    # old_test_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/json'
+    # old_test_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/label'
+    old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000/val/label'
+
+    output_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/val_for_test/image'
+    # output_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/json'
+    output_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/val_for_test/label'
 
     if not os.path.exists(output_img_dir):
         os.makedirs(output_img_dir)        
-    if not os.path.exists(output_json_dir):
-        os.makedirs(output_json_dir)
+    # if not os.path.exists(output_json_dir):
+    #     os.makedirs(output_json_dir)
     if not os.path.exists(output_label_dir):
         os.makedirs(output_label_dir)
     
-    sorted_test_imgs_filepath = '/home/hongrui/project/metro_pro/dataset/1st_5000/sorted_test_imgs.txt'
-    sorted_test_imgs = read_txt_to_list(sorted_test_imgs_filepath)
+    # sorted_test_imgs_filepath = '/home/hongrui/project/metro_pro/dataset/1st_5000/sorted_test_imgs.txt'
+    # sorted_test_imgs = read_txt_to_list(sorted_test_imgs_filepath)
+    sorted_test_imgs = []
+    img_names = os.listdir(old_test_img_dir)
+    for img_name in img_names:
+        if '.jpg' in img_name:
+            sorted_test_imgs.append(img_name)
     cnt = 1
     for i, img_name in enumerate(sorted_test_imgs):
         
@@ -552,12 +560,12 @@ def relocate_rail_regin_in_images(args):
         
         img_filepath = os.path.join(old_test_img_dir, img_name)
         label_filepath = os.path.join(old_test_label_dir, img_prefix + '.png')
-        json_filepath = os.path.join(old_test_json_dir, img_prefix + '.json')
+        # json_filepath = os.path.join(old_test_json_dir, img_prefix + '.json')
         
 
         out_img_filepath = os.path.join(output_img_dir, img_name)
         out_label_filepath = os.path.join(output_label_dir, img_prefix + '.png')
-        out_json_filepath = os.path.join(output_json_dir, img_prefix + '.json')
+        # out_json_filepath = os.path.join(output_json_dir, img_prefix + '.json')
 
         img = cv2.imread(img_filepath).astype(np.uint8)
         h, w, _ = img.shape
@@ -629,5 +637,5 @@ if __name__ == '__main__':
     # find_GT_for_inference(args)
 
 
-    # relocate_rail_regin_in_images(args)
-    count_dataset()
+    relocate_rail_regin_in_images(args)
+    # count_dataset()

@@ -1,12 +1,6 @@
 # pytorch-deeplab (semantic segmentation, distributed training)
 
 
-| Backbone  | train/eval os  |mIoU in val |Pretrained Model|
-| :-------- | :------------: |:---------: |:--------------:|
-| ResNet    | 16/16          | 78.43%     | [google drive](https://drive.google.com/open?id=1NwcwlWqA-0HqAPk3dSNNPipGMF0iS0Zu) |
-| MobileNet | 16/16          | 70.81%     | [google drive](https://drive.google.com/open?id=1G9mWafUAj09P4KvGSRVzIsV_U5OqFLdt) |
-| DRN       | 16/16          | 78.87%     | [google drive](https://drive.google.com/open?id=131gZN_dKEXO79NknIQazPJ-4UmRrZAfI) |
-
 ## Introduction
 This is a PyTorch implementation of [DeepLab-V3-Plus](https://arxiv.org/pdf/1802.02611). It
 can use Modified Aligned Xception and ResNet as backbone. Currently, we train DeepLab V3 Plus
@@ -92,7 +86,7 @@ sbatch background_running.slurm
 ```
 ### 2 directly use gpu machines
 ```
-CUDA_VISIBLE_DEVICES=0,1 python train_main.py --testValTrain 1 --resume run/basicDataset/deeplab-resnet/experiment_*/model_best.pth.tar --dump_image
+CUDA_VISIBLE_DEVICES=0,1,2,3 python train_main.py --testValTrain 1 --resume run/basicDataset/deeplab-resnet/experiment_*/model_best.pth.tar --dump_image
 ```
 ## Inference only
 This is for development.

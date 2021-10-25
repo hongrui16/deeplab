@@ -60,22 +60,32 @@ class BasicDataset(Dataset):
         _img = Image.open(img_path).convert('RGB')
         w, h = _img.size
 
-        # _tmp = np.array(Image.open(lbl_path), dtype=np.uint8)
+        # 
         if self.args.testset_dir:
             # w, h = _img.size
             # _target = np.zeros((h,w))
             # _target = Image.fromarray(_target)
-            _tmp = np.zeros((h,w), dtype=np.uint8)
-            _target = Image.fromarray(_tmp)
-        else:
-            _tmp = cv2.imread(lbl_path, 0)
-            _tmp = self.encode_segmap(_tmp)
-            if self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 1:
-                # multiple rails, if in semantic segmentation, the image should be discarded.
-                _img = Image.new("RGB", (w, h))
+            lbl_path = img_path.replace('image', 'label').replace('.jpg', '.png')
+            if os.path.exists(lbl_path):
+                # print('lbl_path', lbl_path)
+                _tmp = cv2.imread(lbl_path, 0).astype(np.uint8)
+            else:
+                # print('lbl_path none')
                 _tmp = np.zeros((h,w), dtype=np.uint8)
-            _target = Image.fromarray(_tmp)
-       
+            # _tmp = self.encode_segmap(_tmp)
+            # _target = Image.fromarray(_tmp)
+        else:
+            _tmp = cv2.imread(lbl_path, 0).astype(np.uint8)
+        _tmp = self.encode_segmap(_tmp)
+        if self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 1:
+            #if there are multiple rails in an image in distinguishing left and right semantic segmentation,
+            #  the image and its label should be discarded.
+            # print('_tmp.max()', _tmp.max())
+            _img = Image.new("RGB", (w, h))
+            _tmp = np.zeros((h,w), dtype=np.uint8)
+            
+        _target = Image.fromarray(_tmp)
+
         sample = {'image': _img, 'label': _target, 'img_name': img_name}
 
         if self.split == 'train':
@@ -106,12 +116,14 @@ class BasicDataset(Dataset):
                 label_value = 250
                 metro_label_name_to_value[label_name] = label_value
         '''
-        if self.args.distinguish_left_right_semantic:
-            mask = mask/20
-        else:
-            thres = 20
-            mask[mask<thres] = 0 # this must be before mask[mask>=thres] = 1
-            mask[mask>=thres] = 1
+        if mask.any() > 0:
+            mask_min_nonzero = mask[mask>0].min()
+            if self.args.distinguish_left_right_semantic:
+                mask = mask//mask_min_nonzero
+            else:
+                thres = mask_min_nonzero
+                mask[mask<thres] = 0 # this must be before mask[mask>=thres] = 1
+                mask[mask>=thres] = 1
         return mask
 
     def transform_train(self, sample):
