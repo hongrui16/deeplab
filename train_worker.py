@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 import sys
 import time
 from scipy.special import softmax
+import torch.distributed as dist
 
 from mypath import Path
 from dataloaders import make_data_loader
@@ -167,7 +168,7 @@ class distWorker(object):
         if self.args.master:
             self.writer.add_scalar('train/total_loss_epoch', train_loss/num_iter_tr, epoch)
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
-            print('Loss: %.5f' % train_loss/num_iter_tr)
+            print('Loss: %.5f' % (train_loss/num_iter_tr))
 
         # if self.args.no_val and self.args.master:
         if self.args.testValTrain == 2 and self.args.master:
@@ -187,6 +188,8 @@ class distWorker(object):
         self.evaluator.reset()
         tbar = tqdm(self.val_loader, desc='\r')
         num_iter_val = len(self.val_loader)
+        
+        
         val_loss = 0.0
         # return
         for i, sample in enumerate(tbar):
@@ -217,24 +220,28 @@ class distWorker(object):
         Acc = self.evaluator.Pixel_Accuracy()
         Acc_class = self.evaluator.Pixel_Accuracy_Class()
         mIoU = self.evaluator.Mean_Intersection_over_Union()
-        FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
+        # FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
+        global_mIoU = self.get_global_mIoU(mIoU)
         if self.args.master:
             self.writer.add_scalar('val/total_loss_epoch', val_loss/num_iter_val, epoch)
             self.writer.add_scalar('val/mIoU', mIoU, epoch)
             self.writer.add_scalar('val/Acc', Acc, epoch)
             self.writer.add_scalar('val/Acc_class', Acc_class, epoch)
-            self.writer.add_scalar('val/fwIoU', FWIoU, epoch)
+            # self.writer.add_scalar('val/fwIoU', FWIoU, epoch)
+            self.writer.add_scalar('val/global_mIoU', global_mIoU, epoch)
             print('Validation:')
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
-            print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
-            print('Loss: %.5f' % val_loss/num_iter_val)
-            self.saver.write_log_to_txt("Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
+            print("Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(Acc, Acc_class, mIoU, global_mIoU))
+            print('Loss: %.5f' % (val_loss/num_iter_val))
+            self.saver.write_log_to_txt("Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
 
-        new_pred = mIoU
-        if new_pred > self.best_pred and self.args.master:
+        
+        
+
+        if global_mIoU > self.best_pred and self.args.master:
             is_best = True
-            self.saver.write_log_to_txt("Best Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
-            self.best_pred = new_pred
+            self.saver.write_log_to_txt("Best Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
+            self.best_pred = global_mIoU
             self.saver.save_checkpoint({
                 'epoch': epoch + 1,
                 'state_dict': self.model.module.state_dict(),
@@ -353,23 +360,24 @@ class distWorker(object):
                         out_label_filepath = os.path.join(self.saver.output_mask_dir, label_name)
                         cv2.imwrite(out_label_filepath, labels[_id])
 
+        Acc = self.evaluator.Pixel_Accuracy()
+        Acc_class = self.evaluator.Pixel_Accuracy_Class()
+        mIoU = self.evaluator.Mean_Intersection_over_Union()
+        # FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
+        global_mIoU = self.get_global_mIoU(mIoU)
         if self.args.testValTrain >= 1 and self.args.master:
-            # Fast test during the training
-            Acc = self.evaluator.Pixel_Accuracy()
-            Acc_class = self.evaluator.Pixel_Accuracy_Class()
-            mIoU = self.evaluator.Mean_Intersection_over_Union()
-            FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
             self.writer.add_scalar('test/total_loss_epoch', test_loss/num_iter_test, epoch)
             self.writer.add_scalar('test/mIoU', mIoU, epoch)
+            self.writer.add_scalar('test/global_mIoU', global_mIoU, epoch)
             self.writer.add_scalar('test/Acc', Acc, epoch)
             self.writer.add_scalar('test/Acc_class', Acc_class, epoch)
-            self.writer.add_scalar('test/fwIoU', FWIoU, epoch)
+            # self.writer.add_scalar('test/fwIoU', FWIoU, epoch)
             
             print('Test:')
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
-            print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
-            print('Loss: %.5f' % test_loss/num_iter_test)
-            self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
+            print("Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(Acc, Acc_class, mIoU, global_mIoU))
+            print('Loss: %.5f' % (test_loss/num_iter_test))
+            self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
             if self.args.infer_thresholds:
                 for i in range(len(self.args.infer_thresholds)):
                     mIoU_temp = self.evaluators[i].Mean_Intersection_over_Union()
@@ -395,6 +403,16 @@ class distWorker(object):
         # print(res)
         return res.astype(np.int64)
 
+    def get_global_mIoU(self, mIoU):
+        mIoU_t = torch.tensor(mIoU).cuda()
+        gather_t = [torch.ones_like(mIoU_t)] * self.args.world_size
+        dist.all_gather(gather_t, mIoU_t)
+        global_mIoU = 0
+        for id_ in range(self.args.world_size):
+            global_mIoU += gather_t[id_].item()
+        global_mIoU /= self.args.world_size
+        global_mIoU = round(global_mIoU, 4)
+        return global_mIoU
 
 def main(args):
     pass

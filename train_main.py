@@ -139,8 +139,8 @@ parser.add_argument('--distinguish_left_right_semantic', action='store_true', de
                     help='distinguish left and right rail semantic segmentation')
 parser.add_argument('--debug', action='store_true', default=False,
                     help='debug flag')
-parser.add_argument('--infer_thresholds', type=float, default=[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98]
-                    )
+parser.add_argument('--infer_thresholds', type=float)#, default=[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98]
+                    # )
 args = parser.parse_args()
 
 
@@ -219,6 +219,7 @@ def main(args):
         # Since we have ngpus_per_node processes per node, the total world_size
         # needs to be adjusted accordingly
         args.world_size = ngpus_per_node * args.world_size
+        
         # Use torch.multiprocessing.spawn to launch distributed processes: the
         # main_worker process function
         # print(f'calling {__file__}, {sys._getframe().f_lineno}')
