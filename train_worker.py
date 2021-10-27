@@ -132,7 +132,7 @@ class distWorker(object):
         #     print(f'rank {self.args.rank} num_img_tr: {num_img_tr}')
         start = 0
         for i, sample in enumerate(tbar):
-            if not i % 20 == 0 and self.args.debug:
+            if not i % (100//self.args.world_size) == 0 and self.args.debug:
                 continue
             # print(f'rank {self.args.rank} dataload time {round(time.time() - start, 3)}')
             # start = time.time()
@@ -220,8 +220,12 @@ class distWorker(object):
         Acc = self.evaluator.Pixel_Accuracy()
         Acc_class = self.evaluator.Pixel_Accuracy_Class()
         mIoU = self.evaluator.Mean_Intersection_over_Union()
+        
         # FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
-        global_mIoU = self.get_global_mIoU(mIoU)
+        # global_mIoU = self.get_global_mIoU(mIoU)
+        global_mIoU = self.reduce_tensor(mIoU)
+        # print(f'test/rank@{self.args.rank} mIoU: {mIoU}, global_mIoU: {global_mIoU}')
+
         if self.args.master:
             self.writer.add_scalar('val/total_loss_epoch', val_loss/num_iter_val, epoch)
             self.writer.add_scalar('val/mIoU', mIoU, epoch)
@@ -234,9 +238,6 @@ class distWorker(object):
             print("Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(Acc, Acc_class, mIoU, global_mIoU))
             print('Loss: %.5f' % (val_loss/num_iter_val))
             self.saver.write_log_to_txt("Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
-
-        
-        
 
         if global_mIoU > self.best_pred and self.args.master:
             is_best = True
@@ -364,7 +365,8 @@ class distWorker(object):
         Acc_class = self.evaluator.Pixel_Accuracy_Class()
         mIoU = self.evaluator.Mean_Intersection_over_Union()
         # FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
-        global_mIoU = self.get_global_mIoU(mIoU)
+        # global_mIoU = self.get_global_mIoU(mIoU)
+        global_mIoU = self.reduce_tensor(mIoU)
         if self.args.testValTrain >= 1 and self.args.master:
             self.writer.add_scalar('test/total_loss_epoch', test_loss/num_iter_test, epoch)
             self.writer.add_scalar('test/mIoU', mIoU, epoch)
@@ -408,9 +410,21 @@ class distWorker(object):
         gather_t = [torch.ones_like(mIoU_t)] * self.args.world_size
         dist.all_gather(gather_t, mIoU_t)
         global_mIoU = 0
-        for id_ in range(self.args.world_size):
-            global_mIoU += gather_t[id_].item()
+        # for id_ in range(self.args.world_size):
+        #     global_mIoU += gather_t[id_].item()
+        # print('gather_t', gather_t)
+        inputs = torch.stack(gather_t, dim=0)
+        global_mIoU = torch.sum(inputs, dim=0).item()
         global_mIoU /= self.args.world_size
+        global_mIoU = round(global_mIoU, 4)
+        return global_mIoU
+
+    def reduce_tensor(self, mIoU):
+        mIoU_t = torch.tensor(mIoU).cuda()
+        # mIoU_t = mIoU.clone()
+        dist.all_reduce(mIoU_t, op=dist.ReduceOp.SUM)
+        global_mIoU = mIoU_t.item() / self.args.world_size
+        # print('global_mIoU', global_mIoU)
         global_mIoU = round(global_mIoU, 4)
         return global_mIoU
 

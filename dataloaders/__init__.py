@@ -50,7 +50,7 @@ def make_data_loader(args, **kwargs):
 
         # train_sampler = torch.utils.data.distributed.DistributedSampler(train_set)
         if torch.distributed.is_initialized():
-            train_sampler = torch.utils.data.distributed.DistributedSampler(train_set, num_replicas=args.world_size, rank=args.rank)
+            train_sampler = torch.utils.data.distributed.DistributedSampler(train_set, num_replicas=args.world_size, rank=args.rank, shuffle = True)
             val_sampler = torch.utils.data.distributed.DistributedSampler(val_set, num_replicas=args.world_size, rank=args.rank)
             test_sampler = torch.utils.data.distributed.DistributedSampler(test_set, num_replicas=args.world_size, rank=args.rank)
         else:
