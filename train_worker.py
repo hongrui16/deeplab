@@ -72,7 +72,7 @@ class distWorker(object):
                 weight = torch.from_numpy(weight.astype(np.float32))
             else:
                 weight = None
-            self.criterion = SegmentationLosses(weight=weight, cuda=args.cuda, args = args).build_loss(mode=args.loss_type)
+            self.criterion = SegmentationLosses(weight=weight, cuda=args.cuda, args = args).build_loss(type=args.loss_type)
             
             if self.args.infer_thresholds:
                 self.evaluators = [Evaluator(self.nclass) for _ in range(len(self.args.infer_thresholds))]
@@ -298,7 +298,7 @@ class distWorker(object):
                 # print('target.dtype', target.dtype, target.shape, 'pred.dtype', pred.dtype, pred.shape)
                 self.evaluator.add_batch(target, pred)
                 # print('')
-                if self.args.infer_thresholds:
+                if self.args.infer_thresholds and self.args.testValTrain < 2:
                     for j in range(len(self.evaluators)):
                         thres = self.args.infer_thresholds[j]
                         mask_by_thres = self.sel_ch_based_on_threshold(ori_infer.copy(), thres)
@@ -380,7 +380,7 @@ class distWorker(object):
             print("Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(Acc, Acc_class, mIoU, global_mIoU))
             print('Loss: %.5f' % (test_loss/num_iter_test))
             self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
-            if self.args.infer_thresholds:
+            if self.args.infer_thresholds and self.args.testValTrain < 2:
                 for i in range(len(self.args.infer_thresholds)):
                     mIoU_temp = self.evaluators[i].Mean_Intersection_over_Union()
                     self.saver.write_log_to_txt(f'test/mIoU@thres_{self.args.infer_thresholds[i]}: {mIoU_temp}, epoch: {epoch}')

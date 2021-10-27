@@ -52,14 +52,16 @@ class SegmentationLosses(object):
         self.focal = FocalLossObj(weight=weight, ignore_index=ignore_index, size_average=True)
         self.lovas = LovaszSoftmax()
 
-    def build_loss(self, mode='ce'):
+    def build_loss(self, type='ce'):
         """Choices: ['ce' or 'focal']"""
-        if mode == 'ce':
+        if type == 'ce':
             return self.CrossEntropyLoss
-        elif mode == 'focal':
+        elif type == 'focal':
             return self.FocalLoss
-        elif mode == 'FSOhemCELoss':
+        elif type == 'FSOhemCELoss':
             return self.FSOhemCELoss
+        elif type == 'FocalLovas':
+            return self.FocalLovas
         else:
             raise NotImplementedError
 
