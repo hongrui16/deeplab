@@ -142,11 +142,14 @@ def convert_json(args):
 
 
 def convert_json_to_label(args):
-    input_dir   = args.inp
+    # input_dir   = args.inp
     # output_dir      = args.oup
 
+    input_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/'
+    # dirs = ['train', 'test', 'val']
+    # dirs = ['train', 'val']
+    dirs = ['test_ori']
 
-    dirs = ['train', 'test', 'val']
     for d in dirs:
         input_d_dir = os.path.join(input_dir, d)
         input_img_dir = os.path.join(input_d_dir, 'image')
@@ -193,7 +196,8 @@ def convert_json_to_label(args):
             print('Saved to: %s' % out_label_filepath)
             # return
 
-   
+
+
 
 
 if __name__ == '__main__':
@@ -212,7 +216,7 @@ if __name__ == '__main__':
     parser.add_argument('-tw', '--target_width', type=int, default=1920)
 
     args = parser.parse_args()
-    pixellib_vis(args)
+    # pixellib_vis(args)
     # split_train_val_dataset_2nd(args)
     # compose()
     # test()
@@ -225,4 +229,4 @@ if __name__ == '__main__':
 
 
     # split_train_val_dataset_3rd(args)
-    # convert_json_to_label(args)
+    convert_json_to_label(args)

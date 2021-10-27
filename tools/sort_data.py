@@ -528,15 +528,17 @@ def find_GT_for_inference(args):
 
 def relocate_rail_regin_in_images(args):
     # old_test_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/image'
-    old_test_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000/val/image'
+    # old_test_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000/val/image'
+    old_test_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test_ori/image'
 
     # old_test_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/json'
     # old_test_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/label'
-    old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000/val/label'
+    # old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000/val/label'
+    old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test_ori/label'
 
-    output_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/val_for_test/image'
+    output_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test/image'
     # output_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/json'
-    output_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/val_for_test/label'
+    output_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test/label'
 
     if not os.path.exists(output_img_dir):
         os.makedirs(output_img_dir)        
@@ -601,6 +603,50 @@ def relocate_rail_regin_in_images(args):
         cnt += 1
         # return
 
+def copy_train_val_json_2nd_round(args):
+    ori_json_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/std_json_2nd_round/'
+    input_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/'
+    dirs = ['train', 'val']
+    for d in dirs:
+        input_d_dir = os.path.join(input_dir, d)
+        input_img_dir = os.path.join(input_d_dir, 'image')
+        # input_mask_dir = os.path.join(input_d_dir, 'mask')
+        output_json_dir = os.path.join(input_d_dir, 'json')
+        if not os.path.exists(output_json_dir):
+            os.makedirs(output_json_dir)
+        img_names = os.listdir(input_img_dir)
+
+        for i, img_name in enumerate(img_names):
+            print(f'processing {img_name} {i+1}/{len(img_names)}')
+            json_name = img_name.replace('.jpg', '.json')
+            ori_json_filepath = os.path.join(ori_json_dir, json_name)
+            if not os.path.exists(ori_json_filepath):
+                continue
+
+            out_json_filepath = os.path.join(output_json_dir, json_name)
+            shutil.copy(ori_json_filepath, out_json_filepath)
+
+
+def copy_test_json_2nd_round(args):
+    ori_json_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/std_json_2nd_round/'
+    ori_img_dir =  '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test_ori/image'
+    input_dir =    '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test_ori'
+
+    output_json_dir = os.path.join(input_dir, 'json')
+    if not os.path.exists(output_json_dir):
+        os.makedirs(output_json_dir)
+    img_names = os.listdir(ori_img_dir)
+
+    for i, img_name in enumerate(img_names):
+        print(f'processing {img_name} {i+1}/{len(img_names)}')
+        json_name = img_name.replace('.jpg', '.json')
+        ori_json_filepath = os.path.join(ori_json_dir, json_name)
+        if not os.path.exists(ori_json_filepath):
+            continue
+
+        out_json_filepath = os.path.join(output_json_dir, json_name)
+        shutil.copy(ori_json_filepath, out_json_filepath)
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='aligment')
@@ -639,3 +685,5 @@ if __name__ == '__main__':
 
     relocate_rail_regin_in_images(args)
     # count_dataset()
+    # copy_train_val_json_2nd_round(args)
+    # copy_test_json_2nd_round(args)
