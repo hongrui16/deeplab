@@ -1,6 +1,37 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from utils.lovasz_losses import lovasz_softmax
+
+
+
+class FocalLossObj(nn.Module):
+    def __init__(self, gamma=2, weight=None, ignore_index=255, size_average=True):
+        super(FocalLossObj, self).__init__()
+        self.gamma = gamma
+        self.size_average = size_average
+        self.CE_loss = nn.CrossEntropyLoss(reduce=False, ignore_index=ignore_index, weight=weight)
+
+    def forward(self, output, target):
+        logpt = self.CE_loss(output, target)
+        pt = torch.exp(-logpt)
+        loss = ((1-pt)**self.gamma) * logpt
+        if self.size_average:
+            return loss.mean()
+        return loss.sum()
+
+
+class LovaszSoftmax(nn.Module):
+    def __init__(self, classes='present', per_image=False, ignore_index=255):
+        super(LovaszSoftmax, self).__init__()
+        self.smooth = classes
+        self.per_image = per_image
+        self.ignore_index = ignore_index
+    
+    def forward(self, output, target):
+        logits = F.softmax(output, dim=1)
+        loss = lovasz_softmax(logits, target, ignore=self.ignore_index)
+        return loss
 
 class SegmentationLosses(object):
     def __init__(self, weight=None, size_average=True, batch_average=True, ignore_index=255, cuda=False, args = None):
@@ -18,6 +49,8 @@ class SegmentationLosses(object):
         self.batch_average = batch_average
         self.cuda = cuda
         self.alpha = args.alpha
+        self.focal = FocalLossObj(weight=weight, ignore_index=ignore_index, size_average=True)
+        self.lovas = LovaszSoftmax()
 
     def build_loss(self, mode='ce'):
         """Choices: ['ce' or 'focal']"""
@@ -110,6 +143,18 @@ class SegmentationLosses(object):
             return select_loss_matrix.mean()
         else:
             raise NotImplementedError('Reduction Error!')
+
+    def FocalLovas(self, predict, target):
+        #print("predict device {}".format(predict.device))
+        #print("target device {}".format(target.device))
+        self.focal = self.focal.to(predict.device)
+        self.lovas = self.lovas.to(predict.device)
+
+        focal_loss = self.focal(predict, target.long())
+        lovas_loss = self.lovas(predict, target.long())
+
+        return focal_loss + lovas_loss
+
 
 
 if __name__ == "__main__":

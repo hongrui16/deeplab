@@ -107,7 +107,7 @@ parser.add_argument('--use_balanced_weights', action='store_true', default=True,
                     help='whether to use balanced weights (default: False)')
 
 parser.add_argument('--loss_type', type=str, default='ce',
-                    choices=['ce', 'focal', 'FSOhemCELoss'],
+                    choices=['ce', 'focal', 'FSOhemCELoss', 'FocalLovas'],
                     help='loss func type (default: focal)')
 parser.add_argument('--batch_size', type=int, default=8,
                     metavar='N', help='input batch size for \
