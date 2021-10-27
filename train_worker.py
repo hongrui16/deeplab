@@ -428,8 +428,6 @@ class distWorker(object):
         global_mIoU = round(global_mIoU, 4)
         return global_mIoU
 
-def main(args):
-    pass
 
 def plot_image():
     print('call plot image fun')
@@ -514,5 +512,5 @@ if __name__ == "__main__":
                         help='skip validation during training')
 
     args = parser.parse_args()
-    main(args)
+    
     # plot_image()
