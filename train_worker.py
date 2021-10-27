@@ -126,7 +126,7 @@ class distWorker(object):
         train_loss = 0.0
         self.model.train()
         tbar = tqdm(self.train_loader)
-        num_img_tr = len(self.train_loader)
+        num_iter_tr = len(self.train_loader)
         # if self.args.master:
         #     print(f'rank {self.args.rank} num_img_tr: {num_img_tr}')
         start = 0
@@ -156,18 +156,18 @@ class distWorker(object):
             
             if self.args.master:
                 tbar.set_description('Train loss: %.5f' % (train_loss / (i + 1)))
-                self.writer.add_scalar('train/total_loss_iter', loss.item(), i + num_img_tr * epoch)
+                self.writer.add_scalar('train/total_loss_iter', loss.item(), i + num_iter_tr * epoch)
 
                 # # Show 10 * 3 inference results each epoch
-                interval = num_img_tr // 5 if num_img_tr // 5 else 1
+                interval = num_iter_tr // 5 if num_iter_tr // 5 else 1
                 if i % interval == 0:
-                    global_step = i + num_img_tr * epoch
+                    global_step = i + num_iter_tr * epoch
                     self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'train')
             
         if self.args.master:
-            self.writer.add_scalar('train/total_loss_epoch', train_loss, epoch)
+            self.writer.add_scalar('train/total_loss_epoch', train_loss/num_iter_tr, epoch)
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
-            print('Loss: %.5f' % train_loss)
+            print('Loss: %.5f' % train_loss/num_iter_tr)
 
         # if self.args.no_val and self.args.master:
         if self.args.testValTrain == 2 and self.args.master:
@@ -186,8 +186,8 @@ class distWorker(object):
         self.model.eval()
         self.evaluator.reset()
         tbar = tqdm(self.val_loader, desc='\r')
-        num_img_tr = len(self.val_loader)
-        test_loss = 0.0
+        num_iter_val = len(self.val_loader)
+        val_loss = 0.0
         # return
         for i, sample in enumerate(tbar):
             if not i % 15 == 0 and self.args.debug:
@@ -198,12 +198,12 @@ class distWorker(object):
             with torch.no_grad():
                 output = self.model(image)
             loss = self.criterion(output, target)
-            test_loss += loss.item()
+            val_loss += loss.item()
             if self.args.master:
-                tbar.set_description('Val loss: %.5f' % (test_loss / (i + 1)))
-                interval = num_img_tr // 5 if num_img_tr // 5 else 1
+                tbar.set_description('Val loss: %.5f' % (val_loss / (i + 1)))
+                interval = num_iter_val // 5 if num_iter_val // 5 else 1
                 if i % interval == 0:
-                    global_step = i + num_img_tr * epoch
+                    global_step = i + num_iter_val * epoch
                     self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'val')
                     
             pred = output.data.cpu().numpy()
@@ -219,7 +219,7 @@ class distWorker(object):
         mIoU = self.evaluator.Mean_Intersection_over_Union()
         FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
         if self.args.master:
-            self.writer.add_scalar('val/total_loss_epoch', test_loss, epoch)
+            self.writer.add_scalar('val/total_loss_epoch', val_loss/num_iter_val, epoch)
             self.writer.add_scalar('val/mIoU', mIoU, epoch)
             self.writer.add_scalar('val/Acc', Acc, epoch)
             self.writer.add_scalar('val/Acc_class', Acc_class, epoch)
@@ -227,7 +227,7 @@ class distWorker(object):
             print('Validation:')
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
             print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
-            print('Loss: %.5f' % test_loss)
+            print('Loss: %.5f' % val_loss/num_iter_val)
             self.saver.write_log_to_txt("Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
 
         new_pred = mIoU
@@ -241,7 +241,7 @@ class distWorker(object):
                 'optimizer': self.optimizer.state_dict(),
                 'best_pred': self.best_pred,
             }, is_best)
-
+        del val_loss
 
     def test(self, epoch = 0):
         self.model.eval()
@@ -251,7 +251,7 @@ class distWorker(object):
         test_loss = 0.0
         # return
         # label_normalize_unit = 20
-        num_img_tr = len(self.test_loader)
+        num_iter_test = len(self.test_loader)
         # print('num_img_tr', num_img_tr)
         for i, sample in enumerate(tbar):
             if not i % 10 == 0 and self.args.debug:
@@ -263,9 +263,9 @@ class distWorker(object):
                 output = self.model(image)
 
             if self.args.master:
-                interval = num_img_tr // 5 if num_img_tr // 5 else 1
+                interval = num_iter_test // 5 if num_iter_test // 5 else 1
                 if i % interval == 0:
-                    global_step = i + num_img_tr * epoch
+                    global_step = i + num_iter_test * epoch
                     self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'test')
             
             infer = output.data.cpu().numpy()
@@ -359,7 +359,7 @@ class distWorker(object):
             Acc_class = self.evaluator.Pixel_Accuracy_Class()
             mIoU = self.evaluator.Mean_Intersection_over_Union()
             FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
-            self.writer.add_scalar('test/total_loss_epoch', test_loss, epoch)
+            self.writer.add_scalar('test/total_loss_epoch', test_loss/num_iter_test, epoch)
             self.writer.add_scalar('test/mIoU', mIoU, epoch)
             self.writer.add_scalar('test/Acc', Acc, epoch)
             self.writer.add_scalar('test/Acc_class', Acc_class, epoch)
@@ -368,7 +368,7 @@ class distWorker(object):
             print('Test:')
             print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
             print("Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(Acc, Acc_class, mIoU, FWIoU))
-            print('Loss: %.5f' % test_loss)
+            print('Loss: %.5f' % test_loss/num_iter_test)
             self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, fwIoU: {}".format(epoch, Acc, Acc_class, mIoU, FWIoU) + '\n')
             if self.args.infer_thresholds:
                 for i in range(len(self.args.infer_thresholds)):
