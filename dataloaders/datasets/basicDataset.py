@@ -78,6 +78,7 @@ class BasicDataset(Dataset):
         else:
             _tmp = cv2.imread(lbl_path, 0).astype(np.uint8)
         _tmp = self.encode_segmap(_tmp)
+
         if self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 1:
             #if there are multiple rails in an image in distinguishing left and right semantic segmentation,
             #  the image and its label should be discarded.
@@ -121,6 +122,12 @@ class BasicDataset(Dataset):
             mask_min_nonzero = mask[mask>0].min()
             if self.args.distinguish_left_right_semantic:
                 mask = mask//mask_min_nonzero
+            elif self.args.globally_distinguish_left_right:
+                mask = mask//mask_min_nonzero
+                is_even = (mask%2 == 0)*(mask > 0)
+                id_odd = mask%2 == 1
+                mask[is_even] = 2
+                mask[id_odd] = 1
             else:
                 thres = mask_min_nonzero
                 mask[mask<thres] = 0 # this must be before mask[mask>=thres] = 1

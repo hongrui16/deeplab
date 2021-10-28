@@ -77,7 +77,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python train_main.py --testValTrain 4 --resume run/
 ### 1 Use slurm
 #### 1.1 foreground running
 ```
-srun -N1 --cpus-per-task 8 --gres gpu:4 python train_main.py --testValTrain 4 --loss_type ce
+srun -N1 --cpus-per-task 8 --gres gpu:4 python train_main.py --testValTrain 1 --resume run/basicDataset/deeplab-resnet/experiment_*/model_best.pth.tar 
 ```
 #### 1.2 background running
 set "args.testValTrain = 1" and then run the command below

@@ -204,7 +204,7 @@ class distWorker(object):
             val_loss += loss.item()
             if self.args.master:
                 tbar.set_description('Val loss: %.5f' % (val_loss / (i + 1)))
-                interval = num_iter_val // 5 if num_iter_val // 5 else 1
+                interval = num_iter_val // 8 if num_iter_val // 8 else 2
                 if i % interval == 0:
                     global_step = i + num_iter_val * epoch
                     self.summary.visualize_image(self.writer, self.args.dataset, image, target, output, global_step, 'val')
@@ -298,7 +298,7 @@ class distWorker(object):
                 # print('target.dtype', target.dtype, target.shape, 'pred.dtype', pred.dtype, pred.shape)
                 self.evaluator.add_batch(target, pred)
                 # print('')
-                if self.args.infer_thresholds and self.args.testValTrain < 2:
+                if self.args.infer_thresholds and self.args.testValTrain == 1:
                     for j in range(len(self.evaluators)):
                         thres = self.args.infer_thresholds[j]
                         mask_by_thres = self.sel_ch_based_on_threshold(ori_infer.copy(), thres)
@@ -380,7 +380,7 @@ class distWorker(object):
             print("Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(Acc, Acc_class, mIoU, global_mIoU))
             print('Loss: %.5f' % (test_loss/num_iter_test))
             self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
-            if self.args.infer_thresholds and self.args.testValTrain < 2:
+            if self.args.infer_thresholds and self.args.testValTrain == 1:
                 for i in range(len(self.args.infer_thresholds)):
                     mIoU_temp = self.evaluators[i].Mean_Intersection_over_Union()
                     self.saver.write_log_to_txt(f'test/mIoU@thres_{self.args.infer_thresholds[i]}: {mIoU_temp}, epoch: {epoch}')

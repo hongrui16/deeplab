@@ -529,16 +529,18 @@ def find_GT_for_inference(args):
 def relocate_rail_regin_in_images(args):
     # old_test_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/image'
     # old_test_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000/val/image'
-    old_test_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test_ori/image'
+    # old_test_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test_ori/image'
+    old_test_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/val/image'
 
     # old_test_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/json'
     # old_test_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/label'
     # old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000/val/label'
-    old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test_ori/label'
+    # old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test_ori/label'
+    old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/val/label'
 
-    output_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test/image'
+    output_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/val_for_infer/image'
     # output_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/json'
-    output_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test/label'
+    output_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/val_for_infer/label'
 
     if not os.path.exists(output_img_dir):
         os.makedirs(output_img_dir)        

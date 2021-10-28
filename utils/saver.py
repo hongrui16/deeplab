@@ -12,7 +12,7 @@ class Saver(object):
         self.output_mask_dir = None
         if self.args.testValTrain > 1:
             self.directory = os.path.join('run', args.dataset, args.checkname)
-            self.runs = sorted(glob.glob(os.path.join(self.directory, 'experiment_*')))
+            self.runs = sorted(glob.glob(os.path.join(self.directory, 'experiment_*')), key=lambda x: int(x.split('_')[-1]))
             run_id = int(self.runs[-1].split('_')[-1]) + 1 if self.runs else 0
             self.experiment_dir = os.path.join(self.directory, 'experiment_{}'.format(str(run_id)))
         elif 0<=self.args.testValTrain<=1 and self.args.resume:

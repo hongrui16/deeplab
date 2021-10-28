@@ -24,7 +24,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 import os
-
+from mypath import Path
 from train_engine import main_worker
 
 parser = argparse.ArgumentParser(description='IDEA Training')
@@ -99,7 +99,7 @@ parser.add_argument('--eval_interval', type=int, default=1,
 
 
 # training hyper params
-parser.add_argument('--epochs', type=int, default=100, metavar='N',
+parser.add_argument('--epochs', type=int, default=200, metavar='N',
                     help='number of epochs to train (default: auto)')
 parser.add_argument('--start_epoch', type=int, default=0,
                     metavar='N', help='start epochs (default:0)')
@@ -125,7 +125,7 @@ parser.add_argument('--max_size', type=int, default=1080)
 parser.add_argument('--rotate_degree', type=int, default=15)
 parser.add_argument('--n_classes', type=int, default=3)
 parser.add_argument('--dataset', type=str, default='basicDataset')
-parser.add_argument('--dataset_dir', type=str, default='/comp_robot/hongrui/metro_pro/dataset/1st_5000', help='dataset dir')
+parser.add_argument('--dataset_dir', type=str, default=None, help='dataset dir')
 parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: infer, 1: test, 2: train, 3: trainval, 4: trainvaltest')
 parser.add_argument('--testset_dir', type=str, default=None, help='input test or inference image dir')
 parser.add_argument('--testOut_dir', type=str, default=None, help='inference and test output dir')
@@ -135,13 +135,17 @@ parser.add_argument('--dump_raw_prediction', action='store_true', default=False,
                     help='dump raw predictiontest')
 parser.add_argument('--alpha', type=float, default=0.5,
                     help='focal loss alpha')
-parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=True,
+parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=False,
                     help='distinguish left and right rail semantic segmentation')
 parser.add_argument('--debug', action='store_true', default=False,
                     help='debug flag')
 parser.add_argument('--infer_thresholds', type=float, default=[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
+parser.add_argument('--globally_distinguish_left_right', action='store_true', default=False,
+                    help='globally distinguish left and right rail semantic segmentation')
 args = parser.parse_args()
 
+args.dataset_dir = Path.db_root_dir(args.dataset)
+assert not args.globally_distinguish_left_right == args.distinguish_left_right_semantic
 
 def find_free_port():
     import socket
