@@ -126,7 +126,7 @@ parser.add_argument('--rotate_degree', type=int, default=15)
 parser.add_argument('--n_classes', type=int, default=3)
 parser.add_argument('--dataset', type=str, default='basicDataset')
 parser.add_argument('--dataset_dir', type=str, default=None, help='dataset dir')
-parser.add_argument('--testValTrain', type=int, default=-1, help='-1: no, 0: infer, 1: test, 2: train, 3: trainval, 4: trainvaltest')
+parser.add_argument('--testValTrain', type=int, default=-2, help='-1: infer, 0: test, 1: testval, 2: train, 3: trainval, 4: trainvaltest')
 parser.add_argument('--testset_dir', type=str, default=None, help='input test or inference image dir')
 parser.add_argument('--testOut_dir', type=str, default=None, help='inference and test output dir')
 parser.add_argument('--dump_image', action='store_true', default=False,
@@ -139,9 +139,12 @@ parser.add_argument('--distinguish_left_right_semantic', action='store_true', de
                     help='distinguish left and right rail semantic segmentation')
 parser.add_argument('--debug', action='store_true', default=False,
                     help='debug flag')
-parser.add_argument('--infer_thresholds', type=float, default=[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
+# parser.add_argument('--infer_thresholds', type=float, default=[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
+parser.add_argument('--infer_thresholds', type=float, default=[0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
 parser.add_argument('--globally_distinguish_left_right', action='store_true', default=False,
                     help='globally distinguish left and right rail semantic segmentation')
+parser.add_argument('--sync_single_pair_rail', action='store_true', default=False,
+                    help='sync single pair rail')
 args = parser.parse_args()
 
 args.dataset_dir = Path.db_root_dir(args.dataset)
@@ -157,10 +160,12 @@ def find_free_port():
 def main(args):
     import os
 
-    if args.testValTrain == 0:
+    if args.testValTrain == -1:
         print('only inference')
-    elif args.testValTrain == 1:
+    elif args.testValTrain == 0:
         print('test (calculate metrics)')
+    elif args.testValTrain == 1:
+        print('test and val (calculate metrics)')
     elif args.testValTrain == 2:
         print('only training')
     elif args.testValTrain == 3:

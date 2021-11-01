@@ -87,9 +87,13 @@ def main_worker(gpu, ngpus_per_node, args):
                 worker.test(epoch)
             if args.master:
                 worker.saver.write_log_to_txt('\n')
-    elif 0 <= args.testValTrain <= 1:
+    elif args.testValTrain >= 0:
+        worker.validation()
         worker.test()
-        
+    elif args.testValTrain >= -1:
+        worker.test()
+    else:
+        print('error, please specify a mode')
     if args.master:
         worker.writer.close()
 

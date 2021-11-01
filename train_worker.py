@@ -60,7 +60,7 @@ class distWorker(object):
             # Define lr scheduler
             self.scheduler = LR_Scheduler(args.lr_scheduler, args.lr,
                                                 args.epochs, len(self.train_loader), args = args)
-        if args.testValTrain > 0:#test
+        if args.testValTrain >= 0:#test and val
             # Define Criterion
             # whether to use class balanced weights
             if args.use_balanced_weights:
@@ -74,9 +74,11 @@ class distWorker(object):
                 weight = None
             self.criterion = SegmentationLosses(weight=weight, cuda=args.cuda, args = args).build_loss(type=args.loss_type)
             
-            if self.args.infer_thresholds:
-                self.evaluators = [Evaluator(self.nclass) for _ in range(len(self.args.infer_thresholds))]
             # Define Evaluator
+            if self.args.infer_thresholds and (1 >= self.args.testValTrain >= 0 ):
+                self.evaluators = [Evaluator(self.nclass) for _ in range(len(self.args.infer_thresholds))]
+            else:
+                self.evaluators = []
             self.evaluator = Evaluator(self.nclass)
             
         # Using cuda
@@ -113,7 +115,7 @@ class distWorker(object):
                 self.model.module.load_state_dict(checkpoint['state_dict'])
             else:
                 self.model.load_state_dict(checkpoint['state_dict'])
-            if not args.ft and args.testValTrain > 1:
+            if not args.ft and args.testValTrain > 1: #train
                 self.optimizer.load_state_dict(checkpoint['optimizer'])
             self.best_pred = checkpoint['best_pred']
             print("=> loaded checkpoint '{}' (epoch {})"
@@ -183,9 +185,10 @@ class distWorker(object):
             }, is_best)
         # start = time.time()
 
-    def validation(self, epoch):
+    def validation(self, epoch = 0):
         self.model.eval()
         self.evaluator.reset()
+        self.reset_evaluators(self.evaluators)
         tbar = tqdm(self.val_loader, desc='\r')
         num_iter_val = len(self.val_loader)
         
@@ -200,9 +203,10 @@ class distWorker(object):
                 image, target = image.cuda(), target.cuda()
             with torch.no_grad():
                 output = self.model(image)
-            loss = self.criterion(output, target)
-            val_loss += loss.item()
-            if self.args.master:
+            if self.args.testValTrain > 1:                    
+                loss = self.criterion(output, target)
+                val_loss += loss.item()
+            if self.args.master and self.args.testValTrain > 1:
                 tbar.set_description('Val loss: %.5f' % (val_loss / (i + 1)))
                 interval = num_iter_val // 8 if num_iter_val // 8 else 2
                 if i % interval == 0:
@@ -211,10 +215,19 @@ class distWorker(object):
                     
             pred = output.data.cpu().numpy()
             target = target.cpu().numpy()
+            ori_infer = pred.copy()
+            ori_infer = softmax(ori_infer, axis=1)
             pred = np.argmax(pred, axis=1)
             # Add batch sample into evaluator
             self.evaluator.add_batch(target, pred)
-            
+            if self.args.infer_thresholds and self.evaluators:
+                for j in range(len(self.evaluators)):
+                    thres = self.args.infer_thresholds[j]
+                    mask_by_thres = self.sel_ch_based_on_threshold(ori_infer.copy(), thres)
+                    mask_by_thres[mask_by_thres == 3] = pred[mask_by_thres == 3]
+                    # print('mask_by_thres.max', mask_by_thres.max(), mask_by_thres[mask_by_thres==3])
+                    # print('target.dtype', target.dtype, target.shape, 'mask_by_thres.dtype', mask_by_thres.dtype, mask_by_thres.shape)
+                    self.evaluators[j].add_batch(target, mask_by_thres)
 
         # Fast test during the training
         Acc = self.evaluator.Pixel_Accuracy()
@@ -225,36 +238,46 @@ class distWorker(object):
         # global_mIoU = self.get_global_mIoU(mIoU)
         global_mIoU = self.reduce_tensor(mIoU)
         # print(f'test/rank@{self.args.rank} mIoU: {mIoU}, global_mIoU: {global_mIoU}')
-
         if self.args.master:
-            self.writer.add_scalar('val/total_loss_epoch', val_loss/num_iter_val, epoch)
-            self.writer.add_scalar('val/mIoU', mIoU, epoch)
-            self.writer.add_scalar('val/Acc', Acc, epoch)
-            self.writer.add_scalar('val/Acc_class', Acc_class, epoch)
-            # self.writer.add_scalar('val/fwIoU', FWIoU, epoch)
-            self.writer.add_scalar('val/global_mIoU', global_mIoU, epoch)
-            print('Validation:')
-            print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
-            print("Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(Acc, Acc_class, mIoU, global_mIoU))
-            print('Loss: %.5f' % (val_loss/num_iter_val))
-            self.saver.write_log_to_txt("Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
+            if self.args.testValTrain > 1: # during training
+                self.writer.add_scalar('val/total_loss_epoch', val_loss/num_iter_val, epoch)
+                self.writer.add_scalar('val/mIoU', mIoU, epoch)
+                self.writer.add_scalar('val/Acc', Acc, epoch)
+                self.writer.add_scalar('val/Acc_class', Acc_class, epoch)
+                # self.writer.add_scalar('val/fwIoU', FWIoU, epoch)
+                self.writer.add_scalar('val/global_mIoU', global_mIoU, epoch)
+                print('Validation:')
+                print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
+                print("Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(Acc, Acc_class, mIoU, global_mIoU))
+                print('Loss: %.5f' % (val_loss/num_iter_val))
+                self.saver.write_log_to_txt("Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
 
-        if global_mIoU > self.best_pred and self.args.master:
-            is_best = True
-            self.saver.write_log_to_txt("Best Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
-            self.best_pred = global_mIoU
-            self.saver.save_checkpoint({
-                'epoch': epoch + 1,
-                'state_dict': self.model.module.state_dict(),
-                'optimizer': self.optimizer.state_dict(),
-                'best_pred': self.best_pred,
-            }, is_best)
+                if global_mIoU > self.best_pred:
+                    is_best = True
+                    self.saver.write_log_to_txt("Best Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
+                    self.best_pred = global_mIoU
+                    self.saver.save_checkpoint({
+                        'epoch': epoch + 1,
+                        'state_dict': self.model.module.state_dict(),
+                        'optimizer': self.optimizer.state_dict(),
+                        'best_pred': self.best_pred,
+                    }, is_best)
+            elif self.args.testValTrain >= 0:
+                self.saver.write_log_to_txt(f'val/mIoU@argmax: {global_mIoU}\n')
+                if self.args.infer_thresholds:
+                    for i in range(len(self.args.infer_thresholds)):
+                        global_mIoU = self.evaluators[i].Mean_Intersection_over_Union()
+                        # global_mIoU = self.reduce_tensor(global_mIoU)
+                        self.saver.write_log_to_txt(f'val/mIoU@thres_{self.args.infer_thresholds[i]}: {global_mIoU}')
+                self.saver.write_log_to_txt('\n')
+
         del val_loss
 
     def test(self, epoch = 0):
         self.model.eval()
-        if self.args.testValTrain >= 1:
+        if self.args.testValTrain >= 0:
             self.evaluator.reset()
+        self.reset_evaluators(self.evaluators)
         tbar = tqdm(self.test_loader, desc='\r')
         test_loss = 0.0
         # return
@@ -265,12 +288,14 @@ class distWorker(object):
             if not i % 10 == 0 and self.args.debug:
                 continue
             image, target, img_names = sample['image'], sample['label'], sample['img_name']
+            if self.args.sync_single_pair_rail and not target.numpy().any() > 0:                
+                continue
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
             with torch.no_grad():
                 output = self.model(image)
 
-            if self.args.master:
+            if self.args.master and self.args.testValTrain > 1: # only in training mode
                 interval = num_iter_test // 5 if num_iter_test // 5 else 1
                 if i % interval == 0:
                     global_step = i + num_iter_test * epoch
@@ -280,17 +305,12 @@ class distWorker(object):
             ori_infer = infer.copy()
             ori_infer = softmax(ori_infer, axis=1)
             pred = np.argmax(infer, axis=1)
-            if self.args.testValTrain >= 1:
-                loss = self.criterion(output, target)
-                # print('target.size()', target.size()) #torch.Size([16, 607, 1080])
-                # print('output.size()', output.size()) #torch.Size([16, 2, 607, 1080])
-                # print('loss', loss) #tensor(0.0021, device='cuda:2')
-                # for _id in range(self.args.test_batch_size):
-                #     self.saver.write_loss_to_txt(f'{img_names[_id]} {str(loss.item())}')
-                
-                test_loss += loss.item()
-                if self.args.master:
-                    tbar.set_description('Test loss: %.5f' % (test_loss / (i + 1)))
+            if self.args.testValTrain >= 0:
+                if self.args.testValTrain > 1:
+                    loss = self.criterion(output, target)
+                    test_loss += loss.item()
+                    if self.args.master:
+                        tbar.set_description('Test loss: %.5f' % (test_loss / (i + 1)))
             
                 target = target.cpu().numpy()
                 # Add batch sample into evaluator
@@ -298,7 +318,7 @@ class distWorker(object):
                 # print('target.dtype', target.dtype, target.shape, 'pred.dtype', pred.dtype, pred.shape)
                 self.evaluator.add_batch(target, pred)
                 # print('')
-                if self.args.infer_thresholds and self.args.testValTrain == 1:
+                if self.args.infer_thresholds and self.evaluators:
                     for j in range(len(self.evaluators)):
                         thres = self.args.infer_thresholds[j]
                         mask_by_thres = self.sel_ch_based_on_threshold(ori_infer.copy(), thres)
@@ -367,23 +387,26 @@ class distWorker(object):
         # FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
         # global_mIoU = self.get_global_mIoU(mIoU)
         global_mIoU = self.reduce_tensor(mIoU)
-        if self.args.testValTrain >= 1 and self.args.master:
-            self.writer.add_scalar('test/total_loss_epoch', test_loss/num_iter_test, epoch)
-            self.writer.add_scalar('test/mIoU', mIoU, epoch)
-            self.writer.add_scalar('test/global_mIoU', global_mIoU, epoch)
-            self.writer.add_scalar('test/Acc', Acc, epoch)
-            self.writer.add_scalar('test/Acc_class', Acc_class, epoch)
-            # self.writer.add_scalar('test/fwIoU', FWIoU, epoch)
-            
-            print('Test:')
-            print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
-            print("Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(Acc, Acc_class, mIoU, global_mIoU))
-            print('Loss: %.5f' % (test_loss/num_iter_test))
-            self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
-            if self.args.infer_thresholds and self.args.testValTrain == 1:
-                for i in range(len(self.args.infer_thresholds)):
-                    mIoU_temp = self.evaluators[i].Mean_Intersection_over_Union()
-                    self.saver.write_log_to_txt(f'test/mIoU@thres_{self.args.infer_thresholds[i]}: {mIoU_temp}, epoch: {epoch}')
+        if self.args.master:
+            if self.args.testValTrain > 1: # only in training mode
+                self.writer.add_scalar('test/total_loss_epoch', test_loss/num_iter_test, epoch)
+                self.writer.add_scalar('test/mIoU', mIoU, epoch)
+                self.writer.add_scalar('test/global_mIoU', global_mIoU, epoch)
+                self.writer.add_scalar('test/Acc', Acc, epoch)
+                self.writer.add_scalar('test/Acc_class', Acc_class, epoch)
+                # self.writer.add_scalar('test/fwIoU', FWIoU, epoch)
+                print('Test:')
+                print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
+                print("Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(Acc, Acc_class, mIoU, global_mIoU))
+                print('Loss: %.5f' % (test_loss/num_iter_test))
+                self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
+            elif self.args.testValTrain >= 0:
+                self.saver.write_log_to_txt(f'test/mIoU@argmax: {global_mIoU}\n')
+                if self.args.infer_thresholds:
+                    for i in range(len(self.args.infer_thresholds)):
+                        global_mIoU = self.evaluators[i].Mean_Intersection_over_Union()
+                        # global_mIoU = self.reduce_tensor(global_mIoU)
+                        self.saver.write_log_to_txt(f'test/mIoU@thres_{self.args.infer_thresholds[i]}: {global_mIoU}')
 
     def postprocess(self, img):
         # max_id = img.max()
@@ -428,6 +451,10 @@ class distWorker(object):
         global_mIoU = round(global_mIoU, 4)
         return global_mIoU
 
+    def reset_evaluators(self, evaluators):
+        if evaluators:
+            for i in range(len(evaluators)):
+                evaluators[i].reset()
 
 def plot_image():
     print('call plot image fun')
