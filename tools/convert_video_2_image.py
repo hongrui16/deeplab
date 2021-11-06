@@ -24,7 +24,7 @@ def convert(args):
 
     for i, v_name in enumerate(video_names):
         print(f'processing {v_name}, {i}/{len(video_names)}')
-        if not '.MP4' in v_name:
+        if not '.avi' in v_name:
             continue
         video_filepath = os.path.join(input_dir, v_name)
 
@@ -41,7 +41,7 @@ def convert(args):
 
         frame_index = 0
         frame_count = 0
-        interval = 15
+        interval = 1
 
         fps = videoCapture.get(cv2.CAP_PROP_FPS)
         frames = videoCapture.get(cv2.CAP_PROP_FRAME_COUNT)
@@ -87,8 +87,8 @@ if __name__ == '__main__':
     parser.add_argument('-im', '--input_dir', type=str, default=None)
     parser.add_argument('-om', '--output_dir', type=str, default=None)
     args = parser.parse_args()
-    # convert(args)
-    select_images(args)
+    convert(args)
+    # select_images(args)
 # cv2.imshow('13456', frame)
 # cv2.waitKey(1000)
 # plt.imshow(frame)

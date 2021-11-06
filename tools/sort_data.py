@@ -649,6 +649,20 @@ def copy_test_json_2nd_round(args):
         out_json_filepath = os.path.join(output_json_dir, json_name)
         shutil.copy(ori_json_filepath, out_json_filepath)
 
+def rename_video(args):
+    input_dir  = args.input_dir
+    img_names = os.listdir(input_dir)
+    img_names.sort()
+    print('img_names', img_names)
+
+    for i, v in enumerate(img_names):
+        v_filepath = os.path.join(input_dir, v)
+        new_name = str(i)+'.avi'
+        new_v_filepath = os.path.join(input_dir, new_name)
+
+        os.rename(v_filepath, new_v_filepath)
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='aligment')
@@ -685,7 +699,9 @@ if __name__ == '__main__':
     # find_GT_for_inference(args)
 
 
-    relocate_rail_regin_in_images(args)
+    # relocate_rail_regin_in_images(args)
+
     # count_dataset()
     # copy_train_val_json_2nd_round(args)
     # copy_test_json_2nd_round(args)
+    rename_video(args)

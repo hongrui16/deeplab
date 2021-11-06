@@ -306,16 +306,14 @@ class distWorker(object):
             ori_infer = softmax(ori_infer, axis=1)
             pred = np.argmax(infer, axis=1)
             if self.args.testValTrain >= 0:
-                if self.args.testValTrain > 1:
-                    loss = self.criterion(output, target)
-                    test_loss += loss.item()
-                    if self.args.master:
-                        tbar.set_description('Test loss: %.5f' % (test_loss / (i + 1)))
+                # if self.args.testValTrain > 1:
+                    # loss = self.criterion(output, target)
+                    # test_loss += loss.item()
+                    # if self.args.master:
+                    #     tbar.set_description('Test loss: %.5f' % (test_loss / (i + 1)))
             
                 target = target.cpu().numpy()
                 # Add batch sample into evaluator
-                # pred = pred.astype(np.float64)
-                # print('target.dtype', target.dtype, target.shape, 'pred.dtype', pred.dtype, pred.shape)
                 self.evaluator.add_batch(target, pred)
                 # print('')
                 if self.args.infer_thresholds and self.evaluators:
@@ -323,8 +321,6 @@ class distWorker(object):
                         thres = self.args.infer_thresholds[j]
                         mask_by_thres = self.sel_ch_based_on_threshold(ori_infer.copy(), thres)
                         mask_by_thres[mask_by_thres == 3] = pred[mask_by_thres == 3]
-                        # print('mask_by_thres.max', mask_by_thres.max(), mask_by_thres[mask_by_thres==3])
-                        # print('target.dtype', target.dtype, target.shape, 'mask_by_thres.dtype', mask_by_thres.dtype, mask_by_thres.shape)
                         self.evaluators[j].add_batch(target, mask_by_thres)
                 # print('end')
             if self.args.dump_raw_prediction:
@@ -389,7 +385,7 @@ class distWorker(object):
         global_mIoU = self.reduce_tensor(mIoU)
         if self.args.master:
             if self.args.testValTrain > 1: # only in training mode
-                self.writer.add_scalar('test/total_loss_epoch', test_loss/num_iter_test, epoch)
+                # self.writer.add_scalar('test/total_loss_epoch', test_loss/num_iter_test, epoch)
                 self.writer.add_scalar('test/mIoU', mIoU, epoch)
                 self.writer.add_scalar('test/global_mIoU', global_mIoU, epoch)
                 self.writer.add_scalar('test/Acc', Acc, epoch)
@@ -398,7 +394,7 @@ class distWorker(object):
                 print('Test:')
                 print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
                 print("Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(Acc, Acc_class, mIoU, global_mIoU))
-                print('Loss: %.5f' % (test_loss/num_iter_test))
+                # print('Loss: %.5f' % (test_loss/num_iter_test))
                 self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
             elif self.args.testValTrain >= 0:
                 self.saver.write_log_to_txt(f'test/mIoU@argmax: {global_mIoU}\n')
