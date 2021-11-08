@@ -190,6 +190,7 @@ class BasicDataset(Dataset):
             tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
             tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
             tr.RandomHorizontalFlip(self.args),
+            tr.RandomHorizontalFlipImageMask(self.args),
             tr.RandomRotate(degree = self.args.rotate_degree),
             tr.RandomGaussianBlur(),
             tr.FixScaleCrop(crop_size=self.args.crop_size),
@@ -207,8 +208,8 @@ class BasicDataset(Dataset):
             tr.RandomHorizontalFlip(self.args),
             tr.RandomRotate(degree = self.args.rotate_degree),
             tr.RandomGaussianBlur(),
-            tr.FixScaleCrop(crop_size=self.args.crop_size)
-            
+            tr.FixScaleCrop(crop_size=self.args.crop_size),
+            tr.RandomHorizontalFlipImageMask(self.args),
             ])
 
         return composed_transforms(sample)

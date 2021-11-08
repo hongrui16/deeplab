@@ -281,3 +281,22 @@ class LimitResize(object):
         sample['image'] = img
         sample['label'] = mask
         return sample
+    
+    
+
+class RandomHorizontalFlipImageMask(object):
+    def __init__(self, args = None):
+        self.args = args
+    def __call__(self, sample):
+        img = sample['image']
+        mask = sample['label']
+        if random.random() < 0.5:
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+            mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
+            if mask.max() > 1:
+                mask_copy = mask.copy()
+                mask[(mask_copy%2 == 0) * (mask_copy > 0)] -= 1
+                mask[mask_copy%2==1] += 1
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
