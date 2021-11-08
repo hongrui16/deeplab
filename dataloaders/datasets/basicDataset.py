@@ -15,6 +15,7 @@ import torch
 from torch.utils.data import Dataset
 import cv2
 import sys
+import albumentations as albu
 import random
 
 class BasicDataset(Dataset):
@@ -39,6 +40,7 @@ class BasicDataset(Dataset):
         # self.ids = [splitext(file)[0] for file in listdir(self.images_base) if not file.startswith('.')]
         self.img_ids = [file for file in listdir(self.images_base) if not file.startswith('.')]
         random.shuffle(self.img_ids)
+		self.spatial_trans, self.pixel_trans = self.get_train_transforms_albu()
         # self.void_classes = [0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1]
         # self.valid_classes = [7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33]
         # self.class_names = ['unlabelled', 'road', 'sidewalk', 'building', 'wall', 'fence', \
@@ -53,49 +55,96 @@ class BasicDataset(Dataset):
 
     def __getitem__(self, index):
         # print(f'calling {__file__}, {sys._getframe().f_lineno}')
-        
-        img_name = self.img_ids[index]
-        img_path = os.path.join(self.images_base, img_name)
-        lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
+        if self.split == "train" and self.args.use_albu:
 
-        _img = Image.open(img_path).convert('RGB')
-        w, h = _img.size
 
-        # 
-        if self.args.testset_dir:
-            # w, h = _img.size
-            # _target = np.zeros((h,w))
-            # _target = Image.fromarray(_target)
-            lbl_path = img_path.replace('image', 'label').replace('.jpg', '.png')
-            if os.path.exists(lbl_path):
-                # print('lbl_path', lbl_path)
-                _tmp = cv2.imread(lbl_path, 0).astype(np.uint8)
-            else:
-                # print('lbl_path none')
-                _tmp = np.zeros((h,w), dtype=np.uint8)
-            # _tmp = self.encode_segmap(_tmp)
-            # _target = Image.fromarray(_tmp)
-        else:
-            _tmp = cv2.imread(lbl_path, 0).astype(np.uint8)
-        _tmp = self.encode_segmap(_tmp)
+            is_continue = True
+            rand_index = index
+            while is_continue:
+                img_name = self.img_ids[rand_index]
+                img_path = os.path.join(self.images_base, img_name)
+                lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
 
-        if (self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 0) or (self.args.sync_single_pair_rail and _tmp.max() > 2):
-            #if there are multiple rails in an image in distinguishing left and right semantic segmentation,
-            #  the image and its label should be discarded.
-            # print('_tmp.max()', _tmp.max())
-            _img = Image.new("RGB", (w, h))
-            _tmp = np.zeros((h,w), dtype=np.uint8)
+
+                _tmp = cv2.imread(lbl_path, 0)
+                _tmp = self.encode_segmap(_tmp)
             
-        _target = Image.fromarray(_tmp)
+                is_continue =  self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 1
+                if is_continue:
+                    rand_index = random.randint(0, len(self.img_ids)-1)
 
-        sample = {'image': _img, 'label': _target, 'img_name': img_name}
 
-        if self.split == 'train':
-            return self.transform_train(sample)
-        elif self.split == 'val':
-            return self.transform_val(sample)
-        elif self.split == 'test' or self.args.testset_dir:
-            return self.transform_test(sample)
+            if self.args.skip_boundary:
+                _tmp = self.skip_boundary(_tmp)
+
+
+            #_img = Image.open(img_path).convert('RGB')
+            _img = cv2.imread(img_path)
+            _img = cv2.cvtColor(_img, cv2.COLOR_BGR2RGB)
+            _target = _tmp
+
+            sample = {'image': Image.fromarray(_img), 'label': Image.fromarray(_target), 'img_name': img_name}
+
+            sample = self.transform_train1(sample)
+            _img = np.array(sample['image'])
+            _target = np.array(sample['label'])
+
+            
+            _img = self.pixel_trans(image=_img)['image']
+
+            #to tensor
+            _img = _img.transpose( (2, 0, 1) )
+            _img = torch.from_numpy(_img).float()
+            _target = torch.from_numpy(_target).float()
+            
+
+            sample = {'image': _img, 'label': _target, 'img_name': img_name}
+            return sample
+
+        else:
+
+            img_name = self.img_ids[index]
+            img_path = os.path.join(self.images_base, img_name)
+            lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
+
+            _img = Image.open(img_path).convert('RGB')
+            w, h = _img.size
+
+            # 
+            if self.args.testset_dir:
+                # w, h = _img.size
+                # _target = np.zeros((h,w))
+                # _target = Image.fromarray(_target)
+                lbl_path = img_path.replace('image', 'label').replace('.jpg', '.png')
+                if os.path.exists(lbl_path):
+                    # print('lbl_path', lbl_path)
+                    _tmp = cv2.imread(lbl_path, 0).astype(np.uint8)
+                else:
+                    # print('lbl_path none')
+                    _tmp = np.zeros((h,w), dtype=np.uint8)
+                # _tmp = self.encode_segmap(_tmp)
+                # _target = Image.fromarray(_tmp)
+            else:
+                _tmp = cv2.imread(lbl_path, 0).astype(np.uint8)
+            _tmp = self.encode_segmap(_tmp)
+
+            if (self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 0) or (self.args.sync_single_pair_rail and _tmp.max() > 2):
+                #if there are multiple rails in an image in distinguishing left and right semantic segmentation,
+                #  the image and its label should be discarded.
+                # print('_tmp.max()', _tmp.max())
+                _img = Image.new("RGB", (w, h))
+                _tmp = np.zeros((h,w), dtype=np.uint8)
+                
+            _target = Image.fromarray(_tmp)
+
+            sample = {'image': _img, 'label': _target, 'img_name': img_name}
+
+            if self.split == 'train':
+                return self.transform_train(sample)
+            elif self.split == 'val':
+                return self.transform_val(sample)
+            elif self.split == 'test' or self.args.testset_dir:
+                return self.transform_test(sample)
 
     def encode_segmap(self, mask):
         # Put all void classes to zero
@@ -122,12 +171,14 @@ class BasicDataset(Dataset):
             mask_min_nonzero = mask[mask>0].min()
             if self.args.distinguish_left_right_semantic:
                 mask = mask//mask_min_nonzero
+
             elif self.args.globally_distinguish_left_right:
                 mask = mask//mask_min_nonzero
                 is_even = (mask%2 == 0)*(mask > 0)
                 id_odd = mask%2 == 1
                 mask[is_even] = 2
                 mask[id_odd] = 1
+                
             else:
                 thres = mask_min_nonzero
                 mask[mask<thres] = 0 # this must be before mask[mask>=thres] = 1
@@ -147,6 +198,67 @@ class BasicDataset(Dataset):
             tr.ToTensor()])
 
         return composed_transforms(sample)
+
+
+    def transform_train1(self, sample):
+        composed_transforms = transforms.Compose([
+            tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
+            tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
+            tr.RandomHorizontalFlip(self.args),
+            tr.RandomRotate(degree = self.args.rotate_degree),
+            tr.RandomGaussianBlur(),
+            tr.FixScaleCrop(crop_size=self.args.crop_size)
+            
+            ])
+
+        return composed_transforms(sample)
+
+    
+    def get_train_transforms_albu(self,):
+        args = self.args
+
+        spatial_trans = albu.Compose([
+            #albu.RandomSizedCrop(args.base_size, scale=(0.6, 1.0), ratio=(0.75, 1.3333333333333333)),
+            albu.SmallestMaxSize(args.base_size, p=1.),
+            albu.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.2, rotate_limit=20, interpolation=1, border_mode=cv2.BORDER_CONSTANT, value=0, mask_value=args.ignore_index, p=0.5),
+            #albu.ShiftScaleRotate(shift_limit=0.0, scale_limit=0.0, rotate_limit=90, interpolation=1, border_mode=cv2.BORDER_CONSTANT, value=0, mask_value=args.ignore_index, p=0.5),
+            albu.PadIfNeeded(min_height=args.base_size, min_width=args.base_size, border_mode=cv2.BORDER_CONSTANT, value=0, mask_value=args.ignore_index, p=1.),
+            #albu.RandomCrop(args.base_size, args.base_size, p=1.),
+            albu.CenterCrop(args.base_size, args.base_size, p=1.),
+            albu.Flip(p=0.5),              
+            albu.OneOf([
+                #albu.ElasticTransform(alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03, p=0.5),
+                albu.GridDistortion(p=0.5),
+                albu.OpticalDistortion(distort_limit=2, shift_limit=0.5, p=0.5)                  
+                ], p=0.3),
+            #albu.CoarseDropout (max_holes=8, max_height=int(args.base_size*0.1), max_width=int(args.base_size*0.1), fill_value=0, mask_fill_value=args.ignore_index, p=0.3)
+            albu.CoarseDropout (max_holes=32, max_height=20, max_width=20, fill_value=255, mask_fill_value=0, p=0.3)
+
+
+            ], p=1.)
+
+
+        pixel_trans = albu.Compose([
+            #albu.OneOf([
+            #    albu.CLAHE(clip_limit=2, p=.5),
+            #    albu.Sharpen(p=.25),
+            #    ], p=0.35),
+            albu.RandomBrightnessContrast(p=.5),
+            albu.OneOf([
+                albu.GaussNoise(p=.2),
+                albu.ISONoise(p=.2),
+                albu.ImageCompression(quality_lower=70, quality_upper=100, p=.5)
+                ], p=.5),
+            albu.RGBShift(p=.5),
+            albu.HueSaturationValue(hue_shift_limit=8, sat_shift_limit=12, val_shift_limit=8, p=.5),
+            #albu.ToGray(p=.2),
+
+            albu.Normalize (mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), p=1.0),
+
+        ], p=1.)
+
+
+        return spatial_trans, pixel_trans
 
     def transform_val(self, sample):
 
@@ -192,12 +304,20 @@ if __name__ == '__main__':
 
     parser.add_argument('--base_size', type=int, default=640)
     parser.add_argument('--crop_size', type=int, default=640)
+    parser.add_argument('--max_size', type=int, default=1080)
+
+
     parser.add_argument('--rotate_degree', type=int, default=15)
     parser.add_argument('--dataset', type=str, default='basicDataset')
     parser.add_argument('--dataset_dir', type=str, default=None, help='dataset dir')
     parser.add_argument('--testValTrain', type=int, default=-2, help='-1: infer, 0: test, 1: testval, 2: train, 3: trainval, 4: trainvaltest')
     parser.add_argument('--testset_dir', type=str, default=None, help='input test image dir')
     parser.add_argument('--testOut_dir', type=str, default=None, help='test image output dir')
+    parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=True, help='distinguish left and right rail semantic segmentation')
+    parser.add_argument('--skip_boundary', action='store_true', default=False, help="skip boundary pixel to handle annotation noise")
+
+    parser.add_argument('--use_albu', action='store_true', default=False, help="indicate wheather to use albumentation in training phase for data augmentation")
+
 
     args = parser.parse_args()
 

@@ -145,6 +145,9 @@ parser.add_argument('--globally_distinguish_left_right', action='store_true', de
                     help='globally distinguish left and right rail semantic segmentation')
 parser.add_argument('--sync_single_pair_rail', action='store_true', default=False,
                     help='sync single pair rail')
+parser.add_argument('--skip_boundary', action='store_true', default=False, help="skip boundary pixel to handle annotation noise")
+
+parser.add_argument('--use_albu', action='store_true', default=False, help="indicate wheather to use albumentation in training phase for data augmentation")
 args = parser.parse_args()
 
 args.dataset_dir = Path.db_root_dir(args.dataset)
