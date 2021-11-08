@@ -1,7 +1,6 @@
 import os
 import shutil
 import torch
-from collections import OrderedDict
 import glob
 from time import gmtime, strftime
 
