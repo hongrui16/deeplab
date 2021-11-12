@@ -64,11 +64,12 @@ class distWorker(object):
             # Define Criterion
             # whether to use class balanced weights
             if args.use_balanced_weights:
-                classes_weights_path = os.path.join(Path.db_root_dir(args.dataset, args), args.dataset+'_classes_weights.npy')
+                classes_weights_path = os.path.join(Path.db_root_dir(args.dataset, args), args.dataset+f'_c{self.nclass}_classes_weights.npy')
                 if os.path.isfile(classes_weights_path):
                     weight = np.load(classes_weights_path)
                 else:
-                    weight = calculate_weigths_labels(args.dataset, self.train_loader, self.nclass, args)
+                    weight = calculate_weigths_labels(args.dataset, self.train_loader, self.nclass, args,
+                                                        classes_weights_path = classes_weights_path)
                 weight = torch.from_numpy(weight.astype(np.float32))
             else:
                 weight = None
@@ -139,7 +140,7 @@ class distWorker(object):
             # print(f'rank {self.args.rank} dataload time {round(time.time() - start, 3)}')
             # start = time.time()
             image, target, _ = sample['image'], sample['label'], sample['img_name']
-            # print('target', target.size(), target.type())
+            # print('target', target.size(), image.size())
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
             self.scheduler(self.optimizer, i, epoch, self.best_pred)
@@ -191,7 +192,7 @@ class distWorker(object):
         self.reset_evaluators(self.evaluators)
         tbar = tqdm(self.val_loader, desc='\r')
         num_iter_val = len(self.val_loader)
-        
+        is_best = False
         
         val_loss = 0.0
         # return
@@ -256,12 +257,12 @@ class distWorker(object):
                     is_best = True
                     self.saver.write_log_to_txt("Best Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
                     self.best_pred = global_mIoU
-                    self.saver.save_checkpoint({
-                        'epoch': epoch + 1,
-                        'state_dict': self.model.module.state_dict(),
-                        'optimizer': self.optimizer.state_dict(),
-                        'best_pred': self.best_pred,
-                    }, is_best)
+                self.saver.save_checkpoint({
+                    'epoch': epoch + 1,
+                    'state_dict': self.model.module.state_dict(),
+                    'optimizer': self.optimizer.state_dict(),
+                    'best_pred': self.best_pred,
+                }, is_best)
             elif self.args.testValTrain >= 0:
                 self.saver.write_log_to_txt(f'val/mIoU@argmax: {global_mIoU}\n')
                 if self.args.infer_thresholds:

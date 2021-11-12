@@ -293,10 +293,13 @@ class RandomHorizontalFlipImageMask(object):
         if random.random() < 0.5:
             img = img.transpose(Image.FLIP_LEFT_RIGHT)
             mask = mask.transpose(Image.FLIP_LEFT_RIGHT)
+            if isinstance(mask, Image.Image): 
+                mask = np.array(mask)
             if mask.max() > 1:
                 mask_copy = mask.copy()
                 mask[(mask_copy%2 == 0) * (mask_copy > 0)] -= 1
                 mask[mask_copy%2==1] += 1
+            mask = Image.fromarray(mask)
         sample['image'] = img
         sample['label'] = mask
         return sample

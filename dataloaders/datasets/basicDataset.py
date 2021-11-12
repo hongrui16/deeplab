@@ -31,6 +31,7 @@ class BasicDataset(Dataset):
         self.ignore_index = args.ignore_index
         self.args = args
         # print('args.ignore_index', args.ignore_index)
+        self.spatial_trans, self.pixel_trans = self.albumentations_aug()
         if args.testset_dir:
             self.images_base =  args.testset_dir
             self.annotations_base = ''
@@ -40,7 +41,7 @@ class BasicDataset(Dataset):
         # self.ids = [splitext(file)[0] for file in listdir(self.images_base) if not file.startswith('.')]
         self.img_ids = [file for file in listdir(self.images_base) if not file.startswith('.')]
         random.shuffle(self.img_ids)
-		self.spatial_trans, self.pixel_trans = self.get_train_transforms_albu()
+		
         # self.void_classes = [0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1]
         # self.valid_classes = [7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33]
         # self.class_names = ['unlabelled', 'road', 'sidewalk', 'building', 'wall', 'fence', \
@@ -49,35 +50,26 @@ class BasicDataset(Dataset):
         #                     'motorcycle', 'bicycle']
         # self.class_map = dict(zip(self.valid_classes, range(self.NUM_CLASSES)))
 
-
     def __len__(self):
         return len(self.img_ids)
 
     def __getitem__(self, index):
         # print(f'calling {__file__}, {sys._getframe().f_lineno}')
         if self.split == "train" and self.args.use_albu:
-
-
             is_continue = True
             rand_index = index
             while is_continue:
                 img_name = self.img_ids[rand_index]
                 img_path = os.path.join(self.images_base, img_name)
                 lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
-
-
                 _tmp = cv2.imread(lbl_path, 0)
                 _tmp = self.encode_segmap(_tmp)
-            
                 is_continue =  self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 1
                 if is_continue:
                     rand_index = random.randint(0, len(self.img_ids)-1)
 
-
             if self.args.skip_boundary:
                 _tmp = self.skip_boundary(_tmp)
-
-
             #_img = Image.open(img_path).convert('RGB')
             _img = cv2.imread(img_path)
             _img = cv2.cvtColor(_img, cv2.COLOR_BGR2RGB)
@@ -87,30 +79,24 @@ class BasicDataset(Dataset):
 
             sample = self.transform_train1(sample)
             _img = np.array(sample['image'])
-            _target = np.array(sample['label'])
+            _target = np.array(sample['label'])        
 
-            
             _img = self.pixel_trans(image=_img)['image']
 
             #to tensor
             _img = _img.transpose( (2, 0, 1) )
             _img = torch.from_numpy(_img).float()
-            _target = torch.from_numpy(_target).float()
-            
+            _target = torch.from_numpy(_target).float()            
 
             sample = {'image': _img, 'label': _target, 'img_name': img_name}
             return sample
 
         else:
-
             img_name = self.img_ids[index]
             img_path = os.path.join(self.images_base, img_name)
             lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
-
             _img = Image.open(img_path).convert('RGB')
-            w, h = _img.size
-
-            # 
+            w, h = _img.size 
             if self.args.testset_dir:
                 # w, h = _img.size
                 # _target = np.zeros((h,w))
@@ -179,7 +165,7 @@ class BasicDataset(Dataset):
                 mask[is_even] = 2
                 mask[id_odd] = 1
                 
-            else:
+            elif self.args.n_classes == 2:
                 thres = mask_min_nonzero
                 mask[mask<thres] = 0 # this must be before mask[mask>=thres] = 1
                 mask[mask>=thres] = 1
@@ -190,16 +176,31 @@ class BasicDataset(Dataset):
             tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
             tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
             tr.RandomHorizontalFlip(self.args),
-            tr.RandomHorizontalFlipImageMask(self.args),
             tr.RandomRotate(degree = self.args.rotate_degree),
             tr.RandomGaussianBlur(),
             tr.FixScaleCrop(crop_size=self.args.crop_size),
+            tr.RandomHorizontalFlipImageMask(self.args),
             tr.FixedResize(size=self.args.crop_size),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
 
         return composed_transforms(sample)
 
+    def transform_val(self, sample):
+        composed_transforms = transforms.Compose([
+            tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
+            tr.FixScaleCrop(crop_size=self.args.crop_size),
+            tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            tr.ToTensor()])
+        return composed_transforms(sample)
+
+    def transform_test(self, sample):
+        composed_transforms = transforms.Compose([
+            # tr.FixedResize(size=self.args.crop_size),
+            tr.LimitResize(size=self.args.max_size),
+            tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            tr.ToTensor()])
+        return composed_transforms(sample)
 
     def transform_train1(self, sample):
         composed_transforms = transforms.Compose([
@@ -214,8 +215,7 @@ class BasicDataset(Dataset):
 
         return composed_transforms(sample)
 
-    
-    def get_train_transforms_albu(self,):
+    def albumentations_aug(self):
         args = self.args
 
         spatial_trans = albu.Compose([
@@ -234,8 +234,6 @@ class BasicDataset(Dataset):
                 ], p=0.3),
             #albu.CoarseDropout (max_holes=8, max_height=int(args.base_size*0.1), max_width=int(args.base_size*0.1), fill_value=0, mask_fill_value=args.ignore_index, p=0.3)
             albu.CoarseDropout (max_holes=32, max_height=20, max_width=20, fill_value=255, mask_fill_value=0, p=0.3)
-
-
             ], p=1.)
 
 
@@ -253,33 +251,21 @@ class BasicDataset(Dataset):
             albu.RGBShift(p=.5),
             albu.HueSaturationValue(hue_shift_limit=8, sat_shift_limit=12, val_shift_limit=8, p=.5),
             #albu.ToGray(p=.2),
-
             albu.Normalize (mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), p=1.0),
-
-        ], p=1.)
-
-
+            ], p=1.)
         return spatial_trans, pixel_trans
 
-    def transform_val(self, sample):
+    # skip boundary pixels to handle nosiy annotation
+    def skip_boundary(self, mask):
+        mat = mask >= 1
+        mat = mat.astype(np.uint8)*255        
+        edges = cv2.Canny(mat,240,240)
+        edges = cv2.dilate(edges, cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3)), iterations=1) 
+        indices = edges == 255 
+        mask[indices] = self.ignore_index
 
-        composed_transforms = transforms.Compose([
-            tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
-            tr.FixScaleCrop(crop_size=self.args.crop_size),
-            tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-            tr.ToTensor()])
+        return mask
 
-        return composed_transforms(sample)
-
-    def transform_test(self, sample):
-
-        composed_transforms = transforms.Compose([
-            # tr.FixedResize(size=self.args.crop_size),
-            tr.LimitResize(size=self.args.max_size),
-            tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-            tr.ToTensor()])
-
-        return composed_transforms(sample)
 
 if __name__ == '__main__':
     # from dataloaders.utils import decode_segmap

@@ -29,8 +29,6 @@ from train_engine import main_worker
 
 parser = argparse.ArgumentParser(description='IDEA Training')
 
-parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
-                    help='evaluate model on validation set')
 parser.add_argument('--world-size', default=-1, type=int,
                     help='number of nodes for distributed training')
 parser.add_argument('--rank', default=-1, type=int,
@@ -60,7 +58,7 @@ parser.add_argument('--out-stride', type=int, default=8,
 parser.add_argument('--use-sbd', action='store_true', default=False,
                     help='whether to use SBD dataset (default: False)')
 
-parser.add_argument('--sync-bn', type=bool, default=False,
+parser.add_argument('--sync-bn', type=bool, default=True,
                     help='whether to use sync bn (default: auto)')
 parser.add_argument('--freeze-bn', type=bool, default=False,
                     help='whether to freeze bn parameters (default: False)')
@@ -126,32 +124,37 @@ parser.add_argument('--rotate_degree', type=int, default=15)
 parser.add_argument('--n_classes', type=int, default=3)
 parser.add_argument('--dataset', type=str, default='basicDataset')
 parser.add_argument('--dataset_dir', type=str, default=None, help='dataset dir')
-parser.add_argument('--testValTrain', type=int, default=-2, help='-1: infer, 0: test, 1: testval, 2: train, 3: trainval, 4: trainvaltest')
+parser.add_argument('--testValTrain', type=int, default=-2, 
+                    help='-1: infer, 0: test, 1: testval, 2: train, 3: trainval, 4: trainvaltest')
 parser.add_argument('--testset_dir', type=str, default=None, help='input test or inference image dir')
 parser.add_argument('--testOut_dir', type=str, default=None, help='inference and test output dir')
 parser.add_argument('--dump_image', action='store_true', default=False,
-                    help='dump image when test')
+                    help='dump image, inference, and GT when test')
 parser.add_argument('--dump_raw_prediction', action='store_true', default=False,
-                    help='dump raw predictiontest')
+                    help='dump raw prediction')
 parser.add_argument('--alpha', type=float, default=0.5,
                     help='focal loss alpha')
-parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=False,
-                    help='distinguish left and right rail semantic segmentation')
+
 parser.add_argument('--debug', action='store_true', default=False,
                     help='debug flag')
 # parser.add_argument('--infer_thresholds', type=float, default=[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
 parser.add_argument('--infer_thresholds', type=float, default=[0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
+parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=False,
+                    help='distinguish main left and right rails')
 parser.add_argument('--globally_distinguish_left_right', action='store_true', default=False,
                     help='globally distinguish left and right rail semantic segmentation')
 parser.add_argument('--sync_single_pair_rail', action='store_true', default=False,
                     help='sync single pair rail')
-parser.add_argument('--skip_boundary', action='store_true', default=False, help="skip boundary pixel to handle annotation noise")
-
-parser.add_argument('--use_albu', action='store_true', default=False, help="indicate wheather to use albumentation in training phase for data augmentation")
+parser.add_argument('--skip_boundary', action='store_true', default=True, 
+                    help="skip boundary pixel to handle annotation noise")
+parser.add_argument('--use_albu', action='store_true', default=True, 
+                    help="indicate wheather to use albumentation in training phase for data augmentation")
 args = parser.parse_args()
 
 args.dataset_dir = Path.db_root_dir(args.dataset)
-assert not args.globally_distinguish_left_right == args.distinguish_left_right_semantic
+if args.globally_distinguish_left_right == True and args.distinguish_left_right_semantic == True:
+    raise NameError('HiThere')
+    
 
 def find_free_port():
     import socket
