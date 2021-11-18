@@ -663,6 +663,89 @@ def rename_video(args):
         os.rename(v_filepath, new_v_filepath)
 
 
+
+
+
+def check_annotation(args):
+    ori_json_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/std_json_2nd_round/'
+    input_dir =  '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/'
+
+    output_dir = os.path.join('temp')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    dirs = ['train', 'val', 'test']
+    img_filepaths = []
+    for d in dirs:
+        input_d_dir = os.path.join(input_dir, d)
+        input_img_dir = os.path.join(input_d_dir, 'image')
+        img_names = os.listdir(input_img_dir)
+        for i, img_name in enumerate(img_names):
+            img_filepath = os.path.join(input_img_dir, img_name)
+            img_filepaths.append(img_filepath)
+
+    random.shuffle(img_filepaths)
+    img_filepaths = img_filepaths[:500]
+
+    for i, img_filepath in enumerate(img_filepaths):
+        img_name = img_filepath.split('/')[-1]
+        print(f'processing {img_name} {i+1}/{len(img_filepaths)}')
+        json_name = img_name.replace('.jpg', '.json')
+        ori_json_filepath = os.path.join(ori_json_dir, json_name)
+        if os.path.exists(ori_json_filepath):
+            out_json_filepath = os.path.join(output_dir, json_name)
+            shutil.copy(ori_json_filepath, out_json_filepath)
+            out_img_filepath = os.path.join(output_dir, img_name)
+            shutil.copy(img_filepath, out_img_filepath)
+
+def convet_to_numerical_index(label):
+    if label.any() > 0:
+        mask_min_nonzero = label[label>0].min()
+        label = label//mask_min_nonzero
+    return label
+
+def colorize_anno(args):
+    input_dir =  '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/'
+
+    output_dir = os.path.join('temp')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    dirs = ['train', 'val', 'test']
+    img_filepaths = []
+    for d in dirs:
+        input_d_dir = os.path.join(input_dir, d)
+        input_img_dir = os.path.join(input_d_dir, 'image')
+        img_names = os.listdir(input_img_dir)
+        for i, img_name in enumerate(img_names):
+            img_filepath = os.path.join(input_img_dir, img_name)
+            img_filepaths.append(img_filepath)
+
+    random.shuffle(img_filepaths)
+    img_filepaths = img_filepaths[:400]
+
+    for i, img_filepath in enumerate(img_filepaths):
+        img_name = img_filepath.split('/')[-1]
+        print(f'processing {img_name} {i+1}/{len(img_filepaths)}')
+        label_filepath = img_filepath.replace('.jpg', '.png').replace('image', 'label')
+        if not os.path.exists(label_filepath):
+            continue
+        img = cv2.imread(img_filepath)
+        label = cv2.imread(label_filepath, 0)
+        ori_label_col = cv2.imread(label_filepath)
+
+        label = convet_to_numerical_index(label)
+        label_bgr = colorize_mask_to_bgr(label)
+        cat_img_label = np.concatenate((img, ori_label_col), axis=1)
+
+        composed = 0.7*img + 0.3*label_bgr
+        cat_label_bgr_composed = np.concatenate((label_bgr, composed), axis=1)
+
+        out_img = np.concatenate((cat_img_label, cat_label_bgr_composed), axis=0)
+        out_img_filepath = os.path.join(output_dir, img_name)
+        cv2.imwrite(out_img_filepath, out_img)
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='aligment')
@@ -704,4 +787,6 @@ if __name__ == '__main__':
     # count_dataset()
     # copy_train_val_json_2nd_round(args)
     # copy_test_json_2nd_round(args)
-    rename_video(args)
+    # rename_video(args)    
+    # check_annotation(args)
+    colorize_anno(args)

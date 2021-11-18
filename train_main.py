@@ -67,7 +67,7 @@ parser.add_argument('--freeze-bn', type=bool, default=False,
 # optimizer params
 parser.add_argument('--lr', type=float, default=None, metavar='LR',
                     help='learning rate (default: auto)')
-parser.add_argument('--lr-scheduler', type=str, default='poly',
+parser.add_argument('--lr_scheduler', type=str, default='poly',
                     choices=['poly', 'step', 'cos'],
                     help='lr scheduler mode: (default: poly)')
 parser.add_argument('--momentum', type=float, default=0.9,

@@ -154,6 +154,7 @@ class BasicDataset(Dataset):
                 metro_label_name_to_value[label_name] = label_value
         '''
         if mask.any() > 0:
+            mask_bk = mask.copy()
             mask_min_nonzero = mask[mask>0].min()
             if self.args.distinguish_left_right_semantic:
                 mask = mask//mask_min_nonzero
@@ -169,6 +170,8 @@ class BasicDataset(Dataset):
                 thres = mask_min_nonzero
                 mask[mask<thres] = 0 # this must be before mask[mask>=thres] = 1
                 mask[mask>=thres] = 1
+                
+            mask[mask_bk>=250] = self.args.ignore_index #255
         return mask
 
     def transform_train(self, sample):

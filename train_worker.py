@@ -149,6 +149,7 @@ class distWorker(object):
             output = self.model(image)
             # print(f'rank {self.args.rank} inference time {round(time.time() - start, 3)}')
             # start = time.time()
+            
             loss = self.criterion(output, target)
             # print(f'rank {self.args.rank} loss calculation time {round(time.time() - start, 3)}')
             # start = time.time()
