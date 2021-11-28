@@ -23,8 +23,9 @@ from utils.calculate_weights import calculate_weigths_labels
 from utils.lr_scheduler import LR_Scheduler
 from utils.saver import Saver
 from utils.summaries import TensorboardSummary
-from utils.metrics import Evaluator
+from utils.metrics import Evaluator, EvaluatorForeground
 from runx.logx import logx
+from tools.util import *
 
 # print(f'calling {__file__}, {sys._getframe().f_lineno}')
 
@@ -77,10 +78,12 @@ class distWorker(object):
             
             # Define Evaluator
             if self.args.infer_thresholds and (1 >= self.args.testValTrain >= 0 ):
-                self.evaluators = [Evaluator(self.nclass) for _ in range(len(self.args.infer_thresholds))]
+                # self.evaluators = [Evaluator(self.nclass) for _ in range(len(self.args.infer_thresholds))]
+                self.evaluators = [EvaluatorForeground(self.nclass) for _ in range(len(self.args.infer_thresholds))]
             else:
                 self.evaluators = []
-            self.evaluator = Evaluator(self.nclass)
+            # self.evaluator = Evaluator(self.nclass)
+            self.evaluator = EvaluatorForeground(self.nclass)
             
         # Using cuda
         if args.distributed:
@@ -125,6 +128,11 @@ class distWorker(object):
         # Clear start epoch if fine-tuning
         if args.ft:
             args.start_epoch = 0
+        if -1 < args.testValTrain < 2 and self.args.master:
+            task_id = args.resume.split('/')[-6]
+            # self.saver.write_log_to_csv([''])
+            # self.saver.write_log_to_csv([''])
+            self.saver.write_log_to_csv([f'{task_id}', ''])
 
     def training(self, epoch):
         train_loss = 0.0
@@ -135,7 +143,7 @@ class distWorker(object):
         #     print(f'rank {self.args.rank} num_img_tr: {num_img_tr}')
         start = 0
         for i, sample in enumerate(tbar):
-            if not i % (100//self.args.world_size) == 0 and self.args.debug:
+            if not i % (200//self.args.world_size) == 0 and self.args.debug:
                 continue
             # print(f'rank {self.args.rank} dataload time {round(time.time() - start, 3)}')
             # start = time.time()
@@ -171,7 +179,7 @@ class distWorker(object):
             
         if self.args.master:
             self.writer.add_scalar('train/total_loss_epoch', train_loss/num_iter_tr, epoch)
-            print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
+            # print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
             print('Loss: %.5f' % (train_loss/num_iter_tr))
 
         # if self.args.no_val and self.args.master:
@@ -198,9 +206,9 @@ class distWorker(object):
         val_loss = 0.0
         # return
         for i, sample in enumerate(tbar):
-            if not i % 15 == 0 and self.args.debug:
+            if not i % 20 == 0 and self.args.debug:
                 continue
-            image, target, _ = sample['image'], sample['label'], sample['img_name']
+            image, target, img_names = sample['image'], sample['label'], sample['img_name']
             if self.args.cuda:
                 image, target = image.cuda(), target.cuda()
             with torch.no_grad():
@@ -230,6 +238,14 @@ class distWorker(object):
                     # print('mask_by_thres.max', mask_by_thres.max(), mask_by_thres[mask_by_thres==3])
                     # print('target.dtype', target.dtype, target.shape, 'mask_by_thres.dtype', mask_by_thres.dtype, mask_by_thres.shape)
                     self.evaluators[j].add_batch(target, mask_by_thres)
+
+            if self.args.master:
+                if self.args.dump_raw_prediction:
+                    self.dump_thre_pre_gt(pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
+
+                if self.args.dump_image and len(image)*i < 200:
+                    # self.dump_argmax_pre_gt_img(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
+                    self.dump_composed_img_pre_label(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
 
         # Fast test during the training
         Acc = self.evaluator.Pixel_Accuracy()
@@ -266,11 +282,15 @@ class distWorker(object):
                 }, is_best)
             elif self.args.testValTrain >= 0:
                 self.saver.write_log_to_txt(f'val/mIoU@argmax: {global_mIoU}\n')
+                self.saver.write_log_to_csv([f'val/mIoU@argmax', f'{global_mIoU}'])
+
                 if self.args.infer_thresholds:
                     for i in range(len(self.args.infer_thresholds)):
                         global_mIoU = self.evaluators[i].Mean_Intersection_over_Union()
                         # global_mIoU = self.reduce_tensor(global_mIoU)
-                        self.saver.write_log_to_txt(f'val/mIoU@thres_{self.args.infer_thresholds[i]}: {global_mIoU}')
+                        # self.saver.write_log_to_txt(f'val/mIoU@thres_{self.args.infer_thresholds[i]}: {global_mIoU}')
+                        self.saver.write_log_to_csv([f'val/mIoU@thres_{self.args.infer_thresholds[i]}', f'{global_mIoU}'])
+                    self.saver.write_log_to_csv([''])
                 self.saver.write_log_to_txt('\n')
 
         del val_loss
@@ -287,7 +307,7 @@ class distWorker(object):
         num_iter_test = len(self.test_loader)
         # print('num_img_tr', num_img_tr)
         for i, sample in enumerate(tbar):
-            if not i % 10 == 0 and self.args.debug:
+            if not i % 20 == 0 and self.args.debug:
                 continue
             image, target, img_names = sample['image'], sample['label'], sample['img_name']
             if self.args.sync_single_pair_rail and not target.numpy().any() > 0:                
@@ -325,59 +345,14 @@ class distWorker(object):
                         mask_by_thres[mask_by_thres == 3] = pred[mask_by_thres == 3]
                         self.evaluators[j].add_batch(target, mask_by_thres)
                 # print('end')
-            if self.args.dump_raw_prediction:
-                raw_pre = np.transpose(ori_infer, axes=[0, 2, 3, 1])
+            if self.args.master:
+                if self.args.dump_raw_prediction:
+                    self.dump_thre_pre_gt(ori_infer.copy(), target, img_names, output_mask_dir = self.saver.output_mask_dir)
 
-                if isinstance(target, np.ndarray):                    
-                    labels = target.copy()
-                elif isinstance(target, torch.Tensor): 
-                    labels = target.cpu().numpy()
-                else:
-                    pass
-                labels = self.postprocess(labels)
-                
-                # print('raw_pre.shape', raw_pre.shape)
-                assert raw_pre.shape[-1] == 3
-                for _id in range(len(raw_pre)):
-                    img_name = img_names[_id]
-                    infer_mask_name = f"{img_name.split('.')[0]}_infer.png"                    
-                    out_infer_mask_filepath = os.path.join(self.saver.output_mask_dir, infer_mask_name)
-                    cv2.imwrite(out_infer_mask_filepath, (255*raw_pre[_id]).astype(np.uint8))
-
-                    label_name = f"{img_name.split('.')[0]}_GT.png"
-                    out_label_filepath = os.path.join(self.saver.output_mask_dir, label_name)
-                    cv2.imwrite(out_label_filepath, labels[_id])
-
-            if self.args.dump_image:
-                results = self.postprocess(pred.copy())
-                if isinstance(target, np.ndarray):                    
-                    labels = target.copy()
-                elif isinstance(target, torch.Tensor): 
-                    labels = target.cpu().numpy()
-                else:
-                    pass
-                labels = self.postprocess(labels)
-                # print('len(image)', len(image))
-                for _id in range(len(image)):
-                    img_tmp = np.transpose(image[_id].cpu().numpy(), axes=[1, 2, 0])
-                    img_tmp *= (0.229, 0.224, 0.225)
-                    img_tmp += (0.485, 0.456, 0.406)
-                    img_tmp *= 255.0
-                    img_tmp = img_tmp[:,:,::-1]
-                    img_tmp = img_tmp.astype(np.uint8)
-                    img_name = img_names[_id]
-                    out_img_filepath = os.path.join(self.saver.output_mask_dir, img_name)
-                    cv2.imwrite(out_img_filepath, img_tmp)
-
-                    infer_mask_name = f"{img_name.split('.')[0]}_infer.png"                    
-                    out_infer_mask_filepath = os.path.join(self.saver.output_mask_dir, infer_mask_name)
-                    cv2.imwrite(out_infer_mask_filepath, results[_id])
+                if self.args.dump_image and len(image)*i < 200:
+                    # self.dump_argmax_pre_gt_img(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
+                    self.dump_composed_img_pre_label(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
                     
-                    # if self.args.testValTrain >= 1:
-                    if labels[_id].any() > 0:
-                        label_name = f"{img_name.split('.')[0]}_GT.png"
-                        out_label_filepath = os.path.join(self.saver.output_mask_dir, label_name)
-                        cv2.imwrite(out_label_filepath, labels[_id])
 
         Acc = self.evaluator.Pixel_Accuracy()
         Acc_class = self.evaluator.Pixel_Accuracy_Class()
@@ -400,12 +375,14 @@ class distWorker(object):
                 self.saver.write_log_to_txt("Epoch: {}, Tes, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
             elif self.args.testValTrain >= 0:
                 self.saver.write_log_to_txt(f'test/mIoU@argmax: {global_mIoU}\n')
+                self.saver.write_log_to_csv([f'test/mIoU@argmax', f'{global_mIoU}'])
                 if self.args.infer_thresholds:
                     for i in range(len(self.args.infer_thresholds)):
                         global_mIoU = self.evaluators[i].Mean_Intersection_over_Union()
                         # global_mIoU = self.reduce_tensor(global_mIoU)
-                        self.saver.write_log_to_txt(f'test/mIoU@thres_{self.args.infer_thresholds[i]}: {global_mIoU}')
-
+                        self.saver.write_log_to_csv([f'test/mIoU@thres_{self.args.infer_thresholds[i]}', f'{global_mIoU}'])
+                    self.saver.write_log_to_csv([''])
+                    self.saver.write_log_to_csv([''])
     def postprocess(self, img):
         # max_id = img.max()
         # ratio = 255//max_id
@@ -453,6 +430,101 @@ class distWorker(object):
         if evaluators:
             for i in range(len(evaluators)):
                 evaluators[i].reset()
+
+    def dump_argmax_pre_gt_img(self, images, pres, GTs, img_names, output_mask_dir = None):
+        results = self.postprocess(pres.copy())
+        if isinstance(GTs, np.ndarray):                    
+            labels = GTs.copy()
+        elif isinstance(GTs, torch.Tensor): 
+            labels = GTs.cpu().numpy()
+        else:
+            pass
+        if isinstance(images, np.ndarray):                    
+            images = images.copy()
+        elif isinstance(images, torch.Tensor): 
+            images = images.cpu().numpy()
+        else:
+            pass
+        labels = self.postprocess(labels)
+        # print('len(image)', len(image))
+        for _id in range(len(images)):
+            img_tmp = np.transpose(images[_id].cpu().numpy(), axes=[1, 2, 0])
+            img_tmp *= (0.229, 0.224, 0.225)
+            img_tmp += (0.485, 0.456, 0.406)
+            img_tmp *= 255.0
+            img_tmp = img_tmp[:,:,::-1]
+            img_tmp = img_tmp.astype(np.uint8)
+            img_name = img_names[_id]
+            out_img_filepath = os.path.join(output_mask_dir, img_name)
+            cv2.imwrite(out_img_filepath, img_tmp)
+
+            infer_mask_name = f"{img_name.split('.')[0]}_infer.png"                    
+            out_infer_mask_filepath = os.path.join(output_mask_dir, infer_mask_name)
+            cv2.imwrite(out_infer_mask_filepath, results[_id])
+            
+            # if self.args.testValTrain >= 1:
+            if labels[_id].any() > 0:
+                label_name = f"{img_name.split('.')[0]}_GT.png"
+                out_label_filepath = os.path.join(output_mask_dir, label_name)
+                cv2.imwrite(out_label_filepath, labels[_id])
+
+    def dump_thre_pre_gt(self, pres, GTs, img_names, images = None, output_mask_dir = None):
+        raw_pre = np.transpose(pres.copy(), axes=[0, 2, 3, 1])
+
+        if isinstance(GTs, np.ndarray):                    
+            labels = GTs.copy()
+        elif isinstance(GTs, torch.Tensor): 
+            labels = GTs.cpu().numpy()
+        else:
+            pass
+        labels = self.postprocess(labels)
+        
+        # print('raw_pre.shape', raw_pre.shape)
+        assert raw_pre.shape[-1] == 3
+        for _id in range(len(raw_pre)):
+            img_name = img_names[_id]
+            infer_mask_name = f"{img_name.split('.')[0]}_infer.png"                    
+            out_infer_mask_filepath = os.path.join(output_mask_dir, infer_mask_name)
+            cv2.imwrite(out_infer_mask_filepath, (255*raw_pre[_id]).astype(np.uint8))
+
+            label_name = f"{img_name.split('.')[0]}_GT.png"
+            out_label_filepath = os.path.join(output_mask_dir, label_name)
+            cv2.imwrite(out_label_filepath, labels[_id])
+
+    def dump_composed_img_pre_label(self, images, pres, GTs, img_names, output_mask_dir = None):
+        if isinstance(GTs, np.ndarray):                    
+            labels = GTs.copy()
+        elif isinstance(GTs, torch.Tensor): 
+            labels = GTs.cpu().numpy()
+        else:
+            pass
+        if isinstance(images, np.ndarray):                    
+            images = images.copy()
+        elif isinstance(images, torch.Tensor): 
+            images = images.cpu().numpy()
+        else:
+            pass
+        if isinstance(pres, np.ndarray):                    
+            preds = pres.copy()
+        elif isinstance(pres, torch.Tensor): 
+            preds = pres.cpu().numpy()
+        else:
+            pass
+        # print('len(image)', len(image))
+        for _id in range(len(images)):
+            img = images[_id]
+            label = labels[_id]
+            pre = preds[_id]
+            img_tmp = np.transpose(img, axes=[1, 2, 0])
+            img_tmp *= (0.229, 0.224, 0.225)
+            img_tmp += (0.485, 0.456, 0.406)
+            img_tmp *= 255.0
+            img_tmp = img_tmp[:,:,::-1]
+            img_tmp = img_tmp.astype(np.uint8)
+            img_name = img_names[_id]
+            composed = compose_img_label_pre(img_tmp, label, pre)
+            out_img_filepath = os.path.join(output_mask_dir, img_name)
+            cv2.imwrite(out_img_filepath, composed)
 
 def plot_image():
     print('call plot image fun')

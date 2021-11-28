@@ -3,6 +3,7 @@ import shutil
 import torch
 import glob
 from time import gmtime, strftime
+import csv
 
 class Saver(object):
 
@@ -33,6 +34,10 @@ class Saver(object):
             return
 
         self.logfile = os.path.join(self.experiment_dir, 'parameters.txt')
+        
+        self.csvlogfile = os.path.join(self.experiment_dir, 'log.csv')
+        # self.csvlogfile = 'log.csv'
+       
         self.lossfile = 'loss.txt'
         # print('self.args.rank', self.args.rank)
         if not self.args.master:
@@ -41,8 +46,10 @@ class Saver(object):
             os.makedirs(self.experiment_dir)
         if self.output_mask_dir and not os.path.exists(self.output_mask_dir):
             os.makedirs(self.output_mask_dir)
-        if os.path.exists(self.logfile):
-            os.remove(self.logfile)
+        # if os.path.exists(self.logfile):
+        #     os.remove(self.logfile)
+        # if os.path.exists(self.csvlogfile):
+        #     os.remove(self.csvlogfile)
         self.lossfile = 'loss.txt'
 
     def save_checkpoint(self, state, is_best, filename='checkpoint.pth.tar'):
@@ -101,3 +108,29 @@ class Saver(object):
         else:
             loss_file.write(data+'\n')
         loss_file.close()# 
+
+    
+    def write_log_to_csv(self, row, head = None):
+        with open(self.csvlogfile, 'a+', newline='') as csvfile:
+            # fieldnames = ['first_name', 'last_name']
+            # writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            # writer.writeheader()
+            # writer.writerow({'first_name': 'Baked', 'last_name': 'Beans'})
+            # writer.writerow({'first_name': 'Lovely', 'last_name': 'Spam'})
+            # writer.writerow({'first_name': 'Wonderful', 'last_name': 'Spam'})
+            writer = csv.writer(csvfile, dialect='excel')
+            if head is not None:
+                writer.writerow(head)
+            writer.writerow(row)
+
+        with open('log.csv', 'a+', newline='') as csvfile:
+            # fieldnames = ['first_name', 'last_name']
+            # writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            # writer.writeheader()
+            # writer.writerow({'first_name': 'Baked', 'last_name': 'Beans'})
+            # writer.writerow({'first_name': 'Lovely', 'last_name': 'Spam'})
+            # writer.writerow({'first_name': 'Wonderful', 'last_name': 'Spam'})
+            writer = csv.writer(csvfile, dialect='excel')
+            if head is not None:
+                writer.writerow(head)
+            writer.writerow(row)

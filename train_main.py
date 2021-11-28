@@ -140,7 +140,7 @@ parser.add_argument('--debug', action='store_true', default=False,
 # parser.add_argument('--infer_thresholds', type=float, default=[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
 parser.add_argument('--infer_thresholds', type=float, default=[0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
 parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=False,
-                    help='distinguish main left and right rails')
+                    help='distinguish main(first) left and right rails')
 parser.add_argument('--globally_distinguish_left_right', action='store_true', default=False,
                     help='globally distinguish left and right rail semantic segmentation')
 parser.add_argument('--sync_single_pair_rail', action='store_true', default=False,
@@ -149,6 +149,11 @@ parser.add_argument('--skip_boundary', action='store_true', default=True,
                     help="skip boundary pixel to handle annotation noise")
 parser.add_argument('--use_albu', action='store_true', default=True, 
                     help="indicate wheather to use albumentation in training phase for data augmentation")
+parser.add_argument('--only_eval_main_rails', action='store_true', default=False, 
+                    help="only evaluate main pair of rails") 
+parser.add_argument('--add_neg_pixels_on_rails', action='store_true', default=True, 
+                    help="only evaluate main pair of rails")       
+                                  
 args = parser.parse_args()
 
 args.dataset_dir = Path.db_root_dir(args.dataset)

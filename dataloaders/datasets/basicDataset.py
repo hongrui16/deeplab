@@ -6,6 +6,7 @@ from torch.utils import data
 from torchvision import transforms
 from dataloaders import custom_transforms as tr
 # from dataloaders import joint_transforms as jo_trans
+# from dataloaders.synthesis.synthesize_sample import AddNegSample as RandomAddNegSample
 
 import logging
 from os import listdir
@@ -17,6 +18,7 @@ import cv2
 import sys
 import albumentations as albu
 import random
+from tools.util import *
 
 class BasicDataset(Dataset):
 
@@ -56,22 +58,29 @@ class BasicDataset(Dataset):
     def __getitem__(self, index):
         # print(f'calling {__file__}, {sys._getframe().f_lineno}')
         if self.split == "train" and self.args.use_albu:
-            is_continue = True
+            # is_continue = True
             rand_index = index
-            while is_continue:
-                img_name = self.img_ids[rand_index]
-                img_path = os.path.join(self.images_base, img_name)
-                lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
-                _tmp = cv2.imread(lbl_path, 0)
-                _tmp = self.encode_segmap(_tmp)
-                is_continue =  self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 1
-                if is_continue:
-                    rand_index = random.randint(0, len(self.img_ids)-1)
+            # while is_continue:
+            #     img_name = self.img_ids[rand_index]
+            #     img_path = os.path.join(self.images_base, img_name)
+            #     _img = cv2.imread(img_path)
+            #     lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
+            #     _tmp = cv2.imread(lbl_path, 0)
+            #     _tmp, _img = self.encode_segmap(_tmp, _img)
+            #     is_continue =  self.args.distinguish_left_right_semantic and (_tmp.max() > 2 and not _tmp.max() == self.ignore_index) and self.args.testValTrain >= 1
+            #     if is_continue:
+            #         rand_index = random.randint(0, len(self.img_ids)-1)
+            img_name = self.img_ids[rand_index]
+            img_path = os.path.join(self.images_base, img_name)
+            _img = cv2.imread(img_path)
+            lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
+            _tmp = cv2.imread(lbl_path, 0)
+            _tmp, _img = self.encode_segmap(_tmp, _img)
 
             if self.args.skip_boundary:
                 _tmp = self.skip_boundary(_tmp)
             #_img = Image.open(img_path).convert('RGB')
-            _img = cv2.imread(img_path)
+            
             _img = cv2.cvtColor(_img, cv2.COLOR_BGR2RGB)
             _target = _tmp
 
@@ -95,8 +104,9 @@ class BasicDataset(Dataset):
             img_name = self.img_ids[index]
             img_path = os.path.join(self.images_base, img_name)
             lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
-            _img = Image.open(img_path).convert('RGB')
-            w, h = _img.size 
+            _img = cv2.imread(img_path)
+            # _img = Image.open(img_path).convert('RGB')
+            h, w, _ = _img.shape 
             if self.args.testset_dir:
                 # w, h = _img.size
                 # _target = np.zeros((h,w))
@@ -112,14 +122,16 @@ class BasicDataset(Dataset):
                 # _target = Image.fromarray(_tmp)
             else:
                 _tmp = cv2.imread(lbl_path, 0).astype(np.uint8)
-            _tmp = self.encode_segmap(_tmp)
-
-            if (self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 0) or (self.args.sync_single_pair_rail and _tmp.max() > 2):
-                #if there are multiple rails in an image in distinguishing left and right semantic segmentation,
-                #  the image and its label should be discarded.
-                # print('_tmp.max()', _tmp.max())
-                _img = Image.new("RGB", (w, h))
-                _tmp = np.zeros((h,w), dtype=np.uint8)
+            _tmp, _img = self.encode_segmap(_tmp, _img)
+            # print('_img.shape', _img.shape)
+            _img = cv2.cvtColor(_img, cv2.COLOR_BGR2RGB)
+            _img = Image.fromarray(_img)
+            # if (self.args.distinguish_left_right_semantic and _tmp.max() > 2 and self.args.testValTrain >= 0) or (self.args.sync_single_pair_rail and _tmp.max() > 2):
+            #     #if there are multiple rails in an image in distinguishing left and right semantic segmentation,
+            #     #  the image and its label should be discarded.
+            #     # print('_tmp.max()', _tmp.max())
+            #     _img = Image.new("RGB", (w, h))
+            #     _tmp = np.zeros((h,w), dtype=np.uint8)
                 
             _target = Image.fromarray(_tmp)
 
@@ -132,7 +144,7 @@ class BasicDataset(Dataset):
             elif self.split == 'test' or self.args.testset_dir:
                 return self.transform_test(sample)
 
-    def encode_segmap(self, mask):
+    def encode_segmap(self, mask, img = None):
         # Put all void classes to zero
         # for _voidc in self.void_classes:
         #     mask[mask == _voidc] = self.ignore_index
@@ -156,23 +168,49 @@ class BasicDataset(Dataset):
         if mask.any() > 0:
             mask_bk = mask.copy()
             mask_min_nonzero = mask[mask>0].min()
-            if self.args.distinguish_left_right_semantic:
-                mask = mask//mask_min_nonzero
+            mask = mask//mask_min_nonzero
+            mask[mask_bk>=250] = self.args.ignore_index #255
+            
+            
+            if self.args.only_eval_main_rails and self.args.testValTrain < 2:
 
-            elif self.args.globally_distinguish_left_right:
-                mask = mask//mask_min_nonzero
-                is_even = (mask%2 == 0)*(mask > 0)
-                id_odd = mask%2 == 1
-                mask[is_even] = 2
-                mask[id_odd] = 1
+                mask[mask>2] = self.ignore_index
+
+                ignore_mask = mask*(mask==self.ignore_index)
+                ex_ignored_mask = morphologyEx_close(ignore_mask, 7)
+                noise = np.random.randint(0, 255, (img.shape))
+                for c in range(3):
+                    img[:,:,c] = img[:,:,c]*(ex_ignored_mask<=2)
+                    noise[:,:,c] = noise[:,:,c]*(ex_ignored_mask > 2)
+                img = img + noise
+                mask[ex_ignored_mask > 2] = self.args.ignore_index #255
+
+                # img[mask>2] = 0
+            if self.args.n_classes == 3:
+                if self.args.distinguish_left_right_semantic and self.args.testValTrain >= 2 and \
+                        not self.args.globally_distinguish_left_right:
+                    mask[mask>2] = self.ignore_index
+
+                    ignore_mask = mask*(mask==self.ignore_index)
+                    ex_ignored_mask = morphologyEx_close(ignore_mask, 7)
+                    noise = np.random.randint(0, 255, (img.shape))
+                    for c in range(3):
+                        img[:,:,c] = img[:,:,c]*(ex_ignored_mask<=2)
+                        noise[:,:,c] = noise[:,:,c]*(ex_ignored_mask > 2)
+                    img = img + noise
+                    mask[ex_ignored_mask > 2] = 0
+
+                elif self.args.globally_distinguish_left_right:
+                    is_even = (mask%2 == 0)*(mask > 0)*(~(mask == self.args.ignore_index))
+                    id_odd = (mask%2 == 1)*(~(mask == self.args.ignore_index))
+                    mask[is_even] = 2
+                    mask[id_odd] = 1
                 
             elif self.args.n_classes == 2:
-                thres = mask_min_nonzero
-                mask[mask<thres] = 0 # this must be before mask[mask>=thres] = 1
-                mask[mask>=thres] = 1
+                mask[(mask>=1)*(~(mask == self.args.ignore_index))] = 1
                 
             mask[mask_bk>=250] = self.args.ignore_index #255
-        return mask
+        return mask, img.astype(np.uint8)
 
     def transform_train(self, sample):
         composed_transforms = transforms.Compose([
@@ -183,6 +221,7 @@ class BasicDataset(Dataset):
             tr.RandomGaussianBlur(),
             tr.FixScaleCrop(crop_size=self.args.crop_size),
             tr.RandomHorizontalFlipImageMask(self.args),
+            tr.RandomAddNegSample(args = self.args),
             tr.FixedResize(size=self.args.crop_size),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
@@ -192,6 +231,7 @@ class BasicDataset(Dataset):
     def transform_val(self, sample):
         composed_transforms = transforms.Compose([
             tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
+            tr.RandomAddNegSample(args = self.args),
             tr.FixScaleCrop(crop_size=self.args.crop_size),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
@@ -200,6 +240,7 @@ class BasicDataset(Dataset):
     def transform_test(self, sample):
         composed_transforms = transforms.Compose([
             # tr.FixedResize(size=self.args.crop_size),
+            # tr.RandomAddNegSample(args = self.args),
             tr.LimitResize(size=self.args.max_size),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
@@ -210,6 +251,7 @@ class BasicDataset(Dataset):
             tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
             tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
             tr.RandomHorizontalFlip(self.args),
+            tr.RandomAddNegSample(args = self.args),
             tr.RandomRotate(degree = self.args.rotate_degree),
             tr.RandomGaussianBlur(),
             tr.FixScaleCrop(crop_size=self.args.crop_size),

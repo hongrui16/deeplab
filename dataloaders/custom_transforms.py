@@ -4,6 +4,7 @@ import random
 import numpy as np
 
 from PIL import Image, ImageOps, ImageFilter
+from dataloaders.synthesis.synthesize_sample import *
 
 class Normalize(object):
     """Normalize a tensor image with mean and standard deviation.
@@ -303,3 +304,15 @@ class RandomHorizontalFlipImageMask(object):
         sample['image'] = img
         sample['label'] = mask
         return sample
+
+
+class RandomAddNegSample(object):
+    def __init__(self, args = None):
+        self.args = args
+        self.AddNegSample = AddNegSample(coco_root = '/comp_robot/cv_public_dataset/COCO2017/')
+    def __call__(self, sample):
+        # return sample
+        if self.args.add_neg_pixels_on_rails:
+            return self.AddNegSample.forward(sample)
+        else:
+            return sample

@@ -149,6 +149,46 @@ def plot_and_save_complex_func(res,  mask_name = None, out_img_filepath = None, 
     #     plt.close()
     print()
 
+def compose_img_label_pre(img, label, pre):
+    label_bgr = colorize_mask_to_bgr(label.copy())
+    cat_img_label = np.concatenate((img, label_bgr), axis=1)
+
+    pre_bgr = colorize_mask_to_bgr(pre.copy())
+    composed = 0.7*img + 0.3*pre_bgr
+    cat_img_pre = np.concatenate((composed, pre_bgr), axis=1)
+
+    out_img = np.concatenate((cat_img_label, cat_img_pre), axis=0)
+    return out_img
+
+
+def morphologyEx_open(image, kernel_size = 3, debug = False):
+    if debug:
+        print(f'call {sys._getframe().f_code.co_name}')
+        start = time.time()
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(kernel_size, kernel_size))
+    opening = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+    if debug:
+        print(f'end of {sys._getframe().f_code.co_name}, costs {round(time.time()-start, 2)} s')
+
+    return opening
+
+
+def morphologyEx_close(image, kernel_size = 3, debug = False):
+    if debug:
+        print(f'call {sys._getframe().f_code.co_name}')
+        start = time.time()
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(kernel_size, kernel_size))
+    opening = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
+    if debug:
+        print(f'end of {sys._getframe().f_code.co_name}, costs {round(time.time()-start, 2)} s')
+
+    return opening
+
+
+def gasuss_noise(image):
+    img = np.random.randint(0, 255, (image.shape))
+    return img
+
 if __name__ == '__main__':
     # read_txt_to_list('/home/hongrui/project/metro_pro/edge_detection/chdis_v2.txt')
     pass
