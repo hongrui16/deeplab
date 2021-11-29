@@ -4,6 +4,8 @@ import torch
 import glob
 from time import gmtime, strftime
 import csv
+import pytz
+import datetime
 
 class Saver(object):
 
@@ -74,7 +76,9 @@ class Saver(object):
         for key, val in p.items():
             log_file.write(key + ':' + str(val) + '\n')
         log_file.write('\n')
-        current_time = strftime("%Y-%m-%d-%H-%M-%S", gmtime())
+        # current_time = strftime("%Y-%m-%d-%H-%M-%S", gmtime())
+        tz = pytz.timezone('Asia/Shanghai')
+        current_time = datetime.datetime.now(tz).strftime("%Y-%m-%d_%H-%M-%S")
         log_file.write('current_time' + ':' + str(current_time) + '\n')
         log_file.write('\n')
 

@@ -383,6 +383,7 @@ class distWorker(object):
                         self.saver.write_log_to_csv([f'test/mIoU@thres_{self.args.infer_thresholds[i]}', f'{global_mIoU}'])
                     self.saver.write_log_to_csv([''])
                     self.saver.write_log_to_csv([''])
+                    
     def postprocess(self, img):
         # max_id = img.max()
         # ratio = 255//max_id
