@@ -11,7 +11,9 @@ from PIL import Image
 import math
 from math import pi
 import imageio
-
+import pytz
+import datetime
+import csv
 from matplotlib import pyplot as plt
 
 
@@ -188,6 +190,20 @@ def morphologyEx_close(image, kernel_size = 3, debug = False):
 def gasuss_noise(image):
     img = np.random.randint(0, 255, (image.shape))
     return img
+
+def write_line_to_csv(csvlogfile, row, head = None):
+    with open(csvlogfile, 'a+', newline='') as csvfile:
+        # fieldnames = ['first_name', 'last_name']
+        # writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        # writer.writeheader()
+        # writer.writerow({'first_name': 'Baked', 'last_name': 'Beans'})
+        # writer.writerow({'first_name': 'Lovely', 'last_name': 'Spam'})
+        # writer.writerow({'first_name': 'Wonderful', 'last_name': 'Spam'})
+        writer = csv.writer(csvfile, dialect='excel')
+        if head is not None:
+            writer.writerow(head)
+        writer.writerow(row)
+
 
 if __name__ == '__main__':
     # read_txt_to_list('/home/hongrui/project/metro_pro/edge_detection/chdis_v2.txt')

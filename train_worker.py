@@ -240,13 +240,15 @@ class distWorker(object):
                     self.evaluators[j].add_batch(target, mask_by_thres)
 
             if self.args.master:
-                if self.args.dump_raw_prediction:
-                    self.dump_thre_pre_gt(pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
+                if self.args.dump_raw_prediction or self.args.dump_image_for_cal_chamferDist:
+                    self.dump_thre_pre_gt(ori_infer.copy(), target, img_names, output_mask_dir = os.path.join(self.saver.output_mask_dir, 'val'))
 
                 if self.args.dump_image and len(image)*i < 200:
                     # self.dump_argmax_pre_gt_img(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
                     self.dump_composed_img_pre_label(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
 
+        if self.args.dump_image_for_cal_chamferDist:
+            return
         # Fast test during the training
         Acc = self.evaluator.Pixel_Accuracy()
         Acc_class = self.evaluator.Pixel_Accuracy_Class()
@@ -346,14 +348,15 @@ class distWorker(object):
                         self.evaluators[j].add_batch(target, mask_by_thres)
                 # print('end')
             if self.args.master:
-                if self.args.dump_raw_prediction:
-                    self.dump_thre_pre_gt(ori_infer.copy(), target, img_names, output_mask_dir = self.saver.output_mask_dir)
+                if self.args.dump_raw_prediction or self.args.dump_image_for_cal_chamferDist:
+                    self.dump_thre_pre_gt(ori_infer.copy(), target, img_names, output_mask_dir = os.path.join(self.saver.output_mask_dir, 'test'))
 
                 if self.args.dump_image and len(image)*i < 200:
                     # self.dump_argmax_pre_gt_img(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
                     self.dump_composed_img_pre_label(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
                     
-
+        if self.args.dump_image_for_cal_chamferDist:
+            return
         Acc = self.evaluator.Pixel_Accuracy()
         Acc_class = self.evaluator.Pixel_Accuracy_Class()
         mIoU = self.evaluator.Mean_Intersection_over_Union()
@@ -470,6 +473,9 @@ class distWorker(object):
                 cv2.imwrite(out_label_filepath, labels[_id])
 
     def dump_thre_pre_gt(self, pres, GTs, img_names, images = None, output_mask_dir = None):
+        if not os.path.exists(output_mask_dir):
+            os.makedirs(output_mask_dir)
+        # print('pres.shape', pres.shape)
         raw_pre = np.transpose(pres.copy(), axes=[0, 2, 3, 1])
 
         if isinstance(GTs, np.ndarray):                    

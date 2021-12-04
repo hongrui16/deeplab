@@ -1,5 +1,25 @@
 import numpy as np
+from sklearn.metrics import confusion_matrix  
 
+def compute_iou(y_pred, y_true):
+     # ytrue, ypred is a flatten vector
+     y_pred = y_pred.flatten()
+     y_true = y_true.flatten()
+     current = confusion_matrix(y_true, y_pred, labels=[0, 1])
+     # compute mean iou
+     intersection = np.diag(current)
+     ground_truth_set = current.sum(axis=1)
+     predicted_set = current.sum(axis=0)
+     union = ground_truth_set + predicted_set - intersection
+     IoU = intersection / union.astype(np.float32)
+     return np.mean(IoU)
+
+
+def compute_foregound_iou(y_pred, y_true):
+    intersection = np.logical_and(y_pred, y_true)
+    union = np.logical_or(y_pred, y_true)
+    iou_score = np.sum(intersection) / np.sum(union)
+    return iou_score
 
 class Evaluator(object):
     def __init__(self, num_class, args = None):

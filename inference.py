@@ -10,6 +10,9 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.special import softmax
+import pytz
+import datetime
+import csv
 
 import sys
 import time
@@ -19,6 +22,8 @@ import random
 from modeling.sync_batchnorm.replicate import patch_replication_callback
 from modeling.deeplab import *
 from tools.util import *
+from utils.metrics import *
+
 # print(f'calling {__file__}, {sys._getframe().f_lineno}')
 
 
@@ -155,8 +160,6 @@ class RailInference(object):
 
 
 
-                
-
 def verify_threshold(args):
     input_dir   = args.testset_dir
     output_dir  = args.testOut_dir
@@ -215,7 +218,7 @@ def verify_threshold(args):
         if i > 100:
             return
 
-def main(args):
+def main_fun(args):
     input_dir   = args.testset_dir
     output_dir  = args.testOut_dir
 
@@ -239,6 +242,60 @@ def main(args):
         # cv2.imwrite(out_infer_filepath, infer)
         cv2.imwrite(out_infer_filepath, (infer*255).astype(np.uint8))
     
+
+
+def cal_iou(args):
+    
+    output_dir  = args.testOut_dir
+    parent_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/'
+    dirs = ['train', 'val', 'test_ori']
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    inference_engine = RailInference(args)
+    for d in dirs:
+        input_dir = os.path.join(parent_dir, d)
+        tz = pytz.timezone('Asia/Shanghai')
+        current_time = datetime.datetime.now(tz).strftime("%Y-%m-%d_%H-%M-%S")
+        
+        filename = f'{d}_iou_{current_time}'
+        
+        csvlogfile = f'{filename}.csv'
+        csvlogfilepath = os.path.join(output_dir, csvlogfile)
+        if os.path.exists(csvlogfilepath):
+            os.remove(csvlogfilepath)
+        line = ['img_name', 'n_rails', 'iou']
+
+        write_line_to_csv(csvlogfilepath, line)
+
+        input_img_dir = os.path.join(input_dir, 'image')
+        input_label_dir = os.path.join(input_dir, 'label')
+
+        img_names = os.listdir(input_img_dir)
+
+        for i, img_name in enumerate(img_names):
+            print(f'processing {img_name} {i+1}/{len(img_names)} {d}')
+            img_filepath = os.path.join(input_img_dir, img_name)
+            label_filepath = img_filepath.replace('image','label').replace('.jpg', '.png')
+            if not os.path.exists(img_filepath) and os.path.exists(label_filepath):
+                continue
+            img = cv2.imread(img_filepath)
+            label = cv2.imread(label_filepath, 0)
+            n_rails = len(np.unique(label)) - 1 
+            infer = inference_engine.inference(img)
+            infer[infer > 0] = 1
+            h, w = infer.shape
+            label = cv2.resize(label, (w, h), cv2.INTER_NEAREST)
+            label[label > 0] = 1
+            iou = compute_foregound_iou(infer.astype(np.uint8), label.astype(np.uint8))
+            iou = round(iou, 2)
+            line = [img_name, n_rails, iou]
+            write_line_to_csv(csvlogfilepath, line)
+
+            # infer = inference_engine.postprocess(infer)
+        #     if i > 10:
+        #         break
+        # break
 
 
 if __name__ == "__main__":
@@ -266,5 +323,5 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     # main(args)
-    verify_threshold(args)
-    # plot_image()
+    # verify_threshold(args)
+    cal_iou(args)

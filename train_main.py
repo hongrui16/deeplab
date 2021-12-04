@@ -97,7 +97,7 @@ parser.add_argument('--eval_interval', type=int, default=1,
 
 
 # training hyper params
-parser.add_argument('--epochs', type=int, default=100, metavar='N',
+parser.add_argument('--epochs', type=int, default=180, metavar='N',
                     help='number of epochs to train (default: auto)')
 parser.add_argument('--start_epoch', type=int, default=0,
                     metavar='N', help='start epochs (default:0)')
@@ -153,7 +153,8 @@ parser.add_argument('--only_eval_main_rails', action='store_true', default=False
                     help="only evaluate main pair of rails") 
 parser.add_argument('--add_neg_pixels_on_rails', action='store_true', default=False, 
                     help="only evaluate main pair of rails")       
-                                  
+parser.add_argument('--dump_image_for_cal_chamferDist', action='store_true', default=False, 
+                    help="only evaluate main pair of rails")  
 args = parser.parse_args()
 
 args.dataset_dir = Path.db_root_dir(args.dataset)

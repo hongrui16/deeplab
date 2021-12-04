@@ -23,15 +23,20 @@ from tools.util import *
 class BasicDataset(Dataset):
 
     def __init__(self, args, root=Path.db_root_dir('basicDataset'), split="train"):
+        self.args = args
         if args.dataset_dir:
             self.root = args.dataset_dir
         else:
             self.root = root
         self.split = split
+        if args.dump_image_for_cal_chamferDist and split == 'val':
+            self.base_dir = os.path.join(self.root, 'val_for_infer')
+        else:
+            self.base_dir = os.path.join(self.root, self.split)
         
-        self.base_dir = os.path.join(self.root, self.split)
+        
         self.ignore_index = args.ignore_index
-        self.args = args
+        
         # print('args.ignore_index', args.ignore_index)
         self.spatial_trans, self.pixel_trans = self.albumentations_aug()
         if args.testset_dir:
@@ -40,6 +45,7 @@ class BasicDataset(Dataset):
         else:
             self.images_base = os.path.join(self.base_dir, 'image')
             self.annotations_base = os.path.join(self.base_dir, 'label')
+        # print('annotations_base', self.annotations_base)
         # self.ids = [splitext(file)[0] for file in listdir(self.images_base) if not file.startswith('.')]
         self.img_ids = [file for file in listdir(self.images_base) if not file.startswith('.')]
         random.shuffle(self.img_ids)
@@ -239,9 +245,10 @@ class BasicDataset(Dataset):
 
     def transform_test(self, sample):
         composed_transforms = transforms.Compose([
-            # tr.FixedResize(size=self.args.crop_size),
             # tr.RandomAddNegSample(args = self.args),
-            tr.LimitResize(size=self.args.max_size),
+            # tr.FixedResize(size=self.args.crop_size),
+            tr.FixedResize(size=720),
+            # tr.LimitResize(size=self.args.max_size),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
         return composed_transforms(sample)
