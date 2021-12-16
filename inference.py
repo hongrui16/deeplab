@@ -39,14 +39,14 @@ class RailInference(object):
              mean=[0.485, 0.456, 0.406],                #[6]
              std=[0.229, 0.224, 0.225]                  #[7]
              )])
-        # num_classes   = args.n_classes    if args.n_classes else 3
+        num_classes   = args.n_classes    if args.n_classes else 3
         # backbone      = args.backbone     if args.backbone  else 'resnet'
         # output_stride = args.out_stride   if args.out_stride else 8
         # sync_bn       = args.sync_bn      if not args.sync_bn is None else False
         # freeze_bn     = args.freeze_bn    if not args.freeze_bn is None else False
         # max_size      = args.max_size     if args.max_size else 1080
 
-        num_classes   = 3
+        # num_classes   = 3
         backbone      = 'resnet'
         output_stride = 8
         sync_bn       = False

@@ -16,7 +16,8 @@ from scipy.ndimage.filters import convolve
 from scipy.special import softmax
 import time
 from time import gmtime, strftime
-
+import csv
+import datetime
 import shutil
 import json
 import skimage.exposure
@@ -26,6 +27,7 @@ from labelme import utils
 import imgviz
 import random
 from util import *
+
 
 def select_images(args):
     img_filepath    = args.img_filepath
@@ -746,6 +748,107 @@ def colorize_anno(args):
         cv2.imwrite(out_img_filepath, out_img)
 
 
+
+def find_all_images(args):
+    input_dir =  '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/'
+
+    output_dir = '/comp_robot/hongrui/metro_pro/dataset/v1_v2_images'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # dirs = ['train', 'val', 'test_old_ori']
+    dirs = ['test_ori']
+
+    for d in dirs:
+        input_d_dir = os.path.join(input_dir, d)
+        input_img_dir = os.path.join(input_d_dir, 'image')
+        img_names = os.listdir(input_img_dir)
+        for i, img_name in enumerate(img_names):
+            if not '.jpg' in img_name:
+                continue
+            img_filepath = os.path.join(input_img_dir, img_name)
+            out_img_filepath = os.path.join(output_dir, img_name)
+            shutil.copy(img_filepath, out_img_filepath)
+
+
+
+def find_jsons(args):
+
+    input_img_dir = '/comp_robot/hongrui/metro_pro/dataset/v1_v2_images'
+    v1_json_dir = '/comp_robot/hongrui/metro_pro/dataset/v1_json'
+    v2_json_dir = '/comp_robot/hongrui/metro_pro/dataset/v2_json'
+
+    if not os.path.exists(v1_json_dir):
+        os.makedirs(v1_json_dir)
+        
+    if not os.path.exists(v2_json_dir):
+        os.makedirs(v2_json_dir)
+
+    in_dirs = ['/comp_robot/hongrui/metro_pro/dataset/1st_5000/std_json',
+        '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/std_json_2nd_round']
+
+    out_dirs = [v1_json_dir, v2_json_dir]
+    img_names = os.listdir(input_img_dir)
+    for i, d in enumerate(in_dirs):
+        json_names = os.listdir(d)
+        output_dir = out_dirs[i]
+        for i, json_name in enumerate(json_names):
+            if not '.json' in json_name:
+                continue
+            img_name = json_name.replace('.json', '.jpg')
+            if not img_name in img_names:
+                continue
+            json_filepath = os.path.join(d, json_name)
+            
+            out_json_filepath = os.path.join(output_dir, json_name)
+            shutil.copy(json_filepath, out_json_filepath)
+
+def split_rails2_images(args):
+
+    csv_dir = '/home/hongrui/project/metro_pro/deeplab/ious'
+    ori_img_dir = '/comp_robot/hongrui/metro_pro/dataset/v1_v2_images'
+    out_dir = '/comp_robot/hongrui/metro_pro/dataset/v1_v2_images_sorted'
+    json_dir = '/comp_robot/hongrui/metro_pro/dataset/v2_json'
+
+    csv_files = os.listdir(csv_dir)
+    two_rails_img_names = []
+    for csv_file in csv_files:
+        if not '.csv' in csv_file:
+            continue
+        csv_filepath = os.path.join(csv_dir, csv_file)
+        with open(csv_filepath) as csv_file:
+            readCSV = csv.reader(csv_file)
+            for row in readCSV:
+                img_name = row[0]   
+                if not '.jpg' in img_name:
+                    continue
+                n_rails = int(row[1])
+                if not n_rails <= 2:
+                    continue
+                two_rails_img_names.append(img_name)
+    n_imgs = len(two_rails_img_names)
+    print(n_imgs)
+    random.shuffle(two_rails_img_names)
+    for i, img_name in enumerate(two_rails_img_names):
+        
+        img_filepath = os.path.join(ori_img_dir, img_name) 
+        json_name = img_name.replace('.jpg', '.json')
+        json_filepath = os.path.join(json_dir, json_name) 
+        if i < 0.33*n_imgs:
+            outdir_name = 'two_rails_1'
+        elif 0.33*n_imgs <= i <= 0.66*n_imgs:
+            outdir_name = 'two_rails_2'
+        else:
+            outdir_name = 'two_rails_3'
+        output_dir = os.path.join(out_dir, outdir_name)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        out_img_filepath = os.path.join(output_dir, img_name)
+        out_json_filepath = os.path.join(output_dir, json_name)
+        shutil.copy(img_filepath, out_img_filepath)
+        shutil.copy(json_filepath, out_json_filepath)
+        print(f'processing {img_name} to {outdir_name}, {i}/{n_imgs}')
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='aligment')
@@ -789,4 +892,7 @@ if __name__ == '__main__':
     # copy_test_json_2nd_round(args)
     # rename_video(args)    
     # check_annotation(args)
-    colorize_anno(args)
+    # colorize_anno(args)
+    # find_all_images_jsons(args)
+    # find_jsons(args)
+    split_rails2_images(args)

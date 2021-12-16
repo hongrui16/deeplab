@@ -62,7 +62,7 @@ test: do inference and calculate metrics such as miou and fwiou
 ### 1 Use slurm
 #### 1.1 foreground running
 ```
-srun -N1 --cpus-per-task 32 --gres gpu:8 python train_main.py --testValTrain 4
+srun -N1 --cpus-per-task 16 --gres gpu:4 python train_main.py --testValTrain 4
 ```
 #### 1.2 background running
 set "args.testValTrain = 2, 3, or 4" and then run the command below
