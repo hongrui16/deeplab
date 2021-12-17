@@ -155,6 +155,8 @@ parser.add_argument('--add_neg_pixels_on_rails', action='store_true', default=Fa
                     help="only evaluate main pair of rails")       
 parser.add_argument('--dump_image_for_cal_chamferDist', action='store_true', default=False, 
                     help="only evaluate main pair of rails")  
+parser.add_argument('--mosaic_vice_rails', action='store_true', default=False, 
+                    help="mosaic vice rails")  
 args = parser.parse_args()
 
 args.dataset_dir = Path.db_root_dir(args.dataset)

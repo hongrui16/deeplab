@@ -178,7 +178,7 @@ class BasicDataset(Dataset):
             mask[mask_bk>=250] = self.args.ignore_index #255
             
             
-            if self.args.only_eval_main_rails and self.args.testValTrain < 2:
+            if self.args.only_eval_main_rails and self.args.testValTrain < 2: #inference and test mode 
 
                 mask[mask>2] = self.ignore_index
 
@@ -192,28 +192,30 @@ class BasicDataset(Dataset):
                 mask[ex_ignored_mask > 2] = self.args.ignore_index #255
 
                 # img[mask>2] = 0
-            if self.args.n_classes == 3:
-                if self.args.distinguish_left_right_semantic and self.args.testValTrain >= 2 and \
-                        not self.args.globally_distinguish_left_right:
-                    mask[mask>2] = self.ignore_index
+            elif self.args.testValTrain >= 2: #training mode
+                if self.args.n_classes == 3:
+                    if self.args.distinguish_left_right_semantic and not self.args.globally_distinguish_left_right:
+                        if self.args.mosaic_vice_rails:
+                            mask[mask>2] = self.ignore_index
+                            ignore_mask = mask*(mask==self.ignore_index)
+                            ex_ignored_mask = morphologyEx_close(ignore_mask, 7)
+                            noise = np.random.randint(0, 255, (img.shape))
+                            for c in range(3):
+                                img[:,:,c] = img[:,:,c]*(ex_ignored_mask<=2)
+                                noise[:,:,c] = noise[:,:,c]*(ex_ignored_mask > 2)
+                            img = img + noise
+                            mask[ex_ignored_mask > 2] = 0
+                        else:
+                            mask[mask>2] = 0
 
-                    ignore_mask = mask*(mask==self.ignore_index)
-                    ex_ignored_mask = morphologyEx_close(ignore_mask, 7)
-                    noise = np.random.randint(0, 255, (img.shape))
-                    for c in range(3):
-                        img[:,:,c] = img[:,:,c]*(ex_ignored_mask<=2)
-                        noise[:,:,c] = noise[:,:,c]*(ex_ignored_mask > 2)
-                    img = img + noise
-                    mask[ex_ignored_mask > 2] = 0
-
-                elif self.args.globally_distinguish_left_right:
-                    is_even = (mask%2 == 0)*(mask > 0)*(~(mask == self.args.ignore_index))
-                    id_odd = (mask%2 == 1)*(~(mask == self.args.ignore_index))
-                    mask[is_even] = 2
-                    mask[id_odd] = 1
-                
-            elif self.args.n_classes == 2:
-                mask[(mask>=1)*(~(mask == self.args.ignore_index))] = 1
+                    elif self.args.globally_distinguish_left_right:
+                        is_even = (mask%2 == 0)*(mask > 0)*(~(mask == self.args.ignore_index))
+                        id_odd = (mask%2 == 1)*(~(mask == self.args.ignore_index))
+                        mask[is_even] = 2
+                        mask[id_odd] = 1
+                    
+                elif self.args.n_classes == 2:
+                    mask[(mask>=1)*(~(mask == self.args.ignore_index))] = 1
                 
             mask[mask_bk>=250] = self.args.ignore_index #255
         return mask, img.astype(np.uint8)
