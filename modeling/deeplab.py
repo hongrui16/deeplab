@@ -27,13 +27,13 @@ class DeepLab(nn.Module):
     def forward(self, input):
         x, low_level_feat = self.backbone(input)
         
-        # print('x, low_level_feat', x.size(), low_level_feat.size()) ## out-stride:8 size:640 torch.Size([8, 2048, 80, 80]) torch.Size([8, 256, 160, 160])
+        # print('x, low_level_feat', x.size(), low_level_feat.size()) ## out-stride:8 input_size:640 torch.Size([8, 2048, 80, 80]) torch.Size([8, 256, 160, 160])
         x = self.aspp(x)
-        # print('aspp.x', x.size()) ## out-stride:8 size:640 torch.Size([8, 256, 80, 80])
+        # print('aspp.x', x.size()) ## out-stride:8 input_size:640 torch.Size([8, 256, 80, 80])
         x = self.decoder(x, low_level_feat)
-        # print('decoder.x', x.size()) # # out-stride:8 size:640 torch.Size([8, 2, 160, 160])
+        # print('decoder.x', x.size()) # # out-stride:8 input_size:640 torch.Size([8, 2, 160, 160])
         x = F.interpolate(x, size=input.size()[2:], mode='bilinear', align_corners=True)
-        # print('last.x', x.size()) # # out-stride:8 size:640 torch.Size([8, 2, 640, 640])
+        # print('last.x', x.size()) # # out-stride:8 input_size:640 torch.Size([8, 2, 640, 640])
         # print()
         return x
 

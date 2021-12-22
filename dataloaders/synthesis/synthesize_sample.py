@@ -91,14 +91,18 @@ class AddNegSample(object):
         rail_mask = np.array(sample['label'])
         if not rail_mask.any() > 0:
             return sample
-        # print('sddddddjsjjsjsjjsjj')
+        
+        # print('np.unique(rail_mask)', np.unique(rail_mask))
         left_mask, right_mask = sort_left_right_lane(rail_mask)
+        if not isinstance(left_mask, np.ndarray) and not isinstance(left_mask, np.ndarray):
+            return sample
         # print('left_mask.shape', left_mask.shape)
         # print('right_mask.shape', right_mask.shape)
         l_neg_img, l_neg_mask = self.randomly_get_neg_sample(rail_img.copy(), rail_mask.copy())
         r_neg_img, r_neg_mask = self.randomly_get_neg_sample(rail_img.copy(), rail_mask.copy())
         #print("mode {}".format(mode))
-
+        # print('l_neg_mask.shape', l_neg_mask.shape)
+        # print('r_neg_mask.shape', r_neg_mask.shape)
         l_zero_mask, l_zero_img = self.randomly_select_a_certer_on_a_rail(left_mask.copy(), l_neg_mask.copy(), l_neg_img.copy())
         r_zero_mask, r_zero_img = self.randomly_select_a_certer_on_a_rail(right_mask.copy(), r_neg_mask.copy(), r_neg_img.copy())
 
@@ -139,6 +143,7 @@ class AddNegSample(object):
         # mask_name = img_name.replace('.jpg', '.png')
         # rail_img.save(f'temp/{img_name}')
         # rail_mask.save(f'temp/{mask_name}')
+        # print('----------')
         return sample
 
     def mutitly_brg_img_with_mask(self, img, mask):

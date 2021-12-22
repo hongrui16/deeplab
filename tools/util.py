@@ -54,6 +54,9 @@ def read_txt_to_list(txt_filepath):
     return lists
 
 def sort_left_right_lane(label):
+    if len(np.unique(label)) < 3: #delete the image with only one rail and no rail at all.
+        # print('np.unique(label)', np.unique(label))
+        return None, None
     left_0 = min(label[label>0])
     # print(label[label>left_0].min())
     right_0 = 2*left_0
@@ -62,15 +65,21 @@ def sort_left_right_lane(label):
 
 def find_bottom_lane_location_in_labels(label):
     left_lane, right_lane = sort_left_right_lane(label.copy())
+    if not isinstance(left_lane, np.ndarray):
+        return -1, -1
     # cv2.imwrite('left_lane.png', left_lane)
     # cv2.imwrite('right_lane.png', right_lane)
     assert label.ndim == 2
     h, w = label.shape
     max_y_left = left_lane.nonzero()[0].max()
     max_y_right = right_lane.nonzero()[0].max()
+    # print('max_y_left, max_y_right', max_y_left, max_y_right)
     max_y = min(max_y_left, max_y_right)
-    left_x_pos = left_lane[max_y-20:max_y].nonzero()[1].mean()
-    right_x_pos = right_lane[max_y-20:max_y].nonzero()[1].mean()
+    left_x_pos = left_lane[max_y-20:max_y+1].nonzero()[1].mean()
+    right_x_pos = right_lane[max_y-20:max_y+1].nonzero()[1].mean()
+    # print('left_x_pos, right_x_pos', left_x_pos, right_x_pos)
+    # print(left_lane[max_y-20:max_y].nonzero())
+    # print(right_lane[max_y-20:max_y].nonzero())
     return left_x_pos, right_x_pos
 
 

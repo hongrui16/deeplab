@@ -198,6 +198,117 @@ def convert_json_to_label(args):
 
 
 
+def convert_json_and_mosaic_image(args):
+    # input_dir   = args.inp
+    # output_dir      = args.oup
+
+    input_dir = '/home/hongrui/project/metro_pro/dataset/v2_2rails/unsorted'
+    refer_parent_dir  = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/'
+    output_dir = '/home/hongrui/project/metro_pro/dataset/v2_2rails/sorted'
+    dirs = ['train', 'test', 'val']
+
+    image_names_list = [[] for _ in range(3)]
+    out_img_dirs = []
+    out_label_dirs = []
+    for i, d in enumerate(dirs):
+        ref_d_dir = os.path.join(refer_parent_dir, d)
+        ref_img_dir = os.path.join(ref_d_dir, 'image')
+        ref_img_names = os.listdir(ref_img_dir)
+        image_names_list[i] = ref_img_names
+        
+        output_image_dir = os.path.join(output_dir, d, 'image')
+        output_label_dir = os.path.join(output_dir, d, 'label')
+        out_img_dirs.append(output_image_dir)
+        out_label_dirs.append(output_label_dir)
+        
+        if not os.path.exists(output_image_dir):
+            os.makedirs(output_image_dir)
+
+        if not os.path.exists(output_label_dir):
+            os.makedirs(output_label_dir)
+            
+    files = os.listdir(input_dir)
+    ori_images = []
+    ori_jsons = []
+    for file in files:
+        if '.jpg' in file:
+            ori_images.append(file)
+        elif '.json' in file:
+            ori_jsons.append(file)
+
+
+    random.shuffle(ori_jsons)
+    for i, json_name in enumerate(ori_jsons):
+        print(f'processing {json_name} {i+1}/{len(ori_jsons)}')
+        img_name = json_name.replace('.json', '.jpg')
+        ori_img_filepath = os.path.join(input_dir, img_name)
+        if not os.path.exists(ori_img_filepath):
+            continue
+        for j, temp_img_names in enumerate(image_names_list):
+            if img_name in temp_img_names:
+                output_image_dir = out_img_dirs[j]
+                output_label_dir = out_label_dirs[j]
+        img = cv2.imread(ori_img_filepath)
+        mask_name = json_name.replace('.json', '.png')
+        
+        ori_json_filepath = os.path.join(input_dir, json_name)
+        data = json.load(open(ori_json_filepath))
+        
+
+        metro_label_name_to_value = {"left_1": 1, "right_1": 2, "left_2": 3, "right_2": 4, 
+                                        "left_3": 5, "right_3": 6, "left_4": 7, "right_4": 8,
+                                        "left_5": 9, "right_5": 10, "left_6": 11, "right_6": 12}
+        negs_label_name_to_value = {"miss": 251, "too_much": 252}
+
+        rails_info = []
+        negs_info = []
+        delete_label = 'remove_from_training'
+        label_info = data["shapes"]
+        delete_flag = False
+        for shape in label_info:
+            label_name = shape["label"]
+            if label_name == delete_label:
+                delete_flag = True
+                break
+            elif label_name in metro_label_name_to_value:
+                rails_info.append(shape)
+            elif label_name in negs_label_name_to_value:
+                negs_info.append(shape)
+        if delete_flag:
+            continue
+        
+        rail_mask, _ = utils.shapes_to_label(
+            img.shape, rails_info, metro_label_name_to_value
+        )
+
+        neg_mask, _ = utils.shapes_to_label(
+            img.shape, negs_info, negs_label_name_to_value
+        )
+
+        noise = np.random.randint(0, 255, (img.shape))
+        for c in range(3):
+            img[:,:,c] = img[:,:,c]*(neg_mask<=0)
+            noise[:,:,c] = noise[:,:,c]*(neg_mask > 0)
+        img = img + noise
+
+        rail_mask *= neg_mask<=0
+        rail_mask *= 20
+
+        # lbl *= 100
+        # print(lbl[lbl>100], lbl.max())
+        # print('rail_mask', rail_mask, rail_mask.shape)
+        out_label_filepath = os.path.join(output_label_dir, mask_name)
+        out_img_filepath = os.path.join(output_image_dir, img_name)
+        # utils.lblsave(out_label_filepath, lbl)
+        # print('Saved to: %s' % out_label_filepath)
+        cv2.imwrite(out_label_filepath, rail_mask.astype(np.uint8))
+        cv2.imwrite(out_img_filepath, img.astype(np.uint8))
+        
+        
+        # if i > 10:
+        #     break
+
+
 
 
 if __name__ == '__main__':
@@ -229,4 +340,5 @@ if __name__ == '__main__':
 
 
     # split_train_val_dataset_3rd(args)
-    convert_json_to_label(args)
+    # convert_json_to_label(args)
+    convert_json_and_mosaic_image(args)

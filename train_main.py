@@ -52,7 +52,7 @@ parser.add_argument('--multiprocessing-distributed', action='store_true', defaul
 parser.add_argument('--backbone', type=str, default='resnet',
                         choices=['resnet', 'xception', 'drn', 'mobilenet'],
                         help='backbone name (default: resnet)')
-parser.add_argument('--out-stride', type=int, default=8,
+parser.add_argument('--out_stride', type=int, default=8,
                     help='network output stride (default: 8)')
 
 parser.add_argument('--use-sbd', action='store_true', default=False,
@@ -139,7 +139,7 @@ parser.add_argument('--debug', action='store_true', default=False,
                     help='debug flag')
 # parser.add_argument('--infer_thresholds', type=float, default=[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
 parser.add_argument('--infer_thresholds', type=float, default=[0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
-parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=False,
+parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=True,
                     help='distinguish main(first) left and right rails')
 parser.add_argument('--globally_distinguish_left_right', action='store_true', default=False,
                     help='globally distinguish left and right rail semantic segmentation')
@@ -151,11 +151,11 @@ parser.add_argument('--use_albu', action='store_true', default=True,
                     help="indicate wheather to use albumentation in training phase for data augmentation")
 parser.add_argument('--only_eval_main_rails', action='store_true', default=False, 
                     help="only evaluate main pair of rails") 
-parser.add_argument('--add_neg_pixels_on_rails', action='store_true', default=False, 
+parser.add_argument('--add_neg_pixels_on_rails', action='store_true', default=True, 
                     help="only evaluate main pair of rails")       
 parser.add_argument('--dump_image_for_cal_chamferDist', action='store_true', default=False, 
                     help="only evaluate main pair of rails")  
-parser.add_argument('--mosaic_vice_rails', action='store_true', default=False, 
+parser.add_argument('--mosaic_vice_rails', action='store_true', default=True, 
                     help="mosaic vice rails")  
 args = parser.parse_args()
 

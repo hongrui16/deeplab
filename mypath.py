@@ -11,6 +11,7 @@ class Path(object):
             return '/data1/cv_public_dataset/COCO2017'
         elif dataset == 'basicDataset':
             # return '/home/hongrui/project/metro_pro/dataset/youtubeHandcraft'
+            return '/comp_robot/hongrui/metro_pro/dataset/twoRail/sorted'
             return '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/'
             return '/comp_robot/hongrui/metro_pro/dataset/1st_5000/'
             if args:

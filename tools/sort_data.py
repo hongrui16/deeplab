@@ -532,13 +532,13 @@ def relocate_rail_regin_in_images(args):
     # old_test_img_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/image'
     # old_test_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000/val/image'
     # old_test_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test_ori/image'
-    old_test_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/val/image'
+    # old_test_img_dir = '/home/hongrui/project/metro_pro/dataset/v2_2rails/sorted/test_ori/image'
 
     # old_test_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/json'
     # old_test_label_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test_old_ori/label'
     # old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000/val/label'
     # old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/test_ori/label'
-    old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/val/label'
+    # old_test_label_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/val/label'
 
     output_img_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/val_for_infer/image'
     # output_json_dir = '/home/hongrui/project/metro_pro/dataset/1st_5000/test/json'
@@ -568,7 +568,6 @@ def relocate_rail_regin_in_images(args):
         label_filepath = os.path.join(old_test_label_dir, img_prefix + '.png')
         # json_filepath = os.path.join(old_test_json_dir, img_prefix + '.json')
         
-
         out_img_filepath = os.path.join(output_img_dir, img_name)
         out_label_filepath = os.path.join(output_label_dir, img_prefix + '.png')
         # out_json_filepath = os.path.join(output_json_dir, img_prefix + '.json')
@@ -597,7 +596,6 @@ def relocate_rail_regin_in_images(args):
             if offset < 0:
                 new_img = np.concatenate((img[:,abs_offset:], zero_img_block), axis=1)
                 new_label = np.concatenate((label[:,abs_offset:], zero_label_block), axis=1)
-
             else:
                 new_img = np.concatenate((zero_img_block, img[:,:w-abs_offset]), axis=1)
                 new_label = np.concatenate((zero_label_block, label[:,:w-abs_offset]), axis=1)
@@ -606,6 +604,85 @@ def relocate_rail_regin_in_images(args):
             cv2.imwrite(out_label_filepath, new_label)
         cnt += 1
         # return
+
+
+
+def relocate_rail_regins_in_all_images_once(args):
+
+    parent_dir = '/home/hongrui/project/metro_pro/dataset/v2_2rails/sorted/'
+
+    ori_dirs = ['test_ori', 'val_ori']
+    new_dirs = ['test', 'val']
+    out_img_dirs = []
+    out_label_dirs = []
+
+    for nd in new_dirs:
+        output_img_dir = os.path.join(parent_dir, nd, 'image')
+        output_label_dir = os.path.join(parent_dir, nd, 'label')
+        out_img_dirs.append(output_img_dir)
+        out_label_dirs.append(output_label_dir)
+        if not os.path.exists(output_img_dir):
+            os.makedirs(output_img_dir)        
+        
+        if not os.path.exists(output_label_dir):
+            os.makedirs(output_label_dir)
+            
+    # sorted_test_imgs_filepath = '/home/hongrui/project/metro_pro/dataset/1st_5000/sorted_test_imgs.txt'
+    # sorted_test_imgs = read_txt_to_list(sorted_test_imgs_filepath)
+    for id, od in enumerate(ori_dirs):
+        ori_img_dir = os.path.join(parent_dir, od, 'image')
+        ori_label_dir = os.path.join(parent_dir, od, 'label')
+        output_img_dir = out_img_dirs[id]
+        output_label_dir = out_label_dirs[id]
+
+        img_names = os.listdir(ori_img_dir)
+        for i, img_name in enumerate(img_names):
+            if not '.jpg' in img_name:
+                continue
+
+            print(f'processing {img_name} {od} {i+1}/{len(img_names)}')
+            img_prefix = img_name.split('.')[0]
+            
+            img_filepath = os.path.join(ori_img_dir, img_name)
+            label_filepath = os.path.join(ori_label_dir, img_prefix + '.png')
+            
+            out_img_filepath = os.path.join(output_img_dir, img_name)
+            out_label_filepath = os.path.join(output_label_dir, img_prefix + '.png')
+            # out_json_filepath = os.path.join(output_json_dir, img_prefix + '.json')
+            # if os.path.exists(out_img_filepath) and os.path.exists(out_label_filepath):
+            #     continue
+            img = cv2.imread(img_filepath).astype(np.uint8)
+            h, w, _ = img.shape
+            label = cv2.imread(label_filepath, 0).astype(np.uint8)
+            try:
+                left_x_pos, right_x_pos = find_bottom_lane_location_in_labels(label)
+            except Exception as e:
+                continue
+            if left_x_pos < 0 and right_x_pos < 0:
+                continue 
+            # print(f"h {h}, w {w}, left_x_pos {left_x_pos}, right_x_pos {right_x_pos}")
+            rail_width = right_x_pos - left_x_pos
+            if left_x_pos + rail_width//4 < w//2 < right_x_pos - rail_width//4:
+                shutil.copy(img_filepath, out_img_filepath)
+                shutil.copy(label_filepath, out_label_filepath)
+                # shutil.copy(json_filepath, out_json_filepath)
+            else:
+                mid_x_pos = (left_x_pos + right_x_pos)//2
+                offset = w//2 - mid_x_pos
+                # print('w',w, 'mid_x_pos', mid_x_pos, 'offset',offset )
+                abs_offset = int(abs(offset))
+                zero_img_block = np.zeros((h,abs_offset,3), dtype=np.uint8)
+                zero_label_block = np.zeros((h,abs_offset), dtype=np.uint8)
+                if offset < 0:
+                    new_img = np.concatenate((img[:,abs_offset:], zero_img_block), axis=1)
+                    new_label = np.concatenate((label[:,abs_offset:], zero_label_block), axis=1)
+                else:
+                    new_img = np.concatenate((zero_img_block, img[:,:w-abs_offset]), axis=1)
+                    new_label = np.concatenate((zero_label_block, label[:,:w-abs_offset]), axis=1)
+
+                cv2.imwrite(out_img_filepath, new_img)
+                cv2.imwrite(out_label_filepath, new_label)
+            # return
 
 def copy_train_val_json_2nd_round(args):
     ori_json_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/std_json_2nd_round/'
@@ -849,6 +926,34 @@ def split_rails2_images(args):
         shutil.copy(json_filepath, out_json_filepath)
         print(f'processing {img_name} to {outdir_name}, {i}/{n_imgs}')
 
+
+def del_unclear_images(args):
+    parent_dir = '/home/hongrui/project/metro_pro/dataset/v2_2rails/sorted'
+    to_dirs =  ['test'  ,   'test_ori', 'train',     'val',     'val_ori']
+    del_dirs = ['test_del', 'test_del', 'train_del', 'val_del', 'val_del']
+    for i, td in enumerate(to_dirs):
+        ori_dir = os.path.join(parent_dir, td)
+        del_dir = os.path.join(parent_dir, del_dirs[i])
+        in_img_dir = os.path.join(parent_dir, td, 'image')
+        in_label_dir = os.path.join(parent_dir, td, 'label')
+
+        output_dir = os.path.join(parent_dir, td, 'del')
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        
+        del_img_names = os.listdir(del_dir)
+        for j, del_img_name in enumerate(del_img_names):
+            
+            del_label_name = del_img_name.replace('.jpg', '.png')
+            ori_img_filepath = os.path.join(in_img_dir, del_img_name)
+            ori_label_filepath = os.path.join(in_label_dir, del_label_name)
+            
+            out_img_filepath = os.path.join(output_dir, del_img_name)
+            out_label_filepath = os.path.join(output_dir, del_label_name)
+            print(f'processing {td} {out_label_filepath}, {j}/{len(del_img_names)}')
+            shutil.move(ori_img_filepath, out_img_filepath)
+            shutil.move(ori_label_filepath, out_label_filepath)
+        # print()
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='aligment')
@@ -886,7 +991,7 @@ if __name__ == '__main__':
 
 
     # relocate_rail_regin_in_images(args)
-
+    # relocate_rail_regins_in_all_images_once(args)
     # count_dataset()
     # copy_train_val_json_2nd_round(args)
     # copy_test_json_2nd_round(args)
@@ -895,4 +1000,5 @@ if __name__ == '__main__':
     # colorize_anno(args)
     # find_all_images_jsons(args)
     # find_jsons(args)
-    split_rails2_images(args)
+    # split_rails2_images(args)
+    del_unclear_images(args)

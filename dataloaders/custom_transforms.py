@@ -104,14 +104,15 @@ class RandomRotate(object):
 
 class RandomGaussianBlur(object):
     def __call__(self, sample):
+        if random.random() < 0.65:
+            return sample
         img = sample['image']
         mask = sample['label']
-        if random.random() < 0.5:
-            img = img.filter(ImageFilter.GaussianBlur(
-                radius=random.random()))
+        
 
-        # return {'image': img,
-        #         'label': mask}
+        img = img.filter(ImageFilter.GaussianBlur(
+            radius=random.random()))
+
         sample['image'] = img
         sample['label'] = mask
         return sample
@@ -126,9 +127,9 @@ class RandomScaleCrop(object):
 
     def __call__(self, sample):
         if self.args.distinguish_left_right_semantic:
-            short_size = random.randint(int(self.base_size * 0.7), int(self.base_size * 1.05))
+            short_size = random.randint(int(self.base_size * 0.85), int(self.base_size * 1.15))
         else:
-            short_size = random.randint(int(self.base_size * 0.7), int(self.base_size * 1.25))
+            short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
         img = sample['image']
         mask = sample['label']
         # random scale (short edge)
@@ -162,11 +163,33 @@ class RandomScaleCrop(object):
         return sample
 
 
+class RandomVerticalCrop(object):
+    def __init__(self, base_size, crop_size, fill=0, args = None):
+        self.fill = fill
+        self.args = args
+
+    def __call__(self, sample):
+        seed = random.random()
+        if seed < 0.75:
+            return sample
+        else:
+            img = sample['image']
+            mask = sample['label']
+            # random scale (short edge)
+            
+            w, h = img.size
+            if seed < 0.85:
+                pass
+
+
 class FixScaleCrop(object):
     def __init__(self, crop_size):
         self.crop_size = crop_size
 
     def __call__(self, sample):
+        if random.random() < 0.5:
+            return sample
+        # print('sample', sample)
         img = sample['image']
         mask = sample['label']
         w, h = img.size
@@ -310,6 +333,7 @@ class RandomAddNegSample(object):
     def __init__(self, args = None):
         self.args = args
         self.AddNegSample = AddNegSample(coco_root = '/comp_robot/cv_public_dataset/COCO2017/')
+        
     def __call__(self, sample):
         # return sample
         if self.args.add_neg_pixels_on_rails:

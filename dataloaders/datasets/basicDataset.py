@@ -79,9 +79,12 @@ class BasicDataset(Dataset):
             img_name = self.img_ids[rand_index]
             img_path = os.path.join(self.images_base, img_name)
             _img = cv2.imread(img_path)
+            # print('img_path', _img.shape, img_path)
+
             lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
             _tmp = cv2.imread(lbl_path, 0)
             _tmp, _img = self.encode_segmap(_tmp, _img)
+            # print('lbl_path', _tmp.shape, lbl_path)
 
             if self.args.skip_boundary:
                 _tmp = self.skip_boundary(_tmp)
@@ -91,7 +94,7 @@ class BasicDataset(Dataset):
             _target = _tmp
 
             sample = {'image': Image.fromarray(_img), 'label': Image.fromarray(_target), 'img_name': img_name}
-
+            # print('sample', sample)
             sample = self.transform_train1(sample)
             _img = np.array(sample['image'])
             _target = np.array(sample['label'])        
@@ -100,6 +103,7 @@ class BasicDataset(Dataset):
 
             #to tensor
             _img = _img.transpose( (2, 0, 1) )
+            # print('_img', _img.shape, '_target', _target.shape)
             _img = torch.from_numpy(_img).float()
             _target = torch.from_numpy(_target).float()            
 
@@ -224,13 +228,13 @@ class BasicDataset(Dataset):
         composed_transforms = transforms.Compose([
             tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
             tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
+            tr.RandomAddNegSample(args = self.args),
             tr.RandomHorizontalFlip(self.args),
             tr.RandomRotate(degree = self.args.rotate_degree),
             tr.RandomGaussianBlur(),
             tr.FixScaleCrop(crop_size=self.args.crop_size),
             tr.RandomHorizontalFlipImageMask(self.args),
-            tr.RandomAddNegSample(args = self.args),
-            tr.FixedResize(size=self.args.crop_size),
+            tr.FixedResize(size=self.args.base_size),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
 
@@ -241,6 +245,7 @@ class BasicDataset(Dataset):
             tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
             tr.RandomAddNegSample(args = self.args),
             tr.FixScaleCrop(crop_size=self.args.crop_size),
+            tr.FixedResize(size=self.args.base_size),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
         return composed_transforms(sample)
@@ -248,9 +253,8 @@ class BasicDataset(Dataset):
     def transform_test(self, sample):
         composed_transforms = transforms.Compose([
             # tr.RandomAddNegSample(args = self.args),
-            # tr.FixedResize(size=self.args.crop_size),
-            tr.FixedResize(size=720),
-            # tr.LimitResize(size=self.args.max_size),
+            # tr.FixedResize(size=self.args.base_size),
+            tr.LimitResize(size=self.args.max_size),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
         return composed_transforms(sample)
@@ -296,16 +300,16 @@ class BasicDataset(Dataset):
             #    albu.CLAHE(clip_limit=2, p=.5),
             #    albu.Sharpen(p=.25),
             #    ], p=0.35),
-            albu.RandomBrightnessContrast(p=.5),
+            albu.RandomBrightnessContrast(p=.4),
             albu.OneOf([
-                albu.GaussNoise(p=.2),
+                # albu.GaussNoise(p=.2),
                 albu.ISONoise(p=.2),
-                albu.ImageCompression(quality_lower=70, quality_upper=100, p=.5)
-                ], p=.5),
-            albu.RGBShift(p=.5),
-            albu.HueSaturationValue(hue_shift_limit=8, sat_shift_limit=12, val_shift_limit=8, p=.5),
+                albu.ImageCompression(quality_lower=75, quality_upper=100, p=.4)
+                ], p=.4),
+            albu.RGBShift(p=.4),
+            albu.HueSaturationValue(hue_shift_limit=8, sat_shift_limit=12, val_shift_limit=8, p=.4),
             #albu.ToGray(p=.2),
-            albu.Normalize (mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), p=1.0),
+            albu.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), p=1.0),
             ], p=1.)
         return spatial_trans, pixel_trans
 
