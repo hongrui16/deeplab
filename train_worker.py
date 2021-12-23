@@ -247,7 +247,7 @@ class distWorker(object):
                     # self.dump_argmax_pre_gt_img(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
                     self.dump_composed_img_pre_label(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
 
-        if self.args.dump_image_for_cal_chamferDist:
+        if not self.args.cal_metric:
             return
         # Fast test during the training
         Acc = self.evaluator.Pixel_Accuracy()
@@ -355,7 +355,7 @@ class distWorker(object):
                     # self.dump_argmax_pre_gt_img(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
                     self.dump_composed_img_pre_label(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
                     
-        if self.args.dump_image_for_cal_chamferDist:
+        if not self.args.cal_metric:
             return
         Acc = self.evaluator.Pixel_Accuracy()
         Acc_class = self.evaluator.Pixel_Accuracy_Class()

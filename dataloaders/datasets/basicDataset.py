@@ -29,27 +29,32 @@ class BasicDataset(Dataset):
         else:
             self.root = root
         self.split = split
-        if args.dump_image_for_cal_chamferDist and split == 'val':
-            self.base_dir = os.path.join(self.root, 'val_for_infer')
-        else:
-            self.base_dir = os.path.join(self.root, self.split)
-        
-        
         self.ignore_index = args.ignore_index
         
         # print('args.ignore_index', args.ignore_index)
         self.spatial_trans, self.pixel_trans = self.albumentations_aug()
-        if args.testset_dir:
-            self.images_base =  args.testset_dir
-            self.annotations_base = ''
+        if not self.args.use_txtfile:
+            self.base_dir = os.path.join(self.root, self.split)
+            if args.testset_dir:
+                self.images_base =  args.testset_dir
+                self.annotations_base = ''
+            else:
+                self.images_base = os.path.join(self.base_dir, 'image')
+                self.annotations_base = os.path.join(self.base_dir, 'label')
+            # print('annotations_base', self.annotations_base)
+            # self.ids = [splitext(file)[0] for file in listdir(self.images_base) if not file.startswith('.')]
+            # self.img_ids = [file for file in listdir(self.images_base) if not file.startswith('.')]
+            # random.shuffle(self.img_ids)
+            self.img_filepaths = []
+            for file in listdir(self.images_base):
+                img_filepath = os.path.join(self.images_base, file)
+                self.img_filepaths.append(img_filepath)
+            random.shuffle(self.img_filepaths)
         else:
-            self.images_base = os.path.join(self.base_dir, 'image')
-            self.annotations_base = os.path.join(self.base_dir, 'label')
-        # print('annotations_base', self.annotations_base)
-        # self.ids = [splitext(file)[0] for file in listdir(self.images_base) if not file.startswith('.')]
-        self.img_ids = [file for file in listdir(self.images_base) if not file.startswith('.')]
-        random.shuffle(self.img_ids)
-		
+            txt_filepath = os.path.join(self.root, f'{self.split}.txt')
+            self.img_filepaths = read_txt_to_list(txt_filepath)
+            
+
         # self.void_classes = [0, 1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 18, 29, 30, -1]
         # self.valid_classes = [7, 8, 11, 12, 13, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33]
         # self.class_names = ['unlabelled', 'road', 'sidewalk', 'building', 'wall', 'fence', \
@@ -59,13 +64,14 @@ class BasicDataset(Dataset):
         # self.class_map = dict(zip(self.valid_classes, range(self.NUM_CLASSES)))
 
     def __len__(self):
-        return len(self.img_ids)
+        # return len(self.img_ids)
+        return len(self.img_filepaths)
 
     def __getitem__(self, index):
         # print(f'calling {__file__}, {sys._getframe().f_lineno}')
         if self.split == "train" and self.args.use_albu:
             # is_continue = True
-            rand_index = index
+            # rand_index = index
             # while is_continue:
             #     img_name = self.img_ids[rand_index]
             #     img_path = os.path.join(self.images_base, img_name)
@@ -76,12 +82,13 @@ class BasicDataset(Dataset):
             #     is_continue =  self.args.distinguish_left_right_semantic and (_tmp.max() > 2 and not _tmp.max() == self.ignore_index) and self.args.testValTrain >= 1
             #     if is_continue:
             #         rand_index = random.randint(0, len(self.img_ids)-1)
-            img_name = self.img_ids[rand_index]
-            img_path = os.path.join(self.images_base, img_name)
+            # img_name = self.img_ids[rand_index]
+            # img_path = os.path.join(self.images_base, img_name)
+            img_path = self.img_filepaths[index]
             _img = cv2.imread(img_path)
             # print('img_path', _img.shape, img_path)
-
-            lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
+            img_name = img_path.split('/')[-1]
+            lbl_path = img_path.replace('image', 'label').replace('.jpg', '.png')
             _tmp = cv2.imread(lbl_path, 0)
             _tmp, _img = self.encode_segmap(_tmp, _img)
             # print('lbl_path', _tmp.shape, lbl_path)
@@ -111,9 +118,13 @@ class BasicDataset(Dataset):
             return sample
 
         else:
-            img_name = self.img_ids[index]
-            img_path = os.path.join(self.images_base, img_name)
-            lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
+            # img_name = self.img_ids[index]
+            # img_path = os.path.join(self.images_base, img_name)
+            
+            # lbl_path = os.path.join(self.annotations_base, splitext(img_name)[0]+'.png')
+            img_path = self.img_filepaths[index]
+            img_name = img_path.split('/')[-1]
+            lbl_path = img_path.replace('image', 'label').replace('.jpg', '.png')
             _img = cv2.imread(img_path)
             # _img = Image.open(img_path).convert('RGB')
             h, w, _ = _img.shape 
@@ -226,15 +237,15 @@ class BasicDataset(Dataset):
 
     def transform_train(self, sample):
         composed_transforms = transforms.Compose([
-            tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
+            tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio, args = self.args),
             tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
             tr.RandomAddNegSample(args = self.args),
             tr.RandomHorizontalFlip(self.args),
             tr.RandomRotate(degree = self.args.rotate_degree),
             tr.RandomGaussianBlur(),
-            tr.FixScaleCrop(crop_size=self.args.crop_size),
+            tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
             tr.RandomHorizontalFlipImageMask(self.args),
-            tr.FixedResize(size=self.args.base_size),
+            tr.FixedResize(size=self.args.base_size, args = self.args),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
 
@@ -242,10 +253,11 @@ class BasicDataset(Dataset):
 
     def transform_val(self, sample):
         composed_transforms = transforms.Compose([
-            tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
+            tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio, args = self.args),
             tr.RandomAddNegSample(args = self.args),
-            tr.FixScaleCrop(crop_size=self.args.crop_size),
-            tr.FixedResize(size=self.args.base_size),
+            tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
+            tr.FixedResize(size=self.args.base_size, args = self.args),
+            tr.LimitResize(size=self.args.max_size, args = self.args),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
         return composed_transforms(sample)
@@ -261,13 +273,13 @@ class BasicDataset(Dataset):
 
     def transform_train1(self, sample):
         composed_transforms = transforms.Compose([
-            tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio),
+            tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio, args = self.args),
             tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
             tr.RandomHorizontalFlip(self.args),
             tr.RandomAddNegSample(args = self.args),
             tr.RandomRotate(degree = self.args.rotate_degree),
             tr.RandomGaussianBlur(),
-            tr.FixScaleCrop(crop_size=self.args.crop_size),
+            tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
             tr.RandomHorizontalFlipImageMask(self.args),
             ])
 

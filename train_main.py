@@ -138,7 +138,7 @@ parser.add_argument('--alpha', type=float, default=0.5,
 parser.add_argument('--debug', action='store_true', default=False,
                     help='debug flag')
 # parser.add_argument('--infer_thresholds', type=float, default=[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
-parser.add_argument('--infer_thresholds', type=float, default=[0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
+parser.add_argument('--infer_thresholds', type=float, default=[0.33, 0.5, 0.7, 0.8, 0.9])
 parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=True,
                     help='distinguish main(first) left and right rails')
 parser.add_argument('--globally_distinguish_left_right', action='store_true', default=False,
@@ -155,8 +155,13 @@ parser.add_argument('--add_neg_pixels_on_rails', action='store_true', default=Tr
                     help="only evaluate main pair of rails")       
 parser.add_argument('--dump_image_for_cal_chamferDist', action='store_true', default=False, 
                     help="only evaluate main pair of rails")  
-parser.add_argument('--mosaic_vice_rails', action='store_true', default=True, 
+parser.add_argument('--mosaic_vice_rails', action='store_true', default=False, 
                     help="mosaic vice rails")  
+parser.add_argument('--cal_metric', action='store_true', default=True, 
+                    help="calculate miou, acc, etc.")  
+parser.add_argument('--use_txtfile', action='store_true', default=False, 
+                    help="use a txt file to load image file paths")  
+                    
 args = parser.parse_args()
 
 args.dataset_dir = Path.db_root_dir(args.dataset)

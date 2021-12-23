@@ -476,6 +476,22 @@ def count_dataset():
 
     print(f'todo: {len(todo_names)}')
 
+def count_dataset_v2():
+
+    parent_dir = '/comp_robot/hongrui/metro_pro/dataset/twoRail/sorted'
+    to_dirs =  ['test'  ,   'test_ori', 'train',     'val',     'val_ori']
+    for i, td in enumerate(to_dirs):
+        ori_dir = os.path.join(parent_dir, td)
+        in_img_dir = os.path.join(parent_dir, td, 'image')
+        in_label_dir = os.path.join(parent_dir, td, 'label')
+
+        img_names = os.listdir(in_img_dir)
+        label_names = os.listdir(in_label_dir)
+        print(f'{td}/image {len(img_names)}')
+        print(f'{td}/label {len(label_names)}')
+
+        print()
+
                     
 def find_images_for_train_and_val(args):
     input_dir   = args.inp
@@ -928,9 +944,11 @@ def split_rails2_images(args):
 
 
 def del_unclear_images(args):
-    parent_dir = '/home/hongrui/project/metro_pro/dataset/v2_2rails/sorted'
-    to_dirs =  ['test'  ,   'test_ori', 'train',     'val',     'val_ori']
-    del_dirs = ['test_del', 'test_del', 'train_del', 'val_del', 'val_del']
+    parent_dir = '/comp_robot/hongrui/metro_pro/dataset/twoRail/sorted'
+    # to_dirs =  ['test'  ,   'test_ori', 'train',     'val',     'val_ori']
+    # del_dirs = ['test_del', 'test_del', 'train_del', 'val_del', 'val_del']
+    to_dirs =  ['test'  ,   'test_ori']
+    del_dirs = ['test_del', 'test_del']
     for i, td in enumerate(to_dirs):
         ori_dir = os.path.join(parent_dir, td)
         del_dir = os.path.join(parent_dir, del_dirs[i])
@@ -938,10 +956,12 @@ def del_unclear_images(args):
         in_label_dir = os.path.join(parent_dir, td, 'label')
 
         output_dir = os.path.join(parent_dir, td, 'del')
+
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
-        del_img_names = os.listdir(del_dir)
+        # del_img_names = os.listdir(del_dir)
+        del_img_names = ['camera_000086.jpg', 'camera_000087.jpg', 'camera_000090.jpg', 'camera_000093.jpg']
         for j, del_img_name in enumerate(del_img_names):
             
             del_label_name = del_img_name.replace('.jpg', '.png')
@@ -954,6 +974,35 @@ def del_unclear_images(args):
             shutil.move(ori_img_filepath, out_img_filepath)
             shutil.move(ori_label_filepath, out_label_filepath)
         # print()
+
+def create_imgfilepath_txt(args):
+    parent_dir = '/comp_robot/hongrui/metro_pro/dataset/twoRail/sorted'
+    source_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/'
+    dirs =  ['val',   'test', 'train']
+
+    for i, td in enumerate(dirs):
+        in_img_dir = os.path.join(parent_dir, td, 'image')
+        tar_label_dir = os.path.join(source_dir, td, 'label')
+        tar_img_dir = os.path.join(source_dir, td, 'image')
+        img_names = os.listdir(in_img_dir)
+        txt_filepath = os.path.join(source_dir, f'{td}.txt')
+        if os.path.exists(txt_filepath):
+            os.remove(txt_filepath)
+        random.shuffle(img_names)
+        img_filepaths_list = []
+        for j, img_name in enumerate(img_names):
+            label_name = img_name.replace('.jpg', '.png')
+            tar_img_filepath = os.path.join(tar_img_dir, img_name)
+            tar_label_filepath = os.path.join(tar_label_dir, label_name)
+            print(f'processing {td} {tar_img_filepath}, {j}/{len(img_names)}')
+            if os.path.exists(tar_label_filepath) and os.path.exists(tar_img_filepath):
+                img_filepaths_list.append(tar_img_filepath)
+        
+        write_list_to_txt(txt_filepath, img_filepaths_list)
+        
+        lists = read_txt_to_list(txt_filepath)
+        print(f'---------------------------{lists[-1]}')
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='aligment')
@@ -992,7 +1041,7 @@ if __name__ == '__main__':
 
     # relocate_rail_regin_in_images(args)
     # relocate_rail_regins_in_all_images_once(args)
-    # count_dataset()
+    
     # copy_train_val_json_2nd_round(args)
     # copy_test_json_2nd_round(args)
     # rename_video(args)    
@@ -1001,4 +1050,7 @@ if __name__ == '__main__':
     # find_all_images_jsons(args)
     # find_jsons(args)
     # split_rails2_images(args)
-    del_unclear_images(args)
+    # del_unclear_images(args)
+
+    # count_dataset_v2()
+    create_imgfilepath_txt(args)

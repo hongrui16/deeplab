@@ -183,10 +183,13 @@ class RandomVerticalCrop(object):
 
 
 class FixScaleCrop(object):
-    def __init__(self, crop_size):
+    def __init__(self, crop_size, args = None):
         self.crop_size = crop_size
+        self.args = args
 
     def __call__(self, sample):
+        if self.args.testValTrain <= 1:
+            return sample
         if random.random() < 0.5:
             return sample
         # print('sample', sample)
@@ -215,10 +218,13 @@ class FixScaleCrop(object):
         return sample
 
 class ShortEdgeCrop(object):
-    def __init__(self, hw_ratio = 1.5):
+    def __init__(self, hw_ratio = 1.5, args = None):
         self.hw_ratio = hw_ratio
+        self.args = args
 
     def __call__(self, sample):
+        if self.args.testValTrain <= 1:
+            return sample
         img = sample['image']
         mask = sample['label']
         w, h = img.size
@@ -248,10 +254,13 @@ class ShortEdgeCrop(object):
 # sample = {'image': _img, 'label': _target, 'img_name': img_name}
 
 class FixedResize(object):
-    def __init__(self, size):
+    def __init__(self, size, args = None):
         self.size = (size, size)  # size: (h, w)
+        self.args = args
 
     def __call__(self, sample):
+        if self.args.testValTrain <= 1:
+            return sample
         img = sample['image']
         mask = sample['label']
         # img_name = sample['img_name']
@@ -271,9 +280,10 @@ class FixedResize(object):
         return sample
 
 class LimitResize(object):
-    def __init__(self, size):
+    def __init__(self, size, args = None):
         self.size = size  # size: (h, w)
-
+        self.args = args
+        
     def __call__(self, sample):
         img = sample['image']
         mask = sample['label']
@@ -335,7 +345,10 @@ class RandomAddNegSample(object):
         self.AddNegSample = AddNegSample(coco_root = '/comp_robot/cv_public_dataset/COCO2017/')
         
     def __call__(self, sample):
+        if self.args.testValTrain <= 1:
+            return sample
         # return sample
+
         if self.args.add_neg_pixels_on_rails:
             return self.AddNegSample.forward(sample)
         else:
