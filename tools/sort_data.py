@@ -479,7 +479,10 @@ def count_dataset():
 def count_dataset_v2():
 
     parent_dir = '/comp_robot/hongrui/metro_pro/dataset/twoRail/sorted'
+    parent_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/'
+    
     to_dirs =  ['test'  ,   'test_ori', 'train',     'val',     'val_ori']
+    to_dirs =  ['test',  'train',  'val', ]
     for i, td in enumerate(to_dirs):
         ori_dir = os.path.join(parent_dir, td)
         in_img_dir = os.path.join(parent_dir, td, 'image')
@@ -490,7 +493,7 @@ def count_dataset_v2():
         print(f'{td}/image {len(img_names)}')
         print(f'{td}/label {len(label_names)}')
 
-        print()
+        # print()
 
                     
 def find_images_for_train_and_val(args):
@@ -1003,6 +1006,61 @@ def create_imgfilepath_txt(args):
         lists = read_txt_to_list(txt_filepath)
         print(f'---------------------------{lists[-1]}')
 
+
+def create_imgfilepath_txt_two(args):
+    output_dir = '/comp_robot/hongrui/metro_pro/dataset/compose_v2v3/'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    parent_dir = '/comp_robot/hongrui/metro_pro/dataset/twoRail/sorted'
+    source_dir = '/comp_robot/hongrui/metro_pro/dataset/1st_5000_2nd_round/'
+    dirs =  ['val',   'test', 'train']
+
+    
+    for i, td in enumerate(dirs):
+        in_img_dir = os.path.join(parent_dir, td, 'image')
+        img_names = os.listdir(in_img_dir)
+        txt_filepath = os.path.join(output_dir, f'{td}.txt')
+        # if os.path.exists(txt_filepath):
+        #     os.remove(txt_filepath)
+        random.shuffle(img_names)
+        img_filepaths_list = []
+        for j, img_name in enumerate(img_names):
+            tar_img_filepath = os.path.join(in_img_dir, img_name)
+            img_filepaths_list.append(tar_img_filepath)
+
+        write_list_to_txt(txt_filepath, img_filepaths_list)
+
+    for i, td in enumerate(dirs):
+        in_img_dir = os.path.join(parent_dir, td, 'image')
+        tar_label_dir = os.path.join(source_dir, td, 'label')
+        tar_img_dir = os.path.join(source_dir, td, 'image')
+        delete_dir = os.path.join(parent_dir, td, 'del')
+        del_img_names = os.listdir(in_img_dir)
+        delete_names = os.listdir(delete_dir)
+        del_img_names += delete_names
+        img_names = os.listdir(tar_img_dir)
+
+        txt_filepath = os.path.join(output_dir, f'{td}.txt')
+        # if os.path.exists(txt_filepath):
+        #     os.remove(txt_filepath)
+        random.shuffle(img_names)
+        img_filepaths_list = []
+        for j, img_name in enumerate(img_names):
+            if img_name in del_img_names:
+                continue
+            label_name = img_name.replace('.jpg', '.png')
+            tar_img_filepath = os.path.join(tar_img_dir, img_name)
+            tar_label_filepath = os.path.join(tar_label_dir, label_name)
+            print(f'processing {td} {tar_img_filepath}, {j}/{len(img_names)}')
+            if os.path.exists(tar_label_filepath) and os.path.exists(tar_img_filepath):
+                img_filepaths_list.append(tar_img_filepath)
+        
+        write_list_to_txt(txt_filepath, img_filepaths_list)
+        
+        lists = read_txt_to_list(txt_filepath)
+        print(f'---------------------------{lists[-1]}')
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='aligment')
@@ -1053,4 +1111,5 @@ if __name__ == '__main__':
     # del_unclear_images(args)
 
     # count_dataset_v2()
-    create_imgfilepath_txt(args)
+    # create_imgfilepath_txt(args)
+    create_imgfilepath_txt_two(args)

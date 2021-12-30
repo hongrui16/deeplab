@@ -22,12 +22,9 @@ from tools.util import *
 
 class BasicDataset(Dataset):
 
-    def __init__(self, args, root=Path.db_root_dir('basicDataset'), split="train"):
+    def __init__(self, args, root=None, split="train"):
         self.args = args
-        if args.dataset_dir:
-            self.root = args.dataset_dir
-        else:
-            self.root = root
+        self.root = args.dataset_dir
         self.split = split
         self.ignore_index = args.ignore_index
         
@@ -246,6 +243,7 @@ class BasicDataset(Dataset):
             tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
             tr.RandomHorizontalFlipImageMask(self.args),
             tr.FixedResize(size=self.args.base_size, args = self.args),
+            tr.RandomShadows(args = self.args),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
 
@@ -278,6 +276,7 @@ class BasicDataset(Dataset):
             tr.RandomHorizontalFlip(self.args),
             tr.RandomAddNegSample(args = self.args),
             tr.RandomRotate(degree = self.args.rotate_degree),
+            tr.RandomShadows(args = self.args),
             tr.RandomGaussianBlur(),
             tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
             tr.RandomHorizontalFlipImageMask(self.args),

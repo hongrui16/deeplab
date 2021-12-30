@@ -62,6 +62,8 @@ class SegmentationLosses(object):
             return self.FSOhemCELoss
         elif type == 'FocalLovas':
             return self.FocalLovas
+        elif type == 'LovasLoss':
+            return self.LovasLoss
         else:
             raise NotImplementedError
 
@@ -156,6 +158,15 @@ class SegmentationLosses(object):
         lovas_loss = self.lovas(predict, target.long())
 
         return focal_loss + lovas_loss
+
+    def LovasLoss(self, predict, target):
+        #print("predict device {}".format(predict.device))
+        #print("target device {}".format(target.device))
+        self.lovas = self.lovas.to(predict.device)
+
+        lovas_loss = self.lovas(predict, target.long())
+
+        return lovas_loss
 
 
 
