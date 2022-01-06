@@ -24,8 +24,13 @@ def calculate_weigths_labels(dataset, dataloader, num_classes, args = None, clas
         class_weights.append(class_weight)
     ret = np.array(class_weights)
     if classes_weights_path is None:
-        classes_weights_path = os.path.join(Path.db_root_dir(dataset, args), dataset+f'_c{num_classes}_classes_weights.npy')
+        if not args.dataset_dir is None:
+            classes_weights_path = os.path.join(args.dataset_dir, dataset+f'_c{num_classes}_classes_weights.npy')
+        else:
+            classes_weights_path = os.path.join(Path.db_root_dir(dataset, args), dataset+f'_c{num_classes}_classes_weights.npy')
     if args.master:
         np.save(classes_weights_path, ret)
 
     return ret
+
+    
