@@ -60,6 +60,7 @@ def main_worker(gpu, ngpus_per_node, args):
             'cityscapes': 0.01,
             'pascal': 0.007,
             'basicdataset': 0.01,
+            'custompot': 0.01,
 
         }
         args.lr = lrs[args.dataset.lower()]

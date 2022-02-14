@@ -26,6 +26,8 @@ import os.path as osp
 from labelme import utils
 import imgviz
 import random
+import glob
+
 from util import *
 
 
@@ -1061,6 +1063,52 @@ def create_imgfilepath_txt_two(args):
         lists = read_txt_to_list(txt_filepath)
         print(f'---------------------------{lists[-1]}')
 
+def find_images_json(args):
+
+    input_img_dir   = args.input_dir
+    output_dir      = args.output_dir
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    for root, dirs, files in os.walk(input_img_dir, topdown=True):
+        for name in files:
+            if '.json' in name:
+                json_filepath = os.path.join(root, name)
+                img_filepath = json_filepath.replace('.json', '.jpg')
+                if os.path.exists(img_filepath):
+                    out_json_filepath = os.path.join(output_dir, name)
+                    out_img_filepath = out_json_filepath.replace('.json', '.jpg')
+                    shutil.move(json_filepath, out_json_filepath)
+                    shutil.move(img_filepath, out_img_filepath)
+                    print(f'move {img_filepath} -> {out_img_filepath}')
+
+
+def creat_train_val_test_filelist():
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot_20220108_cut'
+    output_dir = '/home/hongrui/project/metro_pro/dataset/'
+
+    dirs =  ['val',   'test', 'train']
+    label_files = glob.glob(osp.join(input_dir, "*.png"))
+    total_num = len(label_files)
+    
+    train_filepaths = []
+    val_filepaths = []
+    test_filepaths = []
+    random.shuffle(label_files)
+    random.shuffle(label_files)
+    for i, label_filepath in enumerate(label_files):
+        label_filepath = label_filepath.replace('.png', '.jpg')
+        if i < 0.15*total_num:
+            test_filepaths.append(label_filepath)
+        elif i < 0.3*total_num:
+            val_filepaths.append(label_filepath)
+        else:
+            train_filepaths.append(label_filepath)
+
+    write_list_to_txt(os.path.join(output_dir, 'test.txt'), test_filepaths)
+    write_list_to_txt(os.path.join(output_dir, 'val.txt'), val_filepaths)
+    write_list_to_txt(os.path.join(output_dir, 'train.txt'), train_filepaths)
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='aligment')
@@ -1112,4 +1160,6 @@ if __name__ == '__main__':
 
     # count_dataset_v2()
     # create_imgfilepath_txt(args)
-    create_imgfilepath_txt_two(args)
+    # create_imgfilepath_txt_two(args)
+    # find_images_json(args)
+    creat_train_val_test_filelist()

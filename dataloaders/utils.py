@@ -30,6 +30,9 @@ def decode_segmap(label_mask, dataset, plot=False, args = None):
     elif dataset == 'basicDataset':
         n_classes = args.n_classes
         label_colours = get_basicdataset_labels()
+    elif dataset == 'CustomPot':
+        n_classes = args.n_classes
+        label_colours = get_basicdataset_labels()
     else:
         raise NotImplementedError
 

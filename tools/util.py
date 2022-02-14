@@ -183,6 +183,15 @@ def morphologyEx_open(image, kernel_size = 3, debug = False):
 
     return opening
 
+def multiple_img_with_binary_mask(img, mask):
+    if img.ndim == 3:
+        for i in range(3):
+            img[:,:,i] *= mask
+    elif img.ndim == 2:
+        img *= mask
+
+    return img
+
 
 def morphologyEx_close(image, kernel_size = 3, debug = False):
     if debug:

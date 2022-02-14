@@ -139,31 +139,48 @@ parser.add_argument('--debug', action='store_true', default=False,
                     help='debug flag')
 # parser.add_argument('--infer_thresholds', type=float, default=[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
 parser.add_argument('--infer_thresholds', type=float, default=[0.33, 0.5, 0.6, 0.7, 0.8])
-parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=True,
-                    help='distinguish main(first) left and right rails')
-parser.add_argument('--globally_distinguish_left_right', action='store_true', default=False,
-                    help='globally distinguish left and right rail semantic segmentation')
-parser.add_argument('--sync_single_pair_rail', action='store_true', default=False,
-                    help='sync single pair rail')
+
+
 parser.add_argument('--skip_boundary', action='store_true', default=False, 
                     help="skip boundary pixel to handle annotation noise")
 parser.add_argument('--use_albu', action='store_true', default=True, 
                     help="indicate wheather to use albumentation in training phase for data augmentation")
-parser.add_argument('--only_eval_main_rails', action='store_true', default=False, 
-                    help="only evaluate main pair of rails") 
-parser.add_argument('--add_neg_pixels_on_rails', action='store_true', default=True, 
-                    help="only evaluate main pair of rails")       
-parser.add_argument('--dump_image_for_cal_chamferDist', action='store_true', default=False, 
-                    help="only evaluate main pair of rails")  
-parser.add_argument('--mosaic_vice_rails', action='store_true', default=False, 
-                    help="mosaic vice rails")  
 parser.add_argument('--cal_metric', action='store_true', default=True, 
                     help="calculate miou, acc, etc.")  
 parser.add_argument('--use_txtfile', action='store_true', default=False, 
                     help="use a txt file to load image file paths")  
 parser.add_argument('--use_RandomShadows', action='store_true', default=False, 
-                    help="Random Shadows in training")                     
-                    
+                    help="Random Shadows in training")    
+
+##rail project
+parser.add_argument('--distinguish_left_right_semantic', action='store_true', default=False,
+                    help='distinguish main(first) left and right rails')
+parser.add_argument('--globally_distinguish_left_right', action='store_true', default=False,
+                    help='globally distinguish left and right rail semantic segmentation')
+parser.add_argument('--sync_single_pair_rail', action='store_true', default=False,
+                    help='sync single pair rail')
+parser.add_argument('--only_eval_main_rails', action='store_true', default=False, 
+                    help="only evaluate main pair of rails") 
+parser.add_argument('--add_neg_pixels_on_rails', action='store_true', default=False, 
+                    help="only evaluate main pair of rails")       
+parser.add_argument('--dump_image_for_cal_chamferDist', action='store_true', default=False, 
+                    help="only evaluate main pair of rails")  
+parser.add_argument('--mosaic_vice_rails', action='store_true', default=False, 
+                    help="mosaic vice rails")  
+
+
+##pot project
+parser.add_argument('--diff_all_classes', action='store_true', default=False, 
+                    help="distinguish all classes") 
+parser.add_argument('--ignore_huahen', action='store_true', default=False, 
+                    help="ignore huahen") 
+parser.add_argument('--ignore_zhoubian', action='store_true', default=False, 
+                    help="ignore zhoubian") 
+
+parser.add_argument('--pot_train_mode', type=int, default = -1, 
+                    help="pot train mode") 
+
+
 args = parser.parse_args()
 
 # args.dataset_dir = Path.db_root_dir(args.dataset)

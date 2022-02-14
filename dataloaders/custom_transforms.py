@@ -87,6 +87,24 @@ class RandomHorizontalFlip(object):
         sample['label'] = mask
         return sample
 
+class RandomVerticalFlip(object):
+    def __init__(self, args = None):
+        self.args = args
+    def __call__(self, sample):
+        if self.args.distinguish_left_right_semantic:
+            return sample
+        img = sample['image']
+        mask = sample['label']
+        if random.random() < 0.5:
+            img = img.transpose(Image.FLIP_TOP_BOTTOM)
+            mask = mask.transpose(Image.FLIP_TOP_BOTTOM)
+        # return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
+
+
 class RandomRotate(object):
     def __init__(self, degree):
         self.degree = degree
@@ -135,8 +153,8 @@ class RandomScaleCrop(object):
             short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
         img = sample['image']
         mask = sample['label']
-        # random scale (short edge)
-        
+
+        ### random scale (short edge)
         w, h = img.size
         if h > w:
             ow = short_size
@@ -146,13 +164,15 @@ class RandomScaleCrop(object):
             ow = int(1.0 * w * oh / h)
         img = img.resize((ow, oh), Image.BILINEAR)
         mask = mask.resize((ow, oh), Image.NEAREST)
-        # pad crop
+
+        ### bottom and right pad
         if short_size < self.crop_size:
             padh = self.crop_size - oh if oh < self.crop_size else 0
             padw = self.crop_size - ow if ow < self.crop_size else 0
             img = ImageOps.expand(img, border=(0, 0, padw, padh), fill=0)
             mask = ImageOps.expand(mask, border=(0, 0, padw, padh), fill=self.fill)
-        # random crop crop_size
+
+        ### random crop crop_size
         w, h = img.size
         x1 = random.randint(0, w - self.crop_size)
         y1 = random.randint(0, h - self.crop_size)
@@ -216,6 +236,105 @@ class FixScaleCrop(object):
 
         # return {'image': img,
         #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
+
+class CenterPadAndCrop(object):
+    def __init__(self, crop_size, args = None):
+        self.crop_size = crop_size
+        self.args = args
+        self.fill = args.ignore_index
+
+    def __call__(self, sample):
+        if self.args.testValTrain <= 1:
+            return sample
+        if random.random() < 0.5:
+            return sample
+        # print('sample', sample)
+        img = sample['image']
+        mask = sample['label']
+
+        ##center pad
+        w, h = img.size
+        # if w > h >= self.crop_size:
+        #     left, top, right, bottom = 0, 0, 0, 0
+        # elif h > w >= self.crop_size:
+        #     left, top, right, bottom = 0, 0, 0, 0
+        # elif w >= self.crop_size >= h:
+        #     left, right = 0, 0
+        #     top = (self.crop_size - h)//2
+        #     bottom = self.crop_size - h - top
+        # elif h >= self.crop_size >= w:
+        #     top, bottom = 0, 0
+        #     left = (self.crop_size - w)//2
+        #     right = self.crop_size - w - left
+        # elif self.crop_size > w > h:
+        #     left = (self.crop_size - w)//2
+        #     right = self.crop_size - w - left
+        #     top = (self.crop_size - h)//2
+        #     bottom = self.crop_size - h - top
+        # elif self.crop_size > h >w:
+        #     left = (self.crop_size - w)//2
+        #     right = self.crop_size - w - left
+        #     top = (self.crop_size - h)//2
+        #     bottom = self.crop_size - h - top
+        # else:
+        #     pass
+        left = (self.crop_size - w)//2 if w < self.crop_size else 0
+        right = self.crop_size - w - left if w < self.crop_size else 0
+        top = (self.crop_size - h)//2 if h < self.crop_size else 0
+        bottom = self.crop_size - h - top if h < self.crop_size else 0
+
+        img = ImageOps.expand(img, border=(left, top, right, bottom), fill=0)
+        mask = ImageOps.expand(mask, border=(left, top, right, bottom), fill=self.fill)
+        
+        ### center crop
+        w, h = img.size
+        x1 = int(round((w - self.crop_size) / 2.))
+        y1 = int(round((h - self.crop_size) / 2.))
+        img = img.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
+        mask = mask.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
+
+
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
+
+
+class CenterPadRandomCrop(object):
+    def __init__(self, crop_size, args = None):
+        self.crop_size = crop_size
+        self.args = args
+        self.fill = args.ignore_index
+
+    def __call__(self, sample):
+        if self.args.testValTrain <= 1:
+            return sample
+        if random.random() < 0.5:
+            return sample
+        # print('sample', sample)
+        img = sample['image']
+        mask = sample['label']
+
+        ##center pad
+        w, h = img.size
+        left = (self.crop_size - w)//2 if w < self.crop_size else 0
+        right = self.crop_size - w - left if w < self.crop_size else 0
+        top = (self.crop_size - h)//2 if h < self.crop_size else 0
+        bottom = self.crop_size - h - top if h < self.crop_size else 0
+
+        img = ImageOps.expand(img, border=(left, top, right, bottom), fill=0)
+        mask = ImageOps.expand(mask, border=(left, top, right, bottom), fill=self.fill)
+        
+        ##random crop
+        w, h = img.size
+        x1 = random.randint(0, w - self.crop_size)
+        y1 = random.randint(0, h - self.crop_size)
+        img = img.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
+        mask = mask.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
+
+
         sample['image'] = img
         sample['label'] = mask
         return sample

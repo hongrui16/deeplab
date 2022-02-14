@@ -308,8 +308,49 @@ def convert_json_and_mosaic_image(args):
         # if i > 10:
         #     break
 
+def read_all_label_name_from_json(args):
+    input_json_dir = '/home/hongrui/project/metro_pro/dataset/pot_20220108'
 
+    json_names = os.listdir(input_json_dir)
+    
+    labelnames = []
+    for i, json_name in enumerate(json_names):
+        print(f'processing {json_name} {i+1}/{len(json_names)}')
+        if not '.json' in json_name:
+            continue
+        ori_json_filepath = os.path.join(input_json_dir, json_name)
+        data = json.load(open(ori_json_filepath))
+        for shape in sorted(data["shapes"], key=lambda x: x["label"]):
+            label_name = shape["label"]
+            if label_name in labelnames:
+                continue
+            else:
+                labelnames.append(label_name)
 
+    print('labelnames', labelnames)
+
+def convert_pot_json_to_mask():
+    label_names = ['LaSi_rect', 'TuQi', 'ZhouBian', 'HuaHen_rect', 'pot', 'HuaHen']
+
+    output_dir = '/home/hongrui/project/metro_pro/dataset/pot_seg'
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    input_json_dir = '/home/hongrui/project/metro_pro/dataset/pot_20220108'
+
+    json_names = os.listdir(input_json_dir)
+    
+    labelnames = []
+    for i, json_name in enumerate(json_names):
+        print(f'processing {json_name} {i+1}/{len(json_names)}')
+        if not '.json' in json_name:
+            continue
+        ori_json_filepath = os.path.join(input_json_dir, json_name)
+        data = json.load(open(ori_json_filepath))
+        for shape in sorted(data["shapes"], key=lambda x: x["label"]):
+            label_name = shape["label"]
+
+    
 
 if __name__ == '__main__':
 
@@ -341,4 +382,5 @@ if __name__ == '__main__':
 
     # split_train_val_dataset_3rd(args)
     # convert_json_to_label(args)
-    convert_json_and_mosaic_image(args)
+    # convert_json_and_mosaic_image(args)
+    read_all_label_name_from_json(args)

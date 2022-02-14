@@ -32,9 +32,12 @@ using Pascal VOC 2012, SBD, Cityscapes, and basicDataset(customer-made) datasets
         /label
             c.png
             ...
+            
 ```
-
-
+## pot label names
+```
+label_names = ['pot', 'LaSi_rect', 'TuQi', 'ZhouBian', 'HuaHen_rect', 'HuaHen']
+```
 
 ## Train, Val, and Test selection
 args.testValTrain: '-1: infer, 0: test, 1: testval, 2: train, 3: trainval, 4: trainvaltest'
