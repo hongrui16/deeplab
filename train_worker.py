@@ -43,6 +43,7 @@ class distWorker(object):
         # Define Dataloader
         kwargs = {'num_workers': args.workers, 'pin_memory': True}
         self.train_loader, self.val_loader, self.test_loader, self.nclass = make_data_loader(args, **kwargs)
+        args.n_classes = self.nclass
         
         # Define network
         print(f'rank {args.rank} Define network')

@@ -34,7 +34,9 @@ def decode_segmap(label_mask, dataset, plot=False, args = None):
         n_classes = args.n_classes
         label_colours = get_basicdataset_labels()
     else:
-        raise NotImplementedError
+        n_classes = args.n_classes
+        label_colours = get_basicdataset_labels()
+        # print('NotImplementedError') 
 
     r = label_mask.copy()
     g = label_mask.copy()

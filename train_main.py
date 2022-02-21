@@ -121,7 +121,7 @@ parser.add_argument('--base_size', type=int, default=640)
 parser.add_argument('--crop_size', type=int, default=640)
 parser.add_argument('--max_size', type=int, default=1080)
 parser.add_argument('--rotate_degree', type=int, default=15)
-parser.add_argument('--n_classes', type=int, default=3)
+parser.add_argument('--n_classes', type=int, default=None)
 parser.add_argument('--dataset', type=str, default='basicDataset')
 parser.add_argument('--dataset_dir', type=str, default=None, help='dataset dir')
 parser.add_argument('--testValTrain', type=int, default=-2, 

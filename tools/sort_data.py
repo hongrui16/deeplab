@@ -27,6 +27,10 @@ from labelme import utils
 import imgviz
 import random
 import glob
+from pascal import PascalVOC
+
+from pathlib import Path
+
 
 from util import *
 
@@ -1109,6 +1113,48 @@ def creat_train_val_test_filelist():
     write_list_to_txt(os.path.join(output_dir, 'val.txt'), val_filepaths)
     write_list_to_txt(os.path.join(output_dir, 'train.txt'), train_filepaths)
 
+
+def sort_GC10_DET():
+    par_dir = '/comp_robot/hongrui/pot_pro/GC10-DET'
+    cls_names = ['1_chongkong', '2_hanfeng', '3_yueyawan', '4_shuiban', '5_youban', '6_siban', '7_yiwu', '8_yahen', '9_zhehen', '10_yaozhe']
+
+    dirs = ['train', 'test', 'val']
+    class_names = []
+    for d in dirs:
+        input_dir = os.path.join(par_dir, d, 'xml')
+        output_dir = os.path.join(par_dir, d, 'label')
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        ds = Path(input_dir)
+        xml_files = ds.glob("*.xml")
+        xmls = os.listdir(input_dir)
+        i = 1
+        # for file in xml_files:
+        for fl in xmls:
+            file = os.path.join(input_dir, fl)
+            print(f'processing {d}, {i}/{len(os.listdir(input_dir))}, {file}')
+            ann = PascalVOC.from_xml(file)
+            label_filepath = file.replace('xml/', 'label/').replace('.xml', '.png')
+            img_filepath = file.replace('xml/', 'image/').replace('.xml', '.jpg')
+            # print('img_filepath', img_filepath)
+            img = cv2.imread(img_filepath)
+            mask = np.zeros(img.shape[:2])
+            for obj in ann.objects:
+                xmin, ymin = (obj.bndbox.xmin, obj.bndbox.ymin)
+                xmax, ymax = (obj.bndbox.xmax, obj.bndbox.ymax)
+                label_name = obj.name
+                if not label_name in cls_names:
+                    continue
+                label_index = cls_names.index(label_name) + 1
+                mask[ymin:ymax, xmin:xmax] = label_index
+                # if not label_name in class_names:
+                #     class_names.append(label_name)
+            cv2.imwrite(label_filepath, mask.astype(np.uint8))
+            i += 1
+    # print(class_names)
+
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='aligment')
@@ -1162,4 +1208,5 @@ if __name__ == '__main__':
     # create_imgfilepath_txt(args)
     # create_imgfilepath_txt_two(args)
     # find_images_json(args)
-    creat_train_val_test_filelist()
+    # creat_train_val_test_filelist()
+    sort_GC10_DET()

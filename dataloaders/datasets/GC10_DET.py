@@ -20,7 +20,7 @@ import albumentations as albu
 import random
 from tools.util import *
 
-class CustomPot(Dataset):
+class GC10_DET(Dataset):
 
     def __init__(self, args, root=None, split="train"):
         self.args = args
@@ -133,29 +133,16 @@ class CustomPot(Dataset):
 
     def encode_segmap(self, mask, img = None):
         '''
-        label_names = ['pot', 'LaSi_rect', 'TuQi', 'ZhouBian', 'HuaHen_rect', 'HuaHen']
-                        0      1            2       3           4              5
+        label_names = ['bg',  '1_chongkong', '2_hanfeng', '3_yueyawan', '4_shuiban', '5_youban', '6_siban', '7_yiwu', '8_yahen', '9_zhehen', '10_yaozhe']
         '''        
         if mask.any() > 0:
             mask_bk = mask.copy()
-            # if not self.args.diff_all_classes:
-            #     mask[mask_bk>0] = 1
-            # if self.args.ignore_huahen:
-            #     mask[mask_bk>3] = 0
-            # if self.args.ignore_zhoubian:
-            #     mask[mask_bk==3] = 0
             if self.args.pot_train_mode == 1: #不区分类别
-                mask[mask_bk>0] = 1
-            elif self.args.pot_train_mode == 2:#区分类别，不训练划痕
-                mask[mask_bk>3] = 0
-            elif self.args.pot_train_mode == 3:#区分类别，不训练划痕，皱边,
-                mask[mask_bk>=3] = 0
-            elif self.args.pot_train_mode == 3:#区分类别，不训练划痕，皱边，凸起, 只训练拉丝
-                mask[mask_bk>=2] = 0
-            elif self.args.pot_train_mode == 4:#区分类别，不训练划痕，皱边，拉丝，只训练凸起
-                mask[mask_bk>2] = 0
-                mask[mask_bk==1] = 0
-                mask[mask_bk==2] = 1
+                mask[mask_bk>0] = 1   
+            elif self.args.pot_train_mode == 2:#区分类别
+                pass
+            elif self.args.pot_train_mode == 3:#只训练1_chongkong和2_hanfeng，并区分类别
+                mask[mask_bk>2] = 0  
             mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
         return mask, img.astype(np.uint8)
 

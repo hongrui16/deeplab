@@ -1,4 +1,4 @@
-from dataloaders.datasets import cityscapes, coco, combine_dbs, pascal, sbd, basicDataset, custom_pot
+from dataloaders.datasets import cityscapes, coco, combine_dbs, pascal, sbd, basicDataset, custom_pot, GC10_DET
 from torch.utils.data import DataLoader
 import torch
 import sys
@@ -84,6 +84,40 @@ def make_data_loader(args, **kwargs):
             num_class = 2
         elif args.pot_train_mode == 4:#区分类别，不训练划痕，皱边，拉丝
             num_class = 2
+        else:
+            num_class = args.n_classes
+
+        # train_sampler = torch.utils.data.distributed.DistributedSampler(train_set)
+        if torch.distributed.is_initialized():
+            train_sampler = torch.utils.data.distributed.DistributedSampler(train_set, num_replicas=args.world_size, rank=args.rank, shuffle = True)
+            val_sampler = torch.utils.data.distributed.DistributedSampler(val_set, num_replicas=args.world_size, rank=args.rank, shuffle = True)
+            test_sampler = torch.utils.data.distributed.DistributedSampler(test_set, num_replicas=args.world_size, rank=args.rank, shuffle = True)
+        else:
+            train_sampler = None
+            val_sampler = None
+            test_sampler = None
+
+        train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=(train_sampler is None), drop_last=True, sampler=train_sampler, **kwargs)
+        val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=(val_sampler is None), drop_last=False, sampler=val_sampler, **kwargs)
+        test_loader = DataLoader(test_set, batch_size=args.test_batch_size, shuffle=(test_sampler is None), drop_last=False, sampler=test_sampler, **kwargs)
+        
+        return train_loader, val_loader, test_loader, num_class
+
+    elif args.dataset == 'GC10_DET':
+        # print(f'calling {__file__}, {sys._getframe().f_lineno}')
+        '''
+        label_names = ['bg',  '1_chongkong', '2_hanfeng', '3_yueyawan', '4_shuiban', '5_youban', '6_siban', '7_yiwu', '8_yahen', '9_zhehen', '10_yaozhe']
+        '''    
+        train_set = GC10_DET.GC10_DET(args, split="train")
+        val_set = GC10_DET.GC10_DET(args, split="val")
+        test_set = GC10_DET.GC10_DET(args, split="test")
+        # test_set = basicDataset.BasicDataset(args, split="train")
+        if args.pot_train_mode == 1: #不区分类别
+            num_class = 2
+        elif args.pot_train_mode == 2:#区分类别
+            num_class = 11
+        elif args.pot_train_mode == 3:#只训练1_chongkong和2_hanfeng，并区分类别
+            num_class = 3
         else:
             num_class = args.n_classes
 

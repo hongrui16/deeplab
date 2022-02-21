@@ -186,7 +186,7 @@ def main(args):
         json.dump(data, f)
 
 
-def convert_info(args):
+def convert_labelme_to_mask(args):
     input_dir = args.input_dir
     output_dir = args.output_dir
     
@@ -235,7 +235,7 @@ def convert_info(args):
             if label == 'pot':
                 mask_t = np.asfortranarray(mask.astype(np.uint8))
                 mask_t = pycocotools.mask.encode(mask_t)
-                area = float(pycocotools.mask.area(mask_t))
+                # area = float(pycocotools.mask.area(mask_t))
                 pot_bbox = pycocotools.mask.toBbox(mask_t).flatten().tolist()
                 # print('pot_bbox', pot_bbox)
                 pot_bbox = list(map(int, pot_bbox))                
@@ -269,6 +269,87 @@ def convert_info(args):
         #     break
 
 
+def convert_labelme_to_bbox(args):
+    input_dir = args.input_dir
+    output_dir = args.output_dir
+    
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108'
+    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_cut/annos'
+    # output_dir = 'temp'
+
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    label_names = ['pot', 'LaSi_rect', 'TuQi', 'ZhouBian', 'HuaHen_rect', 'HuaHen']
+
+    
+
+    # json_files = ['IMG_20220104_094754.json', 'IMG_20220104_101800.json']
+    # json_files = os.listdir(input_dir)
+    label_files = glob.glob(osp.join(input_dir, "*.json"))
+    random.shuffle(label_files)
+    for idx, filename in enumerate(label_files):
+        if not '.json' in filename:
+            continue
+        print(f"processing {idx}/{len(label_files)}, {filename}")
+        # filepath = os.path.join(input_dir, filename)
+        base = osp.splitext(osp.basename(filename))[0]
+        # print(base)
+        in_img_filepath = osp.join(input_dir, base + ".jpg")
+        out_txt_filepath = osp.join(output_dir, base + ".txt")
+        label_info = labelme.LabelFile(filename=filename)
+        img = cv2.imread(in_img_filepath)
+
+        # masks = np.zeros(img.shape[:2], dtype=np.uint8)  # for area
+ 
+        # print(img.shape)
+        anno_list  = []
+        for cnt, shape in enumerate(label_info.shapes):
+            points = shape["points"]
+            label = shape["label"]
+            if not label in label_names:
+                continue
+            
+
+            shape_type = shape.get("shape_type", "polygon")
+            mask = labelme.utils.shape_to_mask(
+                img.shape[:2], points, shape_type
+            )
+            
+            mask_t = np.asfortranarray(mask.astype(np.uint8))
+            mask_t = pycocotools.mask.encode(mask_t)
+            # area = float(pycocotools.mask.area(mask_t))
+            bbox = pycocotools.mask.toBbox(mask_t).flatten().tolist()
+            
+            if label == 'pot':
+                pot_bbox = list(map(int, bbox))                
+            else:
+                obj_bbox = list(map(int, bbox))
+                label_index = label_names.index(label) - 1
+            anno_list.append([label_index] + obj_bbox)
+
+        pot_xmin, pot_ymin, pot_w, pot_h = pot_bbox
+        annos = []
+        for anno in anno_list:
+            cls_idx = anno[0]
+            xmin = (anno[1] - pot_xmin)/pot_w
+            ymin = (anno[2]-pot_ymin)/pot_h
+            w = anno[3]/pot_w
+            h = anno[4]/pot_h
+            xmin = round(xmin, 4)
+            ymin = round(ymin, 4)
+            w = round(w, 4)
+            h = round(h, 4)
+            ele = f'{cls_idx} {xmin} {ymin} {w} {h}'
+            annos.append(ele)
+            # cv2.imwrite(os.path.join(output_dir, base + f"_{cnt}_{label}.jpg"), )
+
+        
+        write_list_to_txt(out_txt_filepath, annos)
+        # if idx > 4:
+        #     break
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -282,4 +363,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # main(args)
-    convert_info(args)
+    convert_labelme_to_bbox(args)

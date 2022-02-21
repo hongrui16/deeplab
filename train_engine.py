@@ -61,9 +61,14 @@ def main_worker(gpu, ngpus_per_node, args):
             'pascal': 0.007,
             'basicdataset': 0.01,
             'custompot': 0.01,
-
+            'gc10_det': 0.01,
         }
-        args.lr = lrs[args.dataset.lower()]
+        try:
+            args.lr = lrs[args.dataset.lower()]
+        except Exception as e:
+            print(f'KeyError: {args.dataset.lower()}')
+            args.lr = 0.01
+
 
     if args.checkname is None:
         args.checkname = 'deeplab-'+str(args.backbone)
