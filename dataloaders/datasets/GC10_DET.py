@@ -11,7 +11,6 @@ from dataloaders import custom_transforms as tr
 import logging
 from os import listdir
 from os.path import splitext
-from mypath import Path
 import torch
 from torch.utils.data import Dataset
 import cv2

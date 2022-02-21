@@ -24,7 +24,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 import os
-from mypath import Path
+
 from train_engine import main_worker
 
 parser = argparse.ArgumentParser(description='IDEA Training')
