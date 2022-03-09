@@ -1067,10 +1067,12 @@ def create_imgfilepath_txt_two(args):
         lists = read_txt_to_list(txt_filepath)
         print(f'---------------------------{lists[-1]}')
 
-def find_images_json(args):
+def find_matched_images_json(args):
 
     input_img_dir   = args.input_dir
     output_dir      = args.output_dir
+    
+    
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -1087,9 +1089,42 @@ def find_images_json(args):
                     print(f'move {img_filepath} -> {out_img_filepath}')
 
 
+
+def find_images_json(args):
+
+    # input_img_dir   = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220222'
+    # output_dir      = '/home/hongrui/project/metro_pro/dataset/pot/20220222'
+    
+    input_img_dir   = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108'
+    output_dir      = '/home/hongrui/project/metro_pro/dataset/pot/20220108'
+    
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    for root, dirs, files in os.walk(input_img_dir, topdown=True):
+        for name in files:
+            if '.json' in name:
+                json_filepath = os.path.join(root, name)
+                out_json_filepath = os.path.join(output_dir, name)
+                shutil.move(json_filepath, out_json_filepath)
+                print(f'move {json_filepath} -> {out_json_filepath}')
+            elif '.jpg' in name:
+                img_filepath = os.path.join(root, name)
+                out_img_filepath = os.path.join(output_dir, name)
+                shutil.move(img_filepath, out_img_filepath)
+                print(f'move {img_filepath} -> {out_img_filepath}')
+                    
 def creat_train_val_test_filelist():
     input_dir = '/home/hongrui/project/metro_pro/dataset/pot_20220108_cut'
     output_dir = '/home/hongrui/project/metro_pro/dataset/'
+
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/data'
+    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/'
+    
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/data'
+    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/'
+
+    
 
     dirs =  ['val',   'test', 'train']
     label_files = glob.glob(osp.join(input_dir, "*.png"))
@@ -1154,6 +1189,44 @@ def sort_GC10_DET():
     # print(class_names)
 
 
+def calculate_mean_value():
+    input_dir = '/comp_robot/hongrui/pot_pro/severstal-steel-defect-detection/train_images/'
+    
+    img_names = os.listdir(input_dir)
+    random.shuffle(img_names)
+    
+    mean_value = 0
+    for i, img_name in enumerate(img_names):
+        print(f'{i}/500')
+        img_filepath = os.path.join(input_dir, img_name)
+        img = cv2.imread(img_filepath, 0)
+        mean_v = img.mean()
+        mean_value += mean_v
+        if i > 499:
+            break
+    
+    print(mean_value/500)
+
+def read_imgfilepath():
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/'
+    splits = ['train', 'test', 'val']
+    for sp in splits:
+        txt_filepath = os.path.join(input_dir, f'{sp}.txt')
+        img_filepaths = read_txt_to_list(txt_filepath)
+        for img_filepath in img_filepaths:
+            if not os.path.exists(img_filepath):
+                print(f'not exists {img_filepath}')
+                
+            img = cv2.imread(img_filepath)
+            label_filepath = img_filepath.replace('.jpg', '.png')
+            label = cv2.imread(label_filepath)
+            if not isinstance(img, np.ndarray):
+                print('img', img_filepath)
+            if not isinstance(label, np.ndarray):
+                print('label', label_filepath)
+                
+    
+    
 
 if __name__ == '__main__':
 
@@ -1209,4 +1282,7 @@ if __name__ == '__main__':
     # create_imgfilepath_txt_two(args)
     # find_images_json(args)
     # creat_train_val_test_filelist()
-    sort_GC10_DET()
+    # sort_GC10_DET()
+
+    # calculate_mean_value()
+    read_imgfilepath()

@@ -83,20 +83,35 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # return
     print(f'rank {args.rank} Starting Epoch: {worker.args.start_epoch}, Total Epoches: {worker.args.epochs}')
+    is_best_epoch = False
     if args.testValTrain >= 2:
         for epoch in range(worker.args.start_epoch, worker.args.epochs):
             worker.training(epoch)
             # if not worker.args.no_val and epoch % args.eval_interval == (args.eval_interval - 1):
             if args.testValTrain > 2 and epoch % args.eval_interval == (args.eval_interval - 1):
-                worker.validation(epoch)
-            if args.testValTrain == 4 and epoch % 5 == 0:
+                is_best_epoch, _ = worker.validation(epoch)
+            if args.testValTrain == 4 and (epoch % 5 == 0 or is_best_epoch):
                 worker.test(epoch)
+                is_best_epoch = False
             if args.master:
                 worker.saver.write_log_to_txt('\n')
-    elif args.testValTrain >= 0:
-        worker.validation()
-        worker.test()
-    elif args.testValTrain >= -1:
+                
+    elif 2 > args.testValTrain >= 0:
+        avg_val_miou = 0
+        avg_test_miou = 0
+        for _ in range(3):
+            _, val_mIoU = worker.validation()
+            test_mIoU = worker.test()
+            avg_val_miou += val_mIoU
+            avg_test_miou += test_mIoU
+        worker.saver.write_log_to_txt('\n')
+        avg_val_miou = round(avg_val_miou/3, 4)
+        avg_test_miou = round(avg_test_miou/3, 4)
+        if args.master:
+            worker.saver.write_log_to_txt(f'val/avg mIoU@argmax: {avg_val_miou}\n')
+            worker.saver.write_log_to_txt(f'test/avg mIoU@argmax: {avg_test_miou}\n')
+        
+    elif 0 > args.testValTrain >= -1:
         worker.test()
     else:
         print('error, please specify a mode')

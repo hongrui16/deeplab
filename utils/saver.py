@@ -77,9 +77,8 @@ class Saver(object):
             log_file.write(key + ':' + str(val) + '\n')
         log_file.write('\n')
         # current_time = strftime("%Y-%m-%d-%H-%M-%S", gmtime())
-        tz = pytz.timezone('Asia/Shanghai')
-        current_time = datetime.datetime.now(tz).strftime("%Y-%m-%d_%H-%M-%S")
-        log_file.write('current_time' + ':' + str(current_time) + '\n')
+        current_time = self.get_current_time()
+        log_file.write('current_time' + ':' + current_time + '\n')
         log_file.write('\n')
 
         log_file.close()# 
@@ -138,3 +137,8 @@ class Saver(object):
             if head is not None:
                 writer.writerow(head)
             writer.writerow(row)
+            
+    def get_current_time(self):
+        tz = pytz.timezone('Asia/Shanghai')
+        current_time = datetime.datetime.now(tz).strftime("%Y-%m-%d_%H-%M-%S")
+        return str(current_time)

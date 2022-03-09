@@ -350,6 +350,392 @@ def convert_labelme_to_bbox(args):
         #     break
 
 
+
+
+def convert_labelme_to_mask_and_cut_block(args):
+    input_dir = args.input_dir
+    output_dir = args.output_dir
+    
+    input_dir_img = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108'
+    input_ano_dir = 'temp'
+    
+    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_cutblock'
+    # output_dir = 'temp'
+
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    label_names = ['pot', 'LaSi_rect', 'TuQi', 'ZhouBian', 'HuaHen_rect', 'HuaHen', 'block', 'neg_block']
+
+    
+
+    # json_files = ['IMG_20220104_094754.json', 'IMG_20220104_101800.json']
+    # json_files = os.listdir(input_dir)
+    label_files = glob.glob(osp.join(input_ano_dir, "*.json"))
+    random.shuffle(label_files)
+    for idx, filename in enumerate(label_files):
+        if not '.json' in filename:
+            continue
+        print(f"processing {idx}/{len(label_files)}, {filename}")
+        # filepath = os.path.join(input_dir, filename)
+        base = osp.splitext(osp.basename(filename))[0]
+        # print(base)
+        in_img_filepath = osp.join(input_dir_img, base + ".jpg")
+        out_img_filepath = osp.join(output_dir, base + ".jpg")
+        label_info = labelme.LabelFile(filename=filename)
+        img = cv2.imread(in_img_filepath)
+
+        masks = np.zeros(img.shape[:2], dtype=np.int64)  # for area
+ 
+        # print(img.shape)
+
+        for cnt, shape in enumerate(label_info.shapes):
+            points = shape["points"]
+            label = shape["label"]
+            if not label in label_names:
+                continue
+            label_index = label_names.index(label)
+
+            shape_type = shape.get("shape_type", "polygon")
+            # print('shape_type', shape_type, 'label', label)
+            mask = labelme.utils.shape_to_mask(
+                img.shape[:2], points, shape_type
+            )
+            # print('mask', mask[mask == True])
+            mask = mask.astype(np.uint8)
+            if label == 'block':
+                mask_t = np.asfortranarray(mask)
+                mask_t = pycocotools.mask.encode(mask_t)
+                # area = float(pycocotools.mask.area(mask_t))
+                block_bbox = pycocotools.mask.toBbox(mask_t).flatten().tolist()
+                # print('block_bbox', block_bbox)
+                block_bbox = list(map(int, block_bbox))      
+
+            elif label == 'neg_block':
+                mask_t = np.asfortranarray(mask)
+                mask_t = pycocotools.mask.encode(mask_t)
+                # area = float(pycocotools.mask.area(mask_t))
+                neg_block_bbox = pycocotools.mask.toBbox(mask_t).flatten().tolist()                
+                neg_block_bbox = list(map(int, neg_block_bbox))      
+                # print('neg_block_bbox', neg_block_bbox)        
+            else:
+                masks += mask*label_index
+            # cv2.imwrite(os.path.join(output_dir, base + f"_{cnt}_{label}.jpg"), )
+        masks *= 50
+        if len(block_bbox):
+            xmin, ymin, w, h = block_bbox
+        else:
+            xmin, ymin, w, h = neg_block_bbox
+        
+        img = multiple_img_with_binary_mask(img.copy(), mask)
+        img = img[ymin:ymin+h, xmin:xmin+w]
+
+        masks = multiple_img_with_binary_mask(masks.copy(), mask)
+        # masks[mask<=0] = 255
+        masks = masks[ymin:ymin+h, xmin:xmin+w]
+        # print('img.shape', img.shape)
+        cv2.imwrite(os.path.join(output_dir, base + ".jpg"), img)
+        cv2.imwrite(os.path.join(output_dir, base + ".png"), masks)
+
+        # masks_col = colorize_mask_to_bgr(masks)
+        # cv2.imwrite(os.path.join(output_dir, base + f"_blend.jpg"), masks_col)
+
+        # compose = 0.65*img + 0.35*masks_col
+        # cv2.imwrite(os.path.join(output_dir, base + f"_compose.jpg"), compose.astype(np.uint8))
+
+def convert_labelme_jsonfile():
+
+    label_names = ['lasi_heavy', 'lasi_medium', 'lasi_slight',
+        'gengshang_heavy', 'gengshang_medium', 'gengshang_slight',  
+        'gengshi_heavy', 'gengshi_medium', 'gengshi_slight', ]
+
+
+    in_img_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108'
+    ano_fore_dir = 'temp'
+    ano_bk_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108'
+
+    
+    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/data'
+    # output_dir = 'tempout2'
+
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    label_filepaths = glob.glob(osp.join(ano_fore_dir, "*.json"))
+    # random.shuffle(label_filepaths)
+    for idx, filepath in enumerate(label_filepaths):
+        if not '.json' in filepath:
+            continue
+        # if idx == 0:
+        #     continue
+        print(f"processing {idx}/{len(label_filepaths)}, {filepath}")
+        # filepath = os.path.join(input_dir, filename)
+        base = osp.splitext(osp.basename(filepath))[0]
+        # print(base)
+        in_img_filepath = osp.join(in_img_dir, base + ".jpg")
+        out_img_filepath = osp.join(output_dir, base + ".jpg")
+        fore_label_info = labelme.LabelFile(filename=filepath)
+        bk_filepath = os.path.join(ano_bk_dir, base + ".json")
+        bk_label_info = labelme.LabelFile(filename=bk_filepath)
+        img = cv2.imread(in_img_filepath)
+
+    
+        for cnt, shape in enumerate(bk_label_info.shapes):
+            points = shape["points"]
+            label = shape["label"]
+            if not label == 'pot':
+                continue
+            
+            shape_type = shape.get("shape_type", "polygon")
+            maskpot = labelme.utils.shape_to_mask(
+                img.shape[:2], points, shape_type
+            )
+        
+            mask_t = np.asfortranarray(maskpot.astype(np.uint8))
+            mask_t = pycocotools.mask.encode(mask_t)
+            # area = float(pycocotools.mask.area(mask_t))
+            pot_bbox = pycocotools.mask.toBbox(mask_t).flatten().tolist()
+            # print('pot_bbox', pot_bbox)
+            pot_bbox = list(map(int, pot_bbox))     
+
+        masks = np.zeros(img.shape[:2], dtype=np.uint8)  # for area
+        # masks_t = np.zeros(img.shape[:2], dtype=np.uint8)  # for area
+        # print('fore_label_info.shapes', fore_label_info.shapes)
+
+        for cnt, shape in enumerate(fore_label_info.shapes):
+            points = shape["points"]
+            label = shape["label"]
+            # print('label', label)
+            if not label in label_names:
+                continue
+            label_index = label_names.index(label) 
+            product = label_index // 3
+            basis = label_index % 3 + 1
+            multipler = product*10 + basis
+
+            # print('label', label, 'multipler', multipler)
+            shape_type = shape.get("shape_type", "polygon")
+            # print('shape_type', shape_type, 'label', label)
+            mask = labelme.utils.shape_to_mask(
+                img.shape[:2], points, shape_type
+            )
+            # print('mask', mask[mask == True])
+            mask = mask.astype(np.uint8)
+            mask[mask > 0] = multipler
+            masks += mask
+            # cv2.imwrite(os.path.join(output_dir, base + f"_{cnt}_{label}.jpg"), )
+        
+        # masks[masks > 0] = 1
+        height, width = masks.shape
+        ynon, xnon = masks.nonzero()
+        y_start, y_end = ynon.min(), ynon.max()
+        x_start, x_end = xnon.min(), xnon.max()
+        target_length = 640
+        if y_end - y_start > target_length or x_end - x_start > target_length:
+            offset_x, offset_y = 500, 500
+        else:
+            h, w = target_length, target_length
+            ori_h = y_end - y_start
+            ori_w = x_end - x_start
+            offset_x = w - ori_w
+            offset_y = h - ori_h
+        xmin = x_start - offset_x // 2 if x_start - offset_x // 2 >= 0 else 0
+        xmax = x_end + offset_x // 2 if x_end + offset_x // 2 <= width else width
+        ymin = y_start - offset_y // 2 if y_start - offset_y // 2 >= 0 else 0
+        ymax = y_end + offset_y // 2 if y_end + offset_x // 2 <= height else height
+        h = ymax - ymin
+        w = xmax - xmin
+
+        img = multiple_img_with_binary_mask(img.copy(), maskpot)
+        masks = multiple_img_with_binary_mask(masks.copy(), maskpot)
+
+        masks[maskpot<=0] = 255
+
+        img = img[ymin:ymin+h, xmin:xmin+w]
+        masks = masks[ymin:ymin+h, xmin:xmin+w]
+
+        # print('img.shape', img.shape)
+        cv2.imwrite(os.path.join(output_dir, base + ".jpg"), img)
+        cv2.imwrite(os.path.join(output_dir, base + ".png"), masks)
+        # cv2.imwrite(os.path.join(output_dir, base + "_t.png"), masks_t)
+
+        masks_col = colorize_mask_to_bgr(masks)
+        cv2.imwrite(os.path.join(output_dir, base + f"_blend.jpg"), masks_col)
+
+        compose = 0.65*img + 0.35*masks_col
+        cv2.imwrite(os.path.join(output_dir, base + f"_compose.jpg"), compose.astype(np.uint8))
+        print(img.shape)
+        print()
+        # if idx > 6:
+        #     break
+
+
+def newly_convert_labelme_jsonfile():
+    
+    label_dict = {'lasi_heavy': 11, 'lasi_medium':12, 'lasi_slight':13,
+        'gengshang_heavy':21, 'gengshang_medium':22, 'gengshang_slight':23,  
+        'gengshi_heavy':31, 'gengshi_medium':32, 'gengshi_slight':33,
+        'shayan_heavy':41, 'shayan_medium':42, 'shayan_medium':43,
+        'huahen_heavy':51, 'huahen_medium':52, 'huahen_medium':53,
+        'zhoubian_heavy':61, 'zhoubian_medium':62, 'zhoubian_medium':63,
+        'bowen_heavy':71, 'bowen_medium':72, 'bowen_medium':73,
+        'youwu_heavy':81, 'youwu_medium':82, 'youwu_medium':83,
+        }
+    
+    label_names = label_dict.keys()
+    # 
+    in_img_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220108/image'
+    in_anno_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220108/json_3'
+
+    # in_img_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220222/image'
+    # in_anno_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220222/json'
+
+    
+    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/data'
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        
+    label_filepaths = glob.glob(osp.join(in_anno_dir, "*.json"))
+    # random.shuffle(label_filepaths)
+
+    for idx, filepath in enumerate(label_filepaths):
+        pot_bbox = []
+        if not '.json' in filepath:
+            continue
+        # if idx == 0:
+        #     continue
+        # print(f"processing {idx}/{len(label_filepaths)}, {filepath}")
+        # filepath = os.path.join(input_dir, filename)
+        base = osp.splitext(osp.basename(filepath))[0]
+        # print(base)
+        in_img_filepath = osp.join(in_img_dir, base + ".jpg")
+        out_img_filepath = osp.join(output_dir, base + ".jpg")
+        label_info = labelme.LabelFile(filename=filepath)
+        img = cv2.imread(in_img_filepath)
+
+        masks = np.zeros(img.shape[:2], dtype=np.uint8)  # for area
+        col_masks = np.zeros(img.shape[:2], dtype=np.uint8)  # for area
+        
+        for cnt, shape in enumerate(label_info.shapes):
+            points = shape["points"]
+            label_name = shape["label"]
+            shape_type = shape.get("shape_type", "polygon")
+            mask = labelme.utils.shape_to_mask(
+                img.shape[:2], points, shape_type
+            )
+            
+            if label_name == 'pot':
+                maskpot = mask.copy()
+                mask = np.asfortranarray(mask.astype(np.uint8))
+                mask = pycocotools.mask.encode(mask)
+                # area = float(pycocotools.mask.area(mask_t))
+                pot_bbox = pycocotools.mask.toBbox(mask).flatten().tolist()
+                # print('pot_bbox', pot_bbox)
+                pot_bbox = list(map(int, pot_bbox))     
+
+            elif label_name in label_names:
+                col_masks[mask] = list(label_names).index(label_name) + 1
+                mask = mask.astype(np.uint8)
+                label_idx = label_dict[label_name]
+                category_id = label_idx // 10
+                defect_level = label_idx % 10
+                
+                mask[mask > 0] = label_idx
+                masks += mask
+                
+        
+        if len(pot_bbox) == 0:
+            continue
+        
+        height, width = masks.shape
+        ynon, xnon = masks.nonzero()
+        y_start, y_end = ynon.min(), ynon.max()
+        x_start, x_end = xnon.min(), xnon.max()
+        target_length = 640
+        if y_end - y_start > target_length or x_end - x_start > target_length:
+            offset_x, offset_y = 500, 500
+        else:
+            h, w = target_length, target_length
+            ori_h = y_end - y_start
+            ori_w = x_end - x_start
+            offset_x = w - ori_w
+            offset_y = h - ori_h
+        xmin = x_start - offset_x // 2 if x_start - offset_x // 2 >= 0 else 0
+        xmax = x_end + offset_x // 2 if x_end + offset_x // 2 <= width else width
+        ymin = y_start - offset_y // 2 if y_start - offset_y // 2 >= 0 else 0
+        ymax = y_end + offset_y // 2 if y_end + offset_x // 2 <= height else height
+        
+        # pxmin, pymin, pw, ph = pot_bbox
+        # pxmax = pxmin + pw
+        # pymax = pymin + ph
+        
+        # xmin = xmin if xmin <= pxmin else pxmin
+        # ymin = ymin if ymin <= pymin else pymin
+        # xmax = xmax if xmax >= pxmax else pxmax
+        # ymax = ymax if ymax >= pymax else pymax
+        
+        h = ymax - ymin
+        w = xmax - xmin
+
+        img = multiple_img_with_binary_mask(img.copy(), maskpot)
+        masks = multiple_img_with_binary_mask(masks.copy(), maskpot)
+        col_masks = multiple_img_with_binary_mask(col_masks.copy(), maskpot)
+
+        masks[maskpot<=0] = 255
+        col_masks[col_masks<=0] = 255
+        
+
+        img = img[ymin:ymin+h, xmin:xmin+w]
+        masks = masks[ymin:ymin+h, xmin:xmin+w]
+        col_masks = col_masks[ymin:ymin+h, xmin:xmin+w]
+
+        # print('img.shape', img.shape)
+        cv2.imwrite(os.path.join(output_dir, base + ".jpg"), img)
+        cv2.imwrite(os.path.join(output_dir, base + ".png"), masks)
+        # cv2.imwrite(os.path.join(output_dir, base + "_t.png"), masks_t)
+
+        col_masks = colorize_mask_to_bgr(col_masks)
+        cv2.imwrite(os.path.join(output_dir, base + f"_blend.jpg"), col_masks)
+
+        compose = 0.65*img + 0.35*col_masks
+        cv2.imwrite(os.path.join(output_dir, base + f"_compose.jpg"), compose.astype(np.uint8))
+        print(f"processing {img.shape} {idx}/{len(label_filepaths)}, {filepath}")
+        # print(img.shape)
+        print()
+        # if idx > 6:
+        #     break
+        
+
+def print_label_names():
+    input_ano_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220222/json'
+    
+    label_files = glob.glob(osp.join(input_ano_dir, "*.json"))
+    random.shuffle(label_files)
+    label_names = []
+    num = 0
+    in_flag = False
+    for idx, filename in enumerate(label_files):
+        if not '.json' in filename:
+            continue
+        print(f"processing {idx}/{len(label_files)}, {filename}")
+        label_info = labelme.LabelFile(filename=filename)
+        for cnt, shape in enumerate(label_info.shapes):
+            label_name = shape["label"]
+            
+            if not label_name in label_names:
+                label_names.append(label_name)
+            if 'medium' in label_name or 'heavy' in label_name:
+                in_flag = True
+            # print(label_name, in_flag)
+        if in_flag:
+            num += 1
+            in_flag = False
+        # print(num,'\n')
+    # label_names = ['lasi_slight', 'gengshi_medium', 'gengshang_slight', 
+    #         'lasi_heavy', 'lasi_medium', 'gengshi_heavy', 'gengshi_slight', 'gengshang_medium']
+    label_names.sort()
+    print(label_names)
+    print(num)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -363,4 +749,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # main(args)
-    convert_labelme_to_bbox(args)
+    # convert_labelme_to_bbox(args)
+    # convert_labelme_to_mask_and_cut_block(args)
+    # print_label_names()
+    # convert_labelme_jsonfile()
+    newly_convert_labelme_jsonfile()

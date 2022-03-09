@@ -383,4 +383,5 @@ if __name__ == '__main__':
     # split_train_val_dataset_3rd(args)
     # convert_json_to_label(args)
     # convert_json_and_mosaic_image(args)
-    read_all_label_name_from_json(args)
+    # read_all_label_name_from_json(args)
+    convert_json(args)

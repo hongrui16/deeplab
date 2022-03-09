@@ -373,6 +373,71 @@ class ShortEdgeCrop(object):
         sample['label'] = mask
         return sample
 
+
+class ShortEdgePad(object):
+    def __init__(self, size, args = None):
+        self.args = args
+        self.size = size
+        self.fill = args.ignore_index
+
+    def __call__(self, sample):
+        img = sample['image']
+        mask = sample['label']
+        w, h = img.size
+        min_v = h if h < w else w
+        if min_v >= self.size:
+            return sample
+        
+        left = (self.size - w)//2 if w < self.size else 0
+        right = self.size - w - left if w < self.size else 0
+        top = (self.size - h)//2 if h < self.size else 0
+        bottom = self.size - h - top if h < self.size else 0
+
+        img = ImageOps.expand(img, border=(left, top, right, bottom), fill=0)
+        mask = ImageOps.expand(mask, border=(left, top, right, bottom), fill=self.fill)
+
+        # return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
+
+
+class RamdomCutPostives(object):
+    def __init__(self, size, args = None):
+        self.args = args
+        self.size = int(1.5 * size)
+        self.fill = args.ignore_index
+
+    def __call__(self, sample):
+        img = sample['image']
+        mask = sample['label']
+        
+        if not self.args.ramdom_cut_postives:
+            return sample
+        w, h = img.size
+
+        label = np.array(mask)
+        label[label == self.args.ignore_index] = 0
+        if not label.any() > 0:
+            return sample
+        
+        nonzero = label.nonzero()
+        non_index = random.randint(0, len(nonzero[0])-1)
+        cx, cy = nonzero[1][non_index], nonzero[0][non_index]
+        
+        x1 = random.randint(0, cx)
+        y1 = random.randint(0, cy)
+        
+        x2 = x1 + self.size if x1 + self.size <= w else w
+        y2 = y1 + self.size if y1 + self.size <= h else h
+
+        img = img.crop((x1, y1, x2, y2))
+        mask = mask.crop((x1, y1, x2, y2))
+        
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
 # sample = {'image': _img, 'label': _target, 'img_name': img_name}
 
 class FixedResize(object):
@@ -381,8 +446,8 @@ class FixedResize(object):
         self.args = args
 
     def __call__(self, sample):
-        if self.args.testValTrain <= 1:
-            return sample
+        # if self.args.testValTrain <= 1:
+        #     return sample
         img = sample['image']
         mask = sample['label']
         # img_name = sample['img_name']

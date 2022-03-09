@@ -130,7 +130,10 @@ class distWorker(object):
         if args.ft:
             args.start_epoch = 0
         if -1 < args.testValTrain < 2 and self.args.master:
-            task_id = args.resume.split('/')[-6]
+            if 'TASK_' in args.resume:
+                task_id = args.resume.split('/')[-6]
+            else:
+                task_id = self.saver.get_current_time()
             # self.saver.write_log_to_csv([''])
             # self.saver.write_log_to_csv([''])
             self.saver.write_log_to_csv([f'{task_id}', ''])
@@ -182,18 +185,20 @@ class distWorker(object):
             self.writer.add_scalar('train/total_loss_epoch', train_loss/num_iter_tr, epoch)
             # print('[Epoch: %d, numImages: %5d]' % (epoch, i * self.args.batch_size + image.data.shape[0]))
             print('Loss: %.5f' % (train_loss/num_iter_tr))
+            print(self.saver.experiment_dir)
+            
 
         # if self.args.no_val and self.args.master:
         if self.args.testValTrain == 2 and self.args.master:
             # testValTrain == 2 only train
             # save checkpoint every epoch
-            is_best = False
+            is_best_epoch = False
             self.saver.save_checkpoint({
                 'epoch': epoch + 1,
                 'state_dict': self.model.module.state_dict(),
                 'optimizer': self.optimizer.state_dict(),
                 'best_pred': self.best_pred,
-            }, is_best)
+            }, is_best_epoch)
         # start = time.time()
 
     def validation(self, epoch = 0):
@@ -202,7 +207,7 @@ class distWorker(object):
         self.reset_evaluators(self.evaluators)
         tbar = tqdm(self.val_loader, desc='\r')
         num_iter_val = len(self.val_loader)
-        is_best = False
+        is_best_epoch = False
         
         val_loss = 0.0
         # return
@@ -249,7 +254,7 @@ class distWorker(object):
                     self.dump_composed_img_pre_label(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
 
         if not self.args.cal_metric:
-            return
+            return s_best_epoch, None
         # Fast test during the training
         Acc = self.evaluator.Pixel_Accuracy()
         Acc_class = self.evaluator.Pixel_Accuracy_Class()
@@ -274,7 +279,7 @@ class distWorker(object):
                 self.saver.write_log_to_txt("Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
 
                 if global_mIoU > self.best_pred:
-                    is_best = True
+                    is_best_epoch = True
                     self.saver.write_log_to_txt("Best Epoch: {}, Val, Acc:{}, Acc_class:{}, mIoU:{}, global_mIoU: {}".format(epoch, Acc, Acc_class, mIoU, global_mIoU) + '\n')
                     self.best_pred = global_mIoU
                 self.saver.save_checkpoint({
@@ -282,7 +287,8 @@ class distWorker(object):
                     'state_dict': self.model.module.state_dict(),
                     'optimizer': self.optimizer.state_dict(),
                     'best_pred': self.best_pred,
-                }, is_best)
+                }, is_best_epoch)
+                
             elif self.args.testValTrain >= 0:
                 self.saver.write_log_to_txt(f'val/mIoU@argmax: {global_mIoU}\n')
                 self.saver.write_log_to_csv([f'val/mIoU@argmax', f'{global_mIoU}'])
@@ -294,10 +300,11 @@ class distWorker(object):
                         # self.saver.write_log_to_txt(f'val/mIoU@thres_{self.args.infer_thresholds[i]}: {global_mIoU}')
                         self.saver.write_log_to_csv([f'val/mIoU@thres_{self.args.infer_thresholds[i]}', f'{global_mIoU}'])
                     self.saver.write_log_to_csv([''])
-                self.saver.write_log_to_txt('\n')
+                # self.saver.write_log_to_txt('\n')
 
         del val_loss
-
+        return is_best_epoch, global_mIoU
+    
     def test(self, epoch = 0):
         self.model.eval()
         if self.args.testValTrain >= 0:
@@ -357,7 +364,7 @@ class distWorker(object):
                     self.dump_composed_img_pre_label(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
                     
         if not self.args.cal_metric:
-            return
+            return None
         Acc = self.evaluator.Pixel_Accuracy()
         Acc_class = self.evaluator.Pixel_Accuracy_Class()
         mIoU = self.evaluator.Mean_Intersection_over_Union()
@@ -387,7 +394,8 @@ class distWorker(object):
                         self.saver.write_log_to_csv([f'test/mIoU@thres_{self.args.infer_thresholds[i]}', f'{global_mIoU}'])
                     self.saver.write_log_to_csv([''])
                     self.saver.write_log_to_csv([''])
-                    
+        return global_mIoU
+    
     def postprocess(self, img):
         # max_id = img.max()
         # ratio = 255//max_id

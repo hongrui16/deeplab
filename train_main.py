@@ -138,7 +138,8 @@ parser.add_argument('--alpha', type=float, default=0.5,
 parser.add_argument('--debug', action='store_true', default=False,
                     help='debug flag')
 # parser.add_argument('--infer_thresholds', type=float, default=[0.1, 0.2, 0.33, 0.5, 0.6, 0.8, 0.85, 0.9, 0.95, 0.98])
-parser.add_argument('--infer_thresholds', type=float, default=[0.33, 0.5, 0.6, 0.7, 0.8])
+# parser.add_argument('--infer_thresholds', type=float, default=[0.33, 0.5, 0.6, 0.7, 0.8])
+parser.add_argument('--infer_thresholds', type=float, default=None)
 
 
 parser.add_argument('--skip_boundary', action='store_true', default=False, 
@@ -176,7 +177,8 @@ parser.add_argument('--ignore_huahen', action='store_true', default=False,
                     help="ignore huahen") 
 parser.add_argument('--ignore_zhoubian', action='store_true', default=False, 
                     help="ignore zhoubian") 
-
+parser.add_argument('--ramdom_cut_postives', action='store_true', default=False, 
+                    help="Ramdom Cut Postives") 
 parser.add_argument('--pot_train_mode', type=int, default = -1, 
                     help="pot train mode") 
 
