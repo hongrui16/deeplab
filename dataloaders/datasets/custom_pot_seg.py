@@ -156,7 +156,9 @@ class CustomPotSeg(Dataset):
             if self.args.pot_train_mode == 1: #不区分类别
                 mask[mask_bk >= 61] = 0
                 mask[mask_bk>0] = 1
-            
+            elif self.args.pot_train_mode == 2: #不区分类别,只处理前三类
+                mask[mask_bk >= 41] = 0
+                mask[mask_bk>0] = 1
             mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
         return mask, img.astype(np.uint8)
 

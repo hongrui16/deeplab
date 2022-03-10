@@ -108,7 +108,15 @@ def make_data_loader(args, **kwargs):
     elif args.dataset == 'CustomPotSeg':
         # print(f'calling {__file__}, {sys._getframe().f_lineno}')
         '''
-                        0      1            2       3           4              5
+            label_dict = {'lasi_heavy': 11, 'lasi_medium':12, 'lasi_slight':13,
+        'gengshang_heavy':21, 'gengshang_medium':22, 'gengshang_slight':23,  
+        'gengshi_heavy':31, 'gengshi_medium':32, 'gengshi_slight':33,
+        'shayan_heavy':41, 'shayan_medium':42, 'shayan_medium':43,
+        'huahen_heavy':51, 'huahen_medium':52, 'huahen_medium':53,
+        'zhoubian_heavy':61, 'zhoubian_medium':62, 'zhoubian_medium':63,
+        'bowen_heavy':71, 'bowen_medium':72, 'bowen_medium':73,
+        'youwu_heavy':81, 'youwu_medium':82, 'youwu_medium':83,
+        }
         '''    
         train_set = custom_pot_seg.CustomPotSeg(args, split="train")
         val_set = custom_pot_seg.CustomPotSeg(args, split="val")
@@ -116,7 +124,8 @@ def make_data_loader(args, **kwargs):
         # test_set = basicDataset.BasicDataset(args, split="train")
         if args.pot_train_mode == 1: #不区分类别
             num_class = 2
-        
+        if args.pot_train_mode == 2: #不区分类别,只处理前三类
+            num_class = 2
         else:
             num_class = args.n_classes
 

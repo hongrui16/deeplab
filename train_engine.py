@@ -95,7 +95,8 @@ def main_worker(gpu, ngpus_per_node, args):
                 is_best_epoch = False
             if args.master:
                 worker.saver.write_log_to_txt('\n')
-                
+            print()
+            
     elif 2 > args.testValTrain >= 0:
         avg_val_miou = 0
         avg_test_miou = 0
