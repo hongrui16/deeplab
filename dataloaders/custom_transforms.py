@@ -52,7 +52,11 @@ class ToTensor(object):
         mask = sample['label']
         # img_name = sample['img_name']
         
-        img = np.array(img).astype(np.float32).transpose((2, 0, 1))
+        img = np.array(img)
+        if img.ndim == 3:
+           img = img.astype(np.float32).transpose((2, 0, 1))
+        else:
+            img = np.expand_dims(img, axis=0)
         img = torch.from_numpy(img).float()
         if isinstance(mask, Image.Image):
             mask = np.array(mask).astype(np.float32)
@@ -106,16 +110,17 @@ class RandomVerticalFlip(object):
 
 
 class RandomRotate(object):
-    def __init__(self, degree):
+    def __init__(self, degree, args = None):
         self.degree = degree
-
+        self.fill = args.ignore_index
+        
     def __call__(self, sample):
         img = sample['image']
         mask = sample['label']
         if random.random() < 0.5:
             rotate_degree = random.uniform(-1*self.degree, self.degree)
-            img = img.rotate(rotate_degree, Image.BILINEAR)
-            mask = mask.rotate(rotate_degree, Image.NEAREST)
+            img = img.rotate(rotate_degree, Image.BILINEAR, fillcolor = 0)
+            mask = mask.rotate(rotate_degree, Image.NEAREST, fillcolor = self.fill)
             # return {'image': img,
             #         'label': mask}
             sample['image'] = img
@@ -185,6 +190,103 @@ class RandomScaleCrop(object):
         sample['label'] = mask
         return sample
 
+
+
+class RandomCrop(object):
+    def __init__(self, args = None):        
+        self.base_size = args.base_size
+        self.crop_size = args.crop_size
+        self.fill = args.ignore_index
+        self.ignore_loss_index = args.ignore_loss_index
+        self.args = args
+
+    def __call__(self, sample):
+        # short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
+        img = sample['image']
+        mask = sample['label']
+
+        ### bottom and right pad, if too small
+        w, h = img.size
+        short_size = w if w < h else h
+        if short_size < self.crop_size:
+            padh = self.crop_size - h if h < self.crop_size else 0
+            padw = self.crop_size - w if w < self.crop_size else 0
+            img = ImageOps.expand(img, border=(0, 0, padw, padh), fill=0)
+            mask = ImageOps.expand(mask, border=(0, 0, padw, padh), fill=self.fill)
+            
+            if 'seg_loss_mask' in sample:
+                seg_loss_mask = sample['seg_loss_mask']
+                assert isinstance(seg_loss_mask, Image.Image)
+                seg_loss_mask = ImageOps.expand(seg_loss_mask, border=(0, 0, padw, padh), fill = self.ignore_loss_index)
+                sample['seg_loss_mask'] = seg_loss_mask
+                
+        ###random crop
+        w, h = img.size
+        x1 = random.randint(0, w - self.crop_size)
+        y1 = random.randint(0, h - self.crop_size)
+        img = img.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
+        mask = mask.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
+        if 'seg_loss_mask' in sample:
+            seg_loss_mask = sample['seg_loss_mask']
+            assert isinstance(seg_loss_mask, Image.Image)
+            seg_loss_mask = seg_loss_mask.crop((x1, y1, x1 + self.crop_size, y1 + self.crop_size))
+            sample['seg_loss_mask'] = seg_loss_mask        
+
+        
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
+
+
+class RandomScaleRemainSize(object):
+    def __init__(self, args = None):
+        self.fill = args.ignore_index
+        self.ignore_loss_index = args.ignore_loss_index
+        self.args = args
+
+    def __call__(self, sample):
+        # short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
+        resize_ratio = random.uniform(0.8, 1.2)
+        img = sample['image']
+        mask = sample['label']
+
+        ### bottom and right pad, if too small
+        w, h = img.size
+        oh = int(resize_ratio*h)
+        ow = int(resize_ratio*w)
+        img = img.resize((ow, oh), Image.BILINEAR)
+        mask = mask.resize((ow, oh), Image.NEAREST)
+        if 'seg_loss_mask' in sample:
+            seg_loss_mask = sample['seg_loss_mask']
+            assert isinstance(seg_loss_mask, Image.Image)
+            seg_loss_mask = seg_loss_mask.resize((ow, oh), Image.NEAREST)
+            sample['seg_loss_mask'] = seg_loss_mask
+            
+
+        if oh <= h:
+            padh = h - oh
+            padw = h - ow
+            img = ImageOps.expand(img, border=(0, 0, padw, padh), fill=0)
+            mask = ImageOps.expand(mask, border=(0, 0, padw, padh), fill=self.fill)
+            if 'seg_loss_mask' in sample:
+                seg_loss_mask = sample['seg_loss_mask']
+                assert isinstance(seg_loss_mask, Image.Image)
+                seg_loss_mask = ImageOps.expand(seg_loss_mask, border=(0, 0, padw, padh), fill = self.ignore_loss_index)
+                sample['seg_loss_mask'] = seg_loss_mask
+        else:
+            x1 = random.randint(0, ow - w)
+            y1 = random.randint(0, oh - h)
+            img = img.crop((x1, y1, x1 + w, y1 + h))
+            mask = mask.crop((x1, y1, x1 + w, y1 + h))
+            if 'seg_loss_mask' in sample:
+                seg_loss_mask = sample['seg_loss_mask']
+                assert isinstance(seg_loss_mask, Image.Image)
+                seg_loss_mask = seg_loss_mask.crop((x1, y1, x1 + w, y1 + h))
+                sample['seg_loss_mask'] = seg_loss_mask        
+    
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
 
 class RandomVerticalCrop(object):
     def __init__(self, base_size, crop_size, fill=0, args = None):
@@ -403,10 +505,16 @@ class ShortEdgePad(object):
         return sample
 
 
+
 class RamdomCutPostives(object):
-    def __init__(self, size, args = None):
+    def __init__(self, size, args = None, split = 'train'):
         self.args = args
-        self.size = int(1.5 * size)
+        if split == 'train':
+            self.size = int(1.75 * size)
+        elif split == 'val':
+            self.size = int(1.5 * size)
+        else:
+            self.size = int(1.25 * size)
         self.fill = args.ignore_index
 
     def __call__(self, sample):

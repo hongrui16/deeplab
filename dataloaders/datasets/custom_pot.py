@@ -161,11 +161,12 @@ class CustomPot(Dataset):
     def transform_train(self, sample):
         composed_transforms = transforms.Compose([
             # tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio, args = self.args),
-            tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
+            tr.RandomCrop(args=self.args),
+            tr.RandomScaleRemainSize(args=self.args),
             # tr.RandomAddNegSample(args = self.args),
             tr.RandomHorizontalFlip(self.args),
             tr.RandomVerticalFlip(self.args),            
-            tr.RandomRotate(degree = self.args.rotate_degree),
+            tr.RandomRotate(degree = self.args.rotate_degree, args = self.args),
             tr.RandomGaussianBlur(),
             # tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
             # tr.RandomHorizontalFlipImageMask(self.args),
@@ -180,7 +181,8 @@ class CustomPot(Dataset):
         composed_transforms = transforms.Compose([
             # tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio, args = self.args),
             # tr.RandomAddNegSample(args = self.args),
-            tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
+            tr.RandomCrop(args=self.args),
+            tr.RandomScaleRemainSize(args=self.args),
             tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
             tr.FixedResize(size=self.args.base_size, args = self.args),
             # tr.LimitResize(size=self.args.max_size, args = self.args),
@@ -190,7 +192,8 @@ class CustomPot(Dataset):
 
     def transform_test(self, sample):
         composed_transforms = transforms.Compose([
-            tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
+            tr.RandomCrop(args=self.args),
+            tr.RandomScaleRemainSize(args=self.args),
             # tr.RandomAddNegSample(args = self.args),
             # tr.CenterPadAndCrop(size=self.args.base_size, args = self.args),
             tr.FixedResize(size=self.args.base_size, args = self.args),
@@ -202,11 +205,12 @@ class CustomPot(Dataset):
     def transform_train1(self, sample):
         composed_transforms = transforms.Compose([
             # tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio, args = self.args),
-            tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
+            tr.RandomCrop(args=self.args),
+            tr.RandomScaleRemainSize(args=self.args),
             tr.RandomHorizontalFlip(self.args),
             tr.RandomVerticalFlip(self.args),
             # tr.RandomAddNegSample(args = self.args),
-            tr.RandomRotate(degree = self.args.rotate_degree),
+            tr.RandomRotate(degree = self.args.rotate_degree, args = self.args),
             tr.RandomShadows(args = self.args),
             tr.RandomGaussianBlur(),
             tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
