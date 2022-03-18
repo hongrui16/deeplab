@@ -60,7 +60,7 @@ class ToTensor(object):
         img = torch.from_numpy(img).float()
         if isinstance(mask, Image.Image):
             mask = np.array(mask).astype(np.float32)
-            mask = torch.from_numpy(mask).float()
+        mask = torch.from_numpy(mask).float()
 
         # if img_name:
         #     return {'image': img,
@@ -194,7 +194,6 @@ class RandomScaleCrop(object):
 
 class RandomCrop(object):
     def __init__(self, args = None):        
-        self.base_size = args.base_size
         self.crop_size = args.crop_size
         self.fill = args.ignore_index
         self.ignore_loss_index = args.ignore_loss_index
@@ -202,6 +201,8 @@ class RandomCrop(object):
 
     def __call__(self, sample):
         # short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
+        ratio = random.uniform(0.9, 1.5)
+        self.crop_size = int(ratio*self.crop_size)
         img = sample['image']
         mask = sample['label']
 
@@ -246,7 +247,7 @@ class RandomScaleRemainSize(object):
 
     def __call__(self, sample):
         # short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
-        resize_ratio = random.uniform(0.8, 1.2)
+        resize_ratio = random.uniform(0.8, 1.25)
         img = sample['image']
         mask = sample['label']
 
@@ -506,7 +507,7 @@ class ShortEdgePad(object):
 
 
 
-class RamdomCutPostives(object):
+class RandomCutPostives(object):
     def __init__(self, size, args = None, split = 'train'):
         self.args = args
         if split == 'train':
@@ -514,7 +515,7 @@ class RamdomCutPostives(object):
         elif split == 'val':
             self.size = int(1.5 * size)
         else:
-            self.size = int(1.25 * size)
+            self.size = int(1.4 * size)
         self.fill = args.ignore_index
 
     def __call__(self, sample):
@@ -534,11 +535,22 @@ class RamdomCutPostives(object):
         non_index = random.randint(0, len(nonzero[0])-1)
         cx, cy = nonzero[1][non_index], nonzero[0][non_index]
         
-        x1 = random.randint(0, cx)
-        y1 = random.randint(0, cy)
+        x1 = random.randint(0, cx//2)
+        y1 = random.randint(0, cy//2)
         
-        x2 = x1 + self.size if x1 + self.size <= w else w
-        y2 = y1 + self.size if y1 + self.size <= h else h
+        if x1 + self.size <= cx:
+            x2 = cx + self.size // 2
+        elif cx < x1 + self.size <= w:
+            x2 = x1 + self.size
+        else:
+            x2 = w
+        
+        if y1 + self.size <= cy:
+            y2 = cy + self.size // 2
+        elif cy < y1 + self.size <= h:
+            y2 = y1 + self.size
+        else:
+            y2 = h
 
         img = img.crop((x1, y1, x2, y2))
         mask = mask.crop((x1, y1, x2, y2))
@@ -710,4 +722,32 @@ class RandomShadows(object):
             self.left_low_ratio, self.left_high_ratio, self.right_low_ratio, \
             self.right_high_ratio)
             sample['image'] = img
+        return sample
+
+
+
+class DeIgnoreIndex(object):
+    def __init__(self, args = None):        
+        self.ignore_index = args.ignore_index
+        self.ignore_loss_index = args.ignore_loss_index
+        self.de_ignore_index = args.de_ignore_index
+        
+    def __call__(self, sample):
+        # short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
+        if not self.de_ignore_index:
+            return sample
+        mask = sample['label']
+        assert isinstance(mask, Image.Image)
+        mask = np.array(mask)
+        mask[mask==self.ignore_index] = 0
+        
+        ### bottom and right pad, if too small
+        if 'seg_loss_mask' in sample:
+            seg_loss_mask = sample['seg_loss_mask']
+            assert isinstance(seg_loss_mask, Image.Image)
+            seg_loss_mask = np.array(seg_loss_mask)
+            seg_loss_mask[seg_loss_mask==self.ignore_loss_index] = 1
+            sample['seg_loss_mask'] = Image.fromarray(seg_loss_mask)
+    
+        sample['label'] = Image.fromarray(mask)
         return sample

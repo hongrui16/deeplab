@@ -50,6 +50,7 @@ class CustomPotSeg(Dataset):
         else:
             txt_filepath = os.path.join(self.root, f'{self.split}.txt')
             self.img_filepaths = read_txt_to_list(txt_filepath)
+            random.shuffle(self.img_filepaths)
             
 
 
@@ -156,15 +157,28 @@ class CustomPotSeg(Dataset):
             if self.args.pot_train_mode == 1: #不区分类别
                 mask[mask_bk >= 61] = 0
                 mask[mask_bk>0] = 1
+                mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
+                
             elif self.args.pot_train_mode == 2: #不区分类别,只处理前三类
                 mask[mask_bk >= 41] = 0
                 mask[mask_bk>0] = 1
-            mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
+                mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
+                
+            else:
+                print('please specify args.pot_train_mode')
+                
+                return None, None
+            
+            if self.args.de_ignore_index:  ## make sure ignore_index have already been defaulted
+                mask[mask==self.args.ignore_index] = 0 #255
+            else:
+                mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
+            
         return mask, img.astype(np.uint8)
 
     def transform_train(self, sample):
         composed_transforms = transforms.Compose([
-            tr.RamdomCutPostives(size=self.args.base_size, args = self.args, split = self.split),
+            tr.RandomCutPostives(size=self.args.base_size, args = self.args, split = self.split),
             tr.ShortEdgePad(size=self.args.base_size, args = self.args),
             tr.RandomCrop(args=self.args),
             tr.RandomScaleRemainSize(args=self.args),
@@ -177,7 +191,8 @@ class CustomPotSeg(Dataset):
             # tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
             # tr.RandomHorizontalFlipImageMask(self.args),
             tr.FixedResize(size=self.args.base_size, args = self.args),
-            tr.RandomShadows(args = self.args),
+            # tr.RandomShadows(args = self.args),DeIgnoreIndex
+            tr.DeIgnoreIndex(args = self.args),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
 
@@ -185,35 +200,37 @@ class CustomPotSeg(Dataset):
 
     def transform_val(self, sample):
         composed_transforms = transforms.Compose([
-            tr.RamdomCutPostives(size=self.args.base_size, args = self.args, split = self.split),
+            tr.RandomCutPostives(size=self.args.base_size, args = self.args, split = self.split),
             tr.ShortEdgePad(size=self.args.base_size, args = self.args),
             tr.RandomCrop(args=self.args),
             tr.RandomScaleRemainSize(args=self.args),
             # tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio, args = self.args),
             # tr.RandomAddNegSample(args = self.args),
-            tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
+            # tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
             tr.FixedResize(size=self.args.base_size, args = self.args),
             # tr.LimitResize(size=self.args.max_size, args = self.args),
+            tr.DeIgnoreIndex(args = self.args),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
         return composed_transforms(sample)
 
     def transform_test(self, sample):
         composed_transforms = transforms.Compose([
-            tr.RamdomCutPostives(size=self.args.base_size, args = self.args, split = self.split),
+            tr.RandomCutPostives(size=self.args.base_size, args = self.args, split = self.split),
             tr.ShortEdgePad(size=self.args.base_size, args = self.args),
             # tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
             # tr.RandomAddNegSample(args = self.args),
             # tr.CenterPadAndCrop(size=self.args.base_size, args = self.args),
             tr.FixedResize(size=self.args.base_size, args = self.args),
             # tr.LimitResize(size=self.args.max_size),
+            tr.DeIgnoreIndex(args = self.args),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
         return composed_transforms(sample)
 
     def transform_train1(self, sample):
         composed_transforms = transforms.Compose([
-            tr.RamdomCutPostives(size=self.args.base_size, args = self.args, split = self.split),
+            tr.RandomCutPostives(size=self.args.base_size, args = self.args, split = self.split),
             tr.ShortEdgePad(size=self.args.base_size, args = self.args),
             # tr.ShortEdgeCrop(hw_ratio= self.args.hw_ratio, args = self.args),
             tr.RandomCrop(args=self.args),
@@ -222,10 +239,12 @@ class CustomPotSeg(Dataset):
             tr.RandomVerticalFlip(self.args),
             # tr.RandomAddNegSample(args = self.args),
             tr.RandomRotate(degree = self.args.rotate_degree, args = self.args),
-            tr.RandomShadows(args = self.args),
+            # tr.RandomShadows(args = self.args),
             tr.RandomGaussianBlur(),
-            tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
+            # tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
             # tr.RandomHorizontalFlipImageMask(self.args),
+            tr.DeIgnoreIndex(args = self.args),
+            tr.FixedResize(size=self.args.base_size, args = self.args),
             ])
 
         return composed_transforms(sample)
@@ -329,48 +348,48 @@ if __name__ == '__main__':
 
     root = args.input_dir
 
-    basicDataset_train = BasicDataset(args, root, split="train")
-    basicDataset_test = BasicDataset(args, root, split="test")
+    # basicDataset_train = BasicDataset(args, root, split="train")
+    # basicDataset_test = BasicDataset(args, root, split="test")
 
-    train_loader = DataLoader(basicDataset_train, batch_size=2, shuffle=False, num_workers=2)
-    test_loader = DataLoader(basicDataset_test, batch_size=2, shuffle=False, num_workers=2)
+    # train_loader = DataLoader(basicDataset_train, batch_size=2, shuffle=False, num_workers=2)
+    # test_loader = DataLoader(basicDataset_test, batch_size=2, shuffle=False, num_workers=2)
 
-    def save_img_mask(loader):
-        for ii, sample in enumerate(loader):
-            if ii == 3:
-                break
-            batch_size = sample["image"].size()[0]
-            # print('batch_size: ', batch_size)
-            for jj in range(batch_size):
+    # def save_img_mask(loader):
+    #     for ii, sample in enumerate(loader):
+    #         if ii == 3:
+    #             break
+    #         batch_size = sample["image"].size()[0]
+    #         # print('batch_size: ', batch_size)
+    #         for jj in range(batch_size):
 
-                img = sample['image'].numpy()
-                gt = sample['label'].numpy()
-                img_name =  sample['img_name']
-                img_name_perfix = img_name.split('.')[0]
-                segmap = np.array(gt[jj]).astype(np.uint8)
-                # segmap = decode_segmap(segmap, dataset='cityscapes')
-                img_tmp = np.transpose(img[jj], axes=[1, 2, 0])
-                img_tmp *= (0.229, 0.224, 0.225)
-                img_tmp += (0.485, 0.456, 0.406)
-                img_tmp *= 255.0
-                img_tmp = img_tmp.astype(np.uint8)
+    #             img = sample['image'].numpy()
+    #             gt = sample['label'].numpy()
+    #             img_name =  sample['img_name']
+    #             img_name_perfix = img_name.split('.')[0]
+    #             segmap = np.array(gt[jj]).astype(np.uint8)
+    #             # segmap = decode_segmap(segmap, dataset='cityscapes')
+    #             img_tmp = np.transpose(img[jj], axes=[1, 2, 0])
+    #             img_tmp *= (0.229, 0.224, 0.225)
+    #             img_tmp += (0.485, 0.456, 0.406)
+    #             img_tmp *= 255.0
+    #             img_tmp = img_tmp.astype(np.uint8)
                 
-                # plt.figure()
-                # plt.title('display')
-                # plt.subplot(211)
-                # plt.imshow(img_tmp)
-                # plt.subplot(212)
-                # plt.imshow(segmap)
-                # ax = plt.subplot(4, batch_size*2, ii*batch_size*2 + 2*jj+1), plt.imshow(img_tmp), plt.title(f'img_{ii*batch_size + jj}'), plt.xticks([]), plt.yticks([])
-                # ax = plt.subplot(4, batch_size*2, ii*batch_size*2 + 2*jj+2), plt.imshow(segmap*60), plt.title(f'mask_{ii*batch_size + jj}'), plt.xticks([]), plt.yticks([])
-                # if segmap.ndim == 2:
-                #     plt.gray()
+    #             # plt.figure()
+    #             # plt.title('display')
+    #             # plt.subplot(211)
+    #             # plt.imshow(img_tmp)
+    #             # plt.subplot(212)
+    #             # plt.imshow(segmap)
+    #             # ax = plt.subplot(4, batch_size*2, ii*batch_size*2 + 2*jj+1), plt.imshow(img_tmp), plt.title(f'img_{ii*batch_size + jj}'), plt.xticks([]), plt.yticks([])
+    #             # ax = plt.subplot(4, batch_size*2, ii*batch_size*2 + 2*jj+2), plt.imshow(segmap*60), plt.title(f'mask_{ii*batch_size + jj}'), plt.xticks([]), plt.yticks([])
+    #             # if segmap.ndim == 2:
+    #             #     plt.gray()
 
-                cv2.imwrite(os.path.join(output_dir, f'{img_name_perfix}.jpg'), img_tmp)
-                cv2.imwrite(os.path.join(output_dir, f'{img_name_perfix}.png'), segmap*60)
+    #             cv2.imwrite(os.path.join(output_dir, f'{img_name_perfix}.jpg'), img_tmp)
+    #             cv2.imwrite(os.path.join(output_dir, f'{img_name_perfix}.png'), segmap*60)
 
-    save_img_mask(train_loader)
-    save_img_mask(test_loader)
-    # plt.show()
-    # plt.show(block=True)
+    # save_img_mask(train_loader)
+    # save_img_mask(test_loader)
+    # # plt.show()
+    # # plt.show(block=True)
 

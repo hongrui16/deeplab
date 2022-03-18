@@ -144,7 +144,7 @@ parser.add_argument('--infer_thresholds', type=float, default=None)
 
 parser.add_argument('--skip_boundary', action='store_true', default=False, 
                     help="skip boundary pixel to handle annotation noise")
-parser.add_argument('--use_albu', action='store_true', default=True, 
+parser.add_argument('--use_albu', action='store_true', default=False, 
                     help="indicate wheather to use albumentation in training phase for data augmentation")
 parser.add_argument('--cal_metric', action='store_true', default=True, 
                     help="calculate miou, acc, etc.")  
@@ -181,6 +181,9 @@ parser.add_argument('--ramdom_cut_postives', action='store_true', default=False,
                     help="Ramdom Cut Postives") 
 parser.add_argument('--pot_train_mode', type=int, default = -1, 
                     help="pot train mode") 
+parser.add_argument('--ignore_loss_index', type=int, default = 255, 
+                    help="ignore loss index") 
+parser.add_argument('--de_ignore_index', action='store_true', default=False, help="do not ignore index") 
 
 
 args = parser.parse_args()

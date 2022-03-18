@@ -66,13 +66,15 @@ class distWorker(object):
             # Define Criterion
             # whether to use class balanced weights
             if args.use_balanced_weights:
-                classes_weights_path = os.path.join(args.dataset_dir, args.dataset+f'_c{self.nclass}_classes_weights.npy')
+                time_str = self.saver.get_current_time()
+                classes_weights_path = os.path.join(args.dataset_dir, args.dataset+f'_c{self.nclass}_weights_{time_str}.npy')
                 if os.path.isfile(classes_weights_path):
                     weight = np.load(classes_weights_path)
                 else:
                     weight = calculate_weigths_labels(args.dataset, self.train_loader, self.nclass, args,
                                                         classes_weights_path = classes_weights_path)
                 weight = torch.from_numpy(weight.astype(np.float32))
+                print('class weights: ', weight)
             else:
                 weight = None
             self.criterion = SegmentationLosses(weight=weight, cuda=args.cuda, args = args).build_loss(type=args.loss_type)
@@ -254,7 +256,7 @@ class distWorker(object):
                     self.dump_composed_img_pre_label(image, pred, target, img_names, output_mask_dir = self.saver.output_mask_dir)
 
         if not self.args.cal_metric:
-            return s_best_epoch, None
+            return is_best_epoch, None
         # Fast test during the training
         Acc = self.evaluator.Pixel_Accuracy()
         Acc_class = self.evaluator.Pixel_Accuracy_Class()
