@@ -1114,18 +1114,19 @@ def find_images_json(args):
                 shutil.move(img_filepath, out_img_filepath)
                 print(f'move {img_filepath} -> {out_img_filepath}')
                     
-def creat_train_val_test_filelist():
+def split_train_val_test_filelist():
     input_dir = '/home/hongrui/project/metro_pro/dataset/pot_20220108_cut'
     output_dir = '/home/hongrui/project/metro_pro/dataset/'
 
     input_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/data'
     output_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/'
     
-    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/data'
-    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/'
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/data'
+    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/'
 
+    ref_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/data'
+    ref_img_names = os.listdir(ref_dir)
     
-
     dirs =  ['val',   'test', 'train']
     label_files = glob.glob(osp.join(input_dir, "*.png"))
     total_num = len(label_files)
@@ -1136,6 +1137,9 @@ def creat_train_val_test_filelist():
     random.shuffle(label_files)
     random.shuffle(label_files)
     for i, label_filepath in enumerate(label_files):
+        label_name = label_filepath.split('/')[-1]
+        if label_name in ref_img_names:
+            continue
         label_filepath = label_filepath.replace('.png', '.jpg')
         if i < 0.15*total_num:
             test_filepaths.append(label_filepath)
@@ -1225,7 +1229,20 @@ def read_imgfilepath():
             if not isinstance(label, np.ndarray):
                 print('label', label_filepath)
                 
+def verify_exist():
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/'
+    txt_files = ['train.txt', 'val.txt', 'test.txt']
     
+    for txt in txt_files:
+        txt_filepath = os.path.join(input_dir, txt)
+        img_filepaths = read_txt_to_list(txt_filepath)
+        for img_filepath in img_filepaths:
+            label_filepath = img_filepath.replace('.jpg', '.png')
+            if not os.path.exists(img_filepath) or not os.path.exists(label_filepath):
+                print(txt, img_filepath)
+                print(txt, label_filepath)
+            # print('..')
+                
     
 
 if __name__ == '__main__':
@@ -1285,4 +1302,7 @@ if __name__ == '__main__':
     # sort_GC10_DET()
 
     # calculate_mean_value()
-    read_imgfilepath()
+    # read_imgfilepath()
+    # split_train_val_test_filelist()
+    
+    verify_exist()

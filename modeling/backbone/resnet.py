@@ -1,6 +1,9 @@
 import math
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
+# from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
+import sys
+sys.path.append('/home/hongrui/project/metro_pro/deeplab')
 from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 
 class Bottleneck(nn.Module):
@@ -156,6 +159,7 @@ def ResNet101(output_stride, BatchNorm, pretrained=True):
 if __name__ == "__main__":
     import torch
     model = ResNet101(BatchNorm=nn.BatchNorm2d, pretrained=True, output_stride=8)
+    print('model', model)
     input = torch.rand(1, 3, 512, 512)
     output, low_level_feat = model(input)
     print(output.size())

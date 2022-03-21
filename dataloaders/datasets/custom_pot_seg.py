@@ -149,19 +149,51 @@ class CustomPotSeg(Dataset):
         '''        
         if mask.any() > 0:
             mask_bk = mask.copy()
-            mask[mask_bk == 13] = 0
-            mask[mask_bk == 23] = 0
-            mask[mask_bk == 33] = 0
-            mask[mask_bk == 43] = 0
-            mask[mask_bk == 53] = 0
-            if self.args.pot_train_mode == 1: #不区分类别
+            
+            if self.args.pot_train_mode == 1: #忽略slight， 不区分个等级, 处理所有类别
+                mask[mask_bk == 13] = 0
+                mask[mask_bk == 23] = 0
+                mask[mask_bk == 33] = 0
+                mask[mask_bk == 43] = 0
+                mask[mask_bk == 53] = 0
                 mask[mask_bk >= 61] = 0
                 mask[mask_bk>0] = 1
                 mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
                 
-            elif self.args.pot_train_mode == 2: #不区分类别,只处理前三类
+            elif self.args.pot_train_mode == 2: #忽略slight，不区分等级,只处理前三类（拉丝，梗伤，梗屎）， 
+                mask[mask_bk == 13] = 0
+                mask[mask_bk == 23] = 0
+                mask[mask_bk == 33] = 0
+                mask[mask_bk == 43] = 0
+                mask[mask_bk == 53] = 0
                 mask[mask_bk >= 41] = 0
                 mask[mask_bk>0] = 1
+                mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
+            
+            elif self.args.pot_train_mode == 3: #将heavy, medium, slight 作为一个等级，处理所有类别缺陷
+                mask[mask_bk >= 61] = 0
+                mask[mask_bk>0] = 1
+                mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
+            
+            elif self.args.pot_train_mode == 4: #将heavy, medium作为一个等级, slight单独一个等级，处理所有类别缺陷
+                mask[mask_bk >= 61] = 0
+                mask[mask_bk>0] = 1
+                mask[mask_bk == 13] = 2
+                mask[mask_bk == 23] = 2
+                mask[mask_bk == 33] = 2
+                mask[mask_bk == 43] = 2
+                mask[mask_bk == 53] = 2
+                mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
+            
+            elif self.args.pot_train_mode == 5: #将heavy, medium马赛克, 只处理slight一个等级，，处理所有类别缺陷
+                mask[mask_bk >= 61] = 0
+                mask[(mask_bk>0)*(mask_bk<self.args.ignore_index)] = 2
+                mask[mask_bk == 13] = 1
+                mask[mask_bk == 23] = 1
+                mask[mask_bk == 33] = 1
+                mask[mask_bk == 43] = 1
+                mask[mask_bk == 53] = 1
+                img, mask = self.mosaic_img_mask(img, mask, 2)
                 mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
                 
             else:
@@ -300,6 +332,15 @@ class CustomPotSeg(Dataset):
 
         return mask
 
+    def mosaic_img_mask(self, img, mask, mosaic_id):
+        noise = np.random.randint(0, 255, (img.shape))
+        for c in range(3):
+            img[:,:,c] = img[:,:,c]*(mask<mosaic_id)
+            noise[:,:,c] = noise[:,:,c]*(mask==mosaic_id)
+        img = img + noise
+        mask[mask==mosaic_id] = 0
+        return img, mask
+        
 
 if __name__ == '__main__':
     # from dataloaders.utils import decode_segmap

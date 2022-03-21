@@ -124,7 +124,13 @@ def make_data_loader(args, **kwargs):
         # test_set = basicDataset.BasicDataset(args, split="train")
         if args.pot_train_mode == 1: #不区分类别
             num_class = 2
-        if args.pot_train_mode == 2: #不区分类别,只处理前三类
+        elif args.pot_train_mode == 2: #不区分类别,只处理前三类
+            num_class = 2
+        elif args.pot_train_mode == 3: #不区分类别,只处理前三类
+            num_class = 2
+        elif args.pot_train_mode == 4: #不区分类别,只处理前三类
+            num_class = 3
+        elif args.pot_train_mode == 5: #将heavy, medium马赛克, 只处理slight一类
             num_class = 2
         else:
             num_class = args.n_classes

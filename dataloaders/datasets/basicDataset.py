@@ -338,6 +338,7 @@ class BasicDataset(Dataset):
         return mask
 
 
+
 if __name__ == '__main__':
     # from dataloaders.utils import decode_segmap
     from torch.utils.data import DataLoader

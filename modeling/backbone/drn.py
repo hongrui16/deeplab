@@ -1,8 +1,12 @@
 import torch.nn as nn
 import math
-import torch.utils.model_zoo as model_zoo
-from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 import torch
+
+import torch.utils.model_zoo as model_zoo
+# from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
+import sys
+sys.path.append('/home/hongrui/project/metro_pro/deeplab')
+from modeling.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 
 webroot = 'http://dl.yf.io/drn/'
 
@@ -396,7 +400,8 @@ def drn_d_105(BatchNorm, pretrained=True):
 
 if __name__ == "__main__":
     import torch
-    model = drn_a_50(BatchNorm=nn.BatchNorm2d, pretrained=True)
+    model = drn_d_54(BatchNorm=nn.BatchNorm2d, pretrained=True)
+    print('model', model)
     input = torch.rand(1, 3, 512, 512)
     output, low_level_feat = model(input)
     print(output.size())

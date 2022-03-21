@@ -247,7 +247,7 @@ class RandomScaleRemainSize(object):
 
     def __call__(self, sample):
         # short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
-        resize_ratio = random.uniform(0.8, 1.25)
+        resize_ratio = random.uniform(0.8, 1.2)
         img = sample['image']
         mask = sample['label']
 
@@ -515,7 +515,7 @@ class RandomCutPostives(object):
         elif split == 'val':
             self.size = int(1.5 * size)
         else:
-            self.size = int(1.4 * size)
+            self.size = int(1.25 * size)
         self.fill = args.ignore_index
 
     def __call__(self, sample):

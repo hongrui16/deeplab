@@ -574,23 +574,23 @@ def newly_convert_labelme_jsonfile():
     label_dict = {'lasi_heavy': 11, 'lasi_medium':12, 'lasi_slight':13,
         'gengshang_heavy':21, 'gengshang_medium':22, 'gengshang_slight':23,  
         'gengshi_heavy':31, 'gengshi_medium':32, 'gengshi_slight':33,
-        'shayan_heavy':41, 'shayan_medium':42, 'shayan_medium':43,
-        'huahen_heavy':51, 'huahen_medium':52, 'huahen_medium':53,
-        'zhoubian_heavy':61, 'zhoubian_medium':62, 'zhoubian_medium':63,
-        'bowen_heavy':71, 'bowen_medium':72, 'bowen_medium':73,
-        'youwu_heavy':81, 'youwu_medium':82, 'youwu_medium':83,
+        'shayan_heavy':41, 'shayan_medium':42, 'shayan_slight':43,
+        'huahen_heavy':51, 'huahen_medium':52, 'huahen_slight':53,
+        'zhoubian_heavy':61, 'zhoubian_medium':62, 'zhoubian_slight':63,
+        'bowen_heavy':71, 'bowen_medium':72, 'bowen_slight':73,
+        'youwu_heavy':81, 'youwu_medium':82, 'youwu_slight':83,
         }
     
     label_names = label_dict.keys()
     # 
-    in_img_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220108/image'
-    in_anno_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220108/json_3'
+    # in_img_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220108/image'
+    # in_anno_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220108/json_0320'
 
-    # in_img_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220222/image'
-    # in_anno_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220222/json'
+    in_img_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220222/image'
+    in_anno_dir = '/home/hongrui/project/metro_pro/dataset/pot/20220222/json_0320'
 
     
-    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/data'
+    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/data'
     if output_dir and not os.path.exists(output_dir):
         os.makedirs(output_dir)
         
@@ -643,7 +643,8 @@ def newly_convert_labelme_jsonfile():
                 masks += mask
                 
         
-        if len(pot_bbox) == 0:
+        if len(pot_bbox) == 0 or not masks.any() > 0:
+            print('non', filepath)
             continue
         
         height, width = masks.shape
