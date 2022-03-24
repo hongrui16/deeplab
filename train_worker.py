@@ -62,7 +62,7 @@ class distWorker(object):
             # Define lr scheduler
             self.scheduler = LR_Scheduler(args.lr_scheduler, args.lr,
                                                 args.epochs, len(self.train_loader), args = args)
-        if args.testValTrain >= 0:#test and val
+        
             # Define Criterion
             # whether to use class balanced weights
             if args.use_balanced_weights:
@@ -78,7 +78,8 @@ class distWorker(object):
             else:
                 weight = None
             self.criterion = SegmentationLosses(weight=weight, cuda=args.cuda, args = args).build_loss(type=args.loss_type)
-            
+        
+        if args.testValTrain >= 0:#test and val
             # Define Evaluator
             if self.args.infer_thresholds and (1 >= self.args.testValTrain >= 0 ):
                 # self.evaluators = [Evaluator(self.nclass) for _ in range(len(self.args.infer_thresholds))]
@@ -131,6 +132,7 @@ class distWorker(object):
         # Clear start epoch if fine-tuning
         if args.ft:
             args.start_epoch = 0
+            self.best_pred = 0.0
         if -1 < args.testValTrain < 2 and self.args.master:
             if 'TASK_' in args.resume:
                 task_id = args.resume.split('/')[-6]
@@ -264,7 +266,8 @@ class distWorker(object):
         
         # FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
         # global_mIoU = self.get_global_mIoU(mIoU)
-        global_mIoU = self.reduce_tensor(mIoU)
+        # global_mIoU = self.reduce_tensor(mIoU)
+        global_mIoU = mIoU
         # print(f'test/rank@{self.args.rank} mIoU: {mIoU}, global_mIoU: {global_mIoU}')
         if self.args.master:
             if self.args.testValTrain > 1: # during training
@@ -372,7 +375,8 @@ class distWorker(object):
         mIoU = self.evaluator.Mean_Intersection_over_Union()
         # FWIoU = self.evaluator.Frequency_Weighted_Intersection_over_Union()
         # global_mIoU = self.get_global_mIoU(mIoU)
-        global_mIoU = self.reduce_tensor(mIoU)
+        # global_mIoU = self.reduce_tensor(mIoU)
+        global_mIoU = mIoU
         if self.args.master:
             if self.args.testValTrain > 1: # only in training mode
                 # self.writer.add_scalar('test/total_loss_epoch', test_loss/num_iter_test, epoch)
@@ -509,6 +513,19 @@ class distWorker(object):
             out_label_filepath = os.path.join(output_mask_dir, label_name)
             cv2.imwrite(out_label_filepath, labels[_id])
 
+    def load_best_model(self):
+        args = self.args
+        checkpoint = torch.load(self.saver.best_model_filepath, map_location=torch.device('cpu'))
+        # model.load_state_dict(checkpoint["state_dict"])
+        # 使用下面这种load方式会导致每个进程在GPU0多占用一部分显存，原因是默认load的位置是GPU0
+        # checkpoint = torch.load("checkpoint.pth")
+        if args.cuda:
+            self.model.module.load_state_dict(checkpoint['state_dict'])
+        else:
+            self.model.load_state_dict(checkpoint['state_dict'])
+        print(f"=> reloaded checkpoint {self.saver.best_model_filepath}")
+        
+        
     def dump_composed_img_pre_label(self, images, pres, GTs, img_names, output_mask_dir = None):
         if isinstance(GTs, np.ndarray):                    
             labels = GTs.copy()

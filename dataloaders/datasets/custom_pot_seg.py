@@ -150,34 +150,24 @@ class CustomPotSeg(Dataset):
         if mask.any() > 0:
             mask_bk = mask.copy()
             
-            if self.args.pot_train_mode == 1: #忽略slight， 不区分个等级, 处理所有类别
+            if self.args.pot_train_mode == 1: #处理所有类别, 忽略slight， 不区分等级, 
+                mask[mask_bk >= 61] = 0
                 mask[mask_bk == 13] = 0
                 mask[mask_bk == 23] = 0
                 mask[mask_bk == 33] = 0
                 mask[mask_bk == 43] = 0
                 mask[mask_bk == 53] = 0
-                mask[mask_bk >= 61] = 0
-                mask[mask_bk>0] = 1
-                mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
-                
-            elif self.args.pot_train_mode == 2: #忽略slight，不区分等级,只处理前三类（拉丝，梗伤，梗屎）， 
-                mask[mask_bk == 13] = 0
-                mask[mask_bk == 23] = 0
-                mask[mask_bk == 33] = 0
-                mask[mask_bk == 43] = 0
-                mask[mask_bk == 53] = 0
-                mask[mask_bk >= 41] = 0
-                mask[mask_bk>0] = 1
+                mask[mask>0] = 1
                 mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
             
-            elif self.args.pot_train_mode == 3: #将heavy, medium, slight 作为一个等级，处理所有类别缺陷
+            elif self.args.pot_train_mode == 2: #处理所有类别缺陷, 将heavy, medium, slight 作为一个等级，
                 mask[mask_bk >= 61] = 0
-                mask[mask_bk>0] = 1
+                mask[mask>0] = 1
                 mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
             
-            elif self.args.pot_train_mode == 4: #将heavy, medium作为一个等级, slight单独一个等级，处理所有类别缺陷
+            elif self.args.pot_train_mode == 3: #处理所有类别缺陷, 将heavy, medium作为一个等级, slight单独一个等级，
                 mask[mask_bk >= 61] = 0
-                mask[mask_bk>0] = 1
+                mask[mask>0] = 1
                 mask[mask_bk == 13] = 2
                 mask[mask_bk == 23] = 2
                 mask[mask_bk == 33] = 2
@@ -185,22 +175,54 @@ class CustomPotSeg(Dataset):
                 mask[mask_bk == 53] = 2
                 mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
             
-            elif self.args.pot_train_mode == 5: #将heavy, medium马赛克, 只处理slight一个等级，，处理所有类别缺陷
+            elif self.args.pot_train_mode == 4: #处理所有类别缺陷, 将heavy, medium马赛克, 只处理slight一个等级
                 mask[mask_bk >= 61] = 0
-                mask[(mask_bk>0)*(mask_bk<self.args.ignore_index)] = 2
+                mask[mask > 0] = 2
                 mask[mask_bk == 13] = 1
                 mask[mask_bk == 23] = 1
                 mask[mask_bk == 33] = 1
                 mask[mask_bk == 43] = 1
                 mask[mask_bk == 53] = 1
                 img, mask = self.mosaic_img_mask(img, mask, 2)
+                mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255'
+                
+            
+            elif self.args.pot_train_mode == 5: #只处理前三类（拉丝，梗伤，梗屎）， 忽略slight，不区分hm等级, 
+                mask[mask_bk >= 41] = 0
+                mask[mask_bk == 13] = 0
+                mask[mask_bk == 23] = 0
+                mask[mask_bk == 33] = 0
+                mask[mask>0] = 1
+                mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
+            
+            
+            elif self.args.pot_train_mode == 6: #只处理前三类（拉丝，梗伤，梗屎）， 不区分等级, 
+                mask[mask_bk >= 41] = 0
+                mask[mask>0] = 1
+                mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
+            
+            elif self.args.pot_train_mode == 7: #只处理前三类（拉丝，梗伤，梗屎），将heavy, medium作为一个等级, slight单独一个等级， 
+                mask[mask_bk >= 41] = 0
+                mask[mask>0] = 1
+                mask[mask_bk == 13] = 2
+                mask[mask_bk == 23] = 2
+                mask[mask_bk == 33] = 2
                 mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
                 
+            elif self.args.pot_train_mode == 8: #只处理前三类（拉丝，梗伤，梗屎）， 将heavy, medium马赛克, 只处理slight一个等级，
+                mask[mask_bk >= 41] = 0
+                mask[mask>0] = 2
+                mask[mask_bk == 13] = 1
+                mask[mask_bk == 23] = 1
+                mask[mask_bk == 33] = 1
+                img, mask = self.mosaic_img_mask(img, mask, 2)
+                mask[mask_bk==self.args.ignore_index] = self.args.ignore_index #255
+        
             else:
                 print('please specify args.pot_train_mode')
                 
                 return None, None
-            
+           
             if self.args.de_ignore_index:  ## make sure ignore_index have already been defaulted
                 mask[mask==self.args.ignore_index] = 0 #255
             else:
@@ -250,6 +272,8 @@ class CustomPotSeg(Dataset):
         composed_transforms = transforms.Compose([
             tr.RandomCutPostives(size=self.args.base_size, args = self.args, split = self.split),
             tr.ShortEdgePad(size=self.args.base_size, args = self.args),
+            # tr.RandomCrop(args=self.args),
+            # tr.RandomScaleRemainSize(args=self.args),
             # tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
             # tr.RandomAddNegSample(args = self.args),
             # tr.CenterPadAndCrop(size=self.args.base_size, args = self.args),

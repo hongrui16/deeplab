@@ -201,7 +201,7 @@ class RandomCrop(object):
 
     def __call__(self, sample):
         # short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
-        ratio = random.uniform(0.9, 1.5)
+        ratio = random.uniform(0.9, 1.25)
         self.crop_size = int(ratio*self.crop_size)
         img = sample['image']
         mask = sample['label']
@@ -516,6 +516,7 @@ class RandomCutPostives(object):
             self.size = int(1.5 * size)
         else:
             self.size = int(1.25 * size)
+            # self.size = int(1.5 * size)
         self.fill = args.ignore_index
 
     def __call__(self, sample):

@@ -1,3 +1,4 @@
+from unicodedata import category
 import scipy
 import numpy
 from PIL import Image
@@ -1242,8 +1243,126 @@ def verify_exist():
                 print(txt, img_filepath)
                 print(txt, label_filepath)
             # print('..')
-                
+
+def del_all_checkpoint_pth_tar():
+    input_dir = '/home/hongrui/project/metro_pro/deeplab'
+    tar = 'checkpoint.pth.tar'
+    for root, dirs, files in os.walk(input_dir, topdown=True):
+        for name in files:
+            if tar == name:
+                tar_filepath = os.path.join(root, name)
+                os.remove(tar_filepath)
+                print(f'remove {tar_filepath}')
+
+def calculate_pixels():
+    txt_files = ['/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/train.txt', 
+                 '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/val.txt',    
+                '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/test.txt']
     
+    csv_file = '0108_0222_obvious_defect_2_dist.csv'
+    
+    label_dict = {'lasi_heavy': 11, 'lasi_medium':12, 'lasi_slight':13,
+        'gengshang_heavy':21, 'gengshang_medium':22, 'gengshang_slight':23,  
+        'gengshi_heavy':31, 'gengshi_medium':32, 'gengshi_slight':33,
+        'shayan_heavy':41, 'shayan_medium':42, 'shayan_slight':43,
+        'huahen_heavy':51, 'huahen_medium':52, 'huahen_slight':53,
+        'zhoubian_heavy':61, 'zhoubian_medium':62, 'zhoubian_slight':63,
+        'bowen_heavy':71, 'bowen_medium':72, 'bowen_slight':73,
+        'youwu_heavy':81, 'youwu_medium':82, 'youwu_slight':83,
+        }
+    
+    label_names = label_dict.keys()
+    print('label_names', label_names)
+    num_classes = len(label_names)//3
+    prefix = []
+    for i, name in enumerate(label_names):
+        if i % 3 == 0:
+            prefix.append(name.split('_')[0])
+    
+    write_list_to_row_in_csv(csv_file, ['', 'heavy', 'medium', 'slight'])
+    
+    for txt_file in txt_files:
+        split = txt_file.split('/')[-1].split('.')[0]
+        write_list_to_row_in_csv(csv_file, [f'{split}'])
+        
+        img_filepaths = read_txt_to_list(txt_file)
+        counter = np.zeros((num_classes, 3)).astype(np.float64)
+        bk_num = 0
+        total_num = 0
+        for i, img_filepath in enumerate(img_filepaths):
+            label_filepath = img_filepath.replace('.jpg', '.png')
+            label = cv2.imread(label_filepath, 0)
+            # print(label_filepath, np.unique(label))
+            bk_num += len(label[label==0])
+            total_num += len(label[label<255])
+            for j, label_name in enumerate(label_names):
+                label_index = label_dict[label_name]
+                num = len(label[label==label_index])
+                row = label_index // 10 - 1
+                col = label_index % 10 - 1
+                counter[row, col] += num
+            # print(label_name, row, col, num)
+        counter /= total_num
+        write_list_to_row_in_csv(csv_file, ['bk', f'{round(bk_num/total_num, 4)}'])
+        for i, category in enumerate(prefix):
+            write_list_to_row_in_csv(csv_file, [f'{category}'] + counter[i].tolist())
+        write_list_to_row_in_csv(csv_file, ['total', f'{total_num}'])
+        
+        write_list_to_row_in_csv(csv_file, [''])
+
+
+def cutPostives():
+    txt_files = ['/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/train.txt', 
+                 '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/val.txt',    
+                '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/test.txt']
+    ignore_index = 255
+    size = 480
+    cnt = 3
+    for txt_file in txt_files:
+        split = txt_file.split('/')[-1].split('.')[0]
+        
+        img_filepaths = read_txt_to_list(txt_file)
+        img_filepaths = list(set(img_filepaths))
+        for i, img_filepath in enumerate(img_filepaths):
+            label_filepath = img_filepath.replace('.jpg', '.png')
+            mask = cv2.imread(label_filepath, 0)
+            img = cv2.imread(img_filepath)
+            
+            img = Image.fromarray(img)
+            mask = Image.fromarray(mask)
+            w, h = img.size
+
+            label = np.array(mask)
+            label[label == ignore_index] = 0
+            if not label.any() > 0:
+                continue
+            
+            nonzero = label.nonzero()
+            non_index = random.randint(0, len(nonzero[0])-1)
+            cx, cy = nonzero[1][non_index], nonzero[0][non_index]
+            
+            x1 = random.randint(0, cx//2)
+            y1 = random.randint(0, cy//2)
+            
+            if x1 + size <= cx:
+                x2 = cx + size // 2
+            elif cx < x1 + size <= w:
+                x2 = x1 + size
+            else:
+                x2 = w
+            
+            if y1 + size <= cy:
+                y2 = cy + size // 2
+            elif cy < y1 + size <= h:
+                y2 = y1 + size
+            else:
+                y2 = h
+
+            img = img.crop((x1, y1, x2, y2))
+            mask = mask.crop((x1, y1, x2, y2))
+            
+
+        
 
 if __name__ == '__main__':
 
@@ -1305,4 +1424,6 @@ if __name__ == '__main__':
     # read_imgfilepath()
     # split_train_val_test_filelist()
     
-    verify_exist()
+    # verify_exist()
+    # del_all_checkpoint_pth_tar()
+    calculate_pixels()

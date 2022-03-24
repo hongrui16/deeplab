@@ -122,16 +122,30 @@ def make_data_loader(args, **kwargs):
         val_set = custom_pot_seg.CustomPotSeg(args, split="val")
         test_set = custom_pot_seg.CustomPotSeg(args, split="test")
         # test_set = basicDataset.BasicDataset(args, split="train")
-        if args.pot_train_mode == 1: #不区分类别
+        if args.pot_train_mode == 1: #忽略slight， 不区分等级, 处理所有类别
             num_class = 2
-        elif args.pot_train_mode == 2: #不区分类别,只处理前三类
+        
+        elif args.pot_train_mode == 2: #将heavy, medium, slight 作为一个等级，处理所有类别缺陷
             num_class = 2
-        elif args.pot_train_mode == 3: #不区分类别,只处理前三类
-            num_class = 2
-        elif args.pot_train_mode == 4: #不区分类别,只处理前三类
+        
+        elif args.pot_train_mode == 3: #将heavy, medium作为一个等级, slight单独一个等级，处理所有类别缺陷
             num_class = 3
-        elif args.pot_train_mode == 5: #将heavy, medium马赛克, 只处理slight一类
+        
+        elif args.pot_train_mode == 4: #将heavy, medium马赛克, 只处理slight一个等级， 和 pot_train_mode=1 对比
             num_class = 2
+        
+        elif args.pot_train_mode == 5: #忽略slight，不区分hm等级, 只处理前三类（拉丝，梗伤，梗屎）
+            num_class = 2
+        
+        elif args.pot_train_mode == 6: #不区分等级, 只处理前三类（拉丝，梗伤，梗屎）， 
+            num_class = 2
+        
+        elif args.pot_train_mode == 7: #将heavy, medium作为一个等级, slight单独一个等级，只处理前三类（拉丝，梗伤，梗屎）， 
+            num_class = 3
+            
+        elif args.pot_train_mode == 8: #将heavy, medium马赛克, 只处理slight一个等级，只处理前三类（拉丝，梗伤，梗屎）， 
+            num_class = 2
+            
         else:
             num_class = args.n_classes
 

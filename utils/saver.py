@@ -12,11 +12,13 @@ class Saver(object):
     def __init__(self, args):
         self.args = args
         self.output_mask_dir = None
+        self.best_model_filepath = None
         if self.args.testValTrain > 1:
             self.directory = os.path.join('run', args.dataset, args.checkname)
             self.runs = sorted(glob.glob(os.path.join(self.directory, 'experiment_*')), key=lambda x: int(x.split('_')[-1]))
             run_id = int(self.runs[-1].split('_')[-1]) + 1 if self.runs else 0
             self.experiment_dir = os.path.join(self.directory, 'experiment_{}'.format(str(run_id)))
+            
         elif 0<=self.args.testValTrain<=1 and self.args.resume:
             if self.args.testOut_dir:
                 self.directory = self.args.testOut_dir
@@ -56,17 +58,13 @@ class Saver(object):
 
     def save_checkpoint(self, state, is_best, filename='checkpoint.pth.tar'):
         """Saves checkpoint to disk"""
+        self.best_model_filepath = os.path.join(self.experiment_dir, 'model_best.pth.tar')
         if not self.args.master:
             return
         filename = os.path.join(self.experiment_dir, filename)
-        torch.save(state, filename)
-        if is_best:
-            # best_pred = state['best_pred']
-            # best_pred_filepath = os.path.join(self.experiment_dir, 'best_pred.txt')
-            # with open(best_pred_filepath, 'w') as f:
-            #     f.write(str(best_pred))
-
-            shutil.copyfile(filename, os.path.join(self.experiment_dir, 'model_best.pth.tar'))
+        # torch.save(state, filename)
+        if is_best:   
+            torch.save(state, self.best_model_filepath)
 
     def save_experiment_config(self):
         if not self.args.master:
