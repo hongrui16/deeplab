@@ -11,6 +11,7 @@ class DeepLab(nn.Module):
     def __init__(self, backbone='resnet', output_stride=16, num_classes=21,
                  sync_bn=True, freeze_bn=False, args = None):
         super(DeepLab, self).__init__()
+        self.args = args
         if backbone == 'drn':
             output_stride = 8
 

@@ -1,7 +1,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.autograd import Variable
+import os
+import sys
+
+print(os.getcwd())
+sys.path.append(os.getcwd())
 from utils.lovasz_losses import lovasz_softmax
+# from lovasz_losses import lovasz_softmax
+
 
 
 
@@ -35,20 +43,16 @@ class LovaszSoftmax(nn.Module):
 
 class SegmentationLosses(object):
     def __init__(self, weight=None, size_average=True, batch_average=True, ignore_index=255, cuda=False, args = None):
-        if args.ignore_index >= 0:
+        if args and args.ignore_index >= 0:
             self.ignore_index = args.ignore_index
         else:
             self.ignore_index = ignore_index
-        if not weight is None and args.n_classes==2 and 'metro_pro' in args.dataset_dir:
-            self.ce_weight = [0.1, 0.3]
-            self.weight = None
-        else:
-            self.ce_weight = [1/args.n_classes for _ in range(args.n_classes)]
-            self.weight = weight
+ 
+        self.weight = weight
         self.size_average = size_average
         self.batch_average = batch_average
         self.cuda = cuda
-        self.alpha = args.alpha
+
         self.focal = FocalLossObj(weight=weight, ignore_index=ignore_index, size_average=True)
         self.lovas = LovaszSoftmax()
 
@@ -70,10 +74,11 @@ class SegmentationLosses(object):
     def CrossEntropyLoss(self, logit, target):
         n, c, h, w = logit.size()
         # print('loss target', target.size(), target.type())
-        if not self.weight is None:
+        if not self.weight is None and self.cuda:
             weight = self.weight.cuda()
         else:
-            weight = torch.FloatTensor(self.ce_weight).cuda()
+            weight = None 
+    
         criterion = nn.CrossEntropyLoss(weight=weight, ignore_index=self.ignore_index,
                                         size_average=self.size_average)
         if self.cuda:
@@ -81,7 +86,7 @@ class SegmentationLosses(object):
 
         loss = criterion(logit, target.long())
 
-        if self.batch_average:
+        if self.batch_average and not self.size_average:
             loss /= n
 
         return loss
@@ -95,12 +100,12 @@ class SegmentationLosses(object):
 
         logpt = -criterion(logit, target.long())
         pt = torch.exp(logpt)
-        alpha = self.alpha
-        if alpha is not None:
+
+        if alpha:
             logpt *= alpha
         loss = -((1 - pt) ** gamma) * logpt
 
-        if self.batch_average:
+        if self.batch_average and not self.size_average:
             loss /= n
 
         return loss
@@ -117,10 +122,10 @@ class SegmentationLosses(object):
         self.reduction = 'elementwise_mean'
         self.thresh = 0.7
         self.min_kept = 50000
-        if not self.weight is None:
+        if not self.weight is None and self.cuda:
             weight = self.weight.cuda()
         else:
-            weight = torch.FloatTensor(self.ce_weight).cuda()
+            weight = None 
         # ce_weight = [0.1, 3]
         # weight = torch.FloatTensor(ce_weight).cuda()
         self.ce_loss = nn.CrossEntropyLoss(weight=weight, ignore_index=self.ignore_index, reduction='none')
@@ -169,14 +174,49 @@ class SegmentationLosses(object):
         return lovas_loss
 
 
+class FocalLoss(nn.Module):
+    def __init__(self, gamma=0, alpha=None, size_average=True):
+        super(FocalLoss, self).__init__()
+        self.gamma = gamma
+        self.alpha = alpha
+        if isinstance(alpha,(float, int, int)): self.alpha = torch.Tensor([alpha,1-alpha])
+        if isinstance(alpha,list): self.alpha = torch.Tensor(alpha)
+        self.size_average = size_average
+
+    def forward(self, input, target):
+        if input.dim()>2:
+            input = input.view(input.size(0),input.size(1),-1)  # N,C,H,W => N,C,H*W
+            input = input.transpose(1,2)    # N,C,H*W => N,H*W,C
+            input = input.contiguous().view(-1,input.size(2))   # N,H*W,C => N*H*W,C
+        target = target.view(-1,1).long()
+
+        logpt = F.log_softmax(input)
+        logpt = logpt.gather(1,target)
+        logpt = logpt.view(-1)
+        pt = Variable(logpt.data.exp())
+
+        if self.alpha is not None:
+            if self.alpha.type()!=input.data.type():
+                self.alpha = self.alpha.type_as(input.data)
+            at = self.alpha.gather(0,target.data.view(-1))
+            logpt = logpt * Variable(at)
+
+        loss = -1 * (1-pt)**self.gamma * logpt
+        if self.size_average: return loss.mean()
+        else: return loss.sum()
+
+
 
 if __name__ == "__main__":
     loss = SegmentationLosses(cuda=True)
-    a = torch.rand(1, 3, 7, 7).cuda()
-    b = torch.rand(1, 7, 7).cuda()
+    focal_loss = FocalLoss(gamma=2, alpha=0.5)
+    a = torch.rand(3, 3, 5, 5).cuda()
+    b = torch.rand(3, 5, 5).cuda()
+    
     print(loss.CrossEntropyLoss(a, b).item())
     print(loss.FocalLoss(a, b, gamma=0, alpha=None).item())
     print(loss.FocalLoss(a, b, gamma=2, alpha=0.5).item())
+    print(focal_loss(a, b).item())
 
 
 
