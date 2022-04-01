@@ -51,7 +51,7 @@ class distWorker(object):
                         backbone=args.backbone,
                         output_stride=args.out_stride,
                         sync_bn=args.sync_bn,
-                        freeze_bn=args.freeze_bn)
+                        freeze_bn=args.freeze_bn, args = args)
 
         if args.testValTrain > 1:#train
             # Define Optimizer
@@ -125,7 +125,7 @@ class distWorker(object):
                 self.model.load_state_dict(checkpoint['state_dict'])
             if not args.ft and args.testValTrain > 1: #train
                 self.optimizer.load_state_dict(checkpoint['optimizer'])
-            self.best_pred = checkpoint['best_pred']
+                self.best_pred = checkpoint['best_pred']
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.resume, checkpoint['epoch']))
 
