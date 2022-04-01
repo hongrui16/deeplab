@@ -184,7 +184,7 @@ parser.add_argument('--pot_train_mode', type=int, default = -1,
 parser.add_argument('--ignore_loss_index', type=int, default = 255, 
                     help="ignore loss index") 
 parser.add_argument('--de_ignore_index', action='store_true', default=False, help="do not ignore index") 
-
+parser.add_argument('--with_classification_head', action='store_true', default=False, help="with classification head") 
 
 args = parser.parse_args()
 

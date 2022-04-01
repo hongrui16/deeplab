@@ -81,9 +81,9 @@ def labelme_json_to_dataset_fun(json_filepath, out_dir):
     print('Saved to: %s' % out_label_filepath)
 
 
-def delete_imageData_from_labelme_json(json_filepath, out_dir):
+def delete_imageData_from_labelme_json(json_filepath, out_dir = None):
  
-    if not osp.exists(out_dir):
+    if out_dir and not osp.exists(out_dir):
         os.mkdir(out_dir)
        
     if '\\' in json_filepath:
@@ -97,7 +97,7 @@ def delete_imageData_from_labelme_json(json_filepath, out_dir):
 
     data = json.load(open(json_filepath))
     if not 'imageData' in data:
-        return None
+        return data
     # print(data, type(data))
     data.pop('imageData')
     return data
@@ -132,7 +132,7 @@ def convert_json(args):
         print(f'processing {name} {i+1}/{len(files)}')
         if '.json' in name:
             json_filepath = os.path.join(input_dir, name)
-            anno_dict = delete_imageData_from_labelme_json(json_filepath, output_dir)
+            anno_dict = delete_imageData_from_labelme_json(json_filepath)
             if anno_dict is None:
                 continue
             new_json_filepath = os.path.join(output_dir, name)
@@ -350,7 +350,30 @@ def convert_pot_json_to_mask():
         for shape in sorted(data["shapes"], key=lambda x: x["label"]):
             label_name = shape["label"]
 
+def delete_imageData_from_json(args):
+    input_dir   = args.input_dir
+    # output_dir      = args.output_dir
+    output_dir      = input_dir
+
+    delete_filepaths = []
+    for root, dirs, files in os.walk(input_dir, topdown=True):
+        for name in files:
+            if '.json' in name:
+                json_filepath = os.path.join(root, name)
+                delete_filepaths.append(json_filepath)
     
+    for i, json_filepath in enumerate(delete_filepaths):
+        print(f'processing {json_filepath} {i+1}/{len(delete_filepaths)}')
+        anno_dict = delete_imageData_from_labelme_json(json_filepath)
+        if anno_dict is None:
+            continue
+        # new_json_filepath = os.path.join(output_dir, name)
+        # print('anno_dict', anno_dict)
+        os.remove(json_filepath)
+        with open(json_filepath, 'w') as f:
+            json.dump(anno_dict, f, indent=4)
+
+
 
 if __name__ == '__main__':
 
@@ -384,4 +407,5 @@ if __name__ == '__main__':
     # convert_json_to_label(args)
     # convert_json_and_mosaic_image(args)
     # read_all_label_name_from_json(args)
-    convert_json(args)
+    # convert_json(args)
+    delete_imageData_from_json(args)

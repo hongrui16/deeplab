@@ -404,5 +404,5 @@ if __name__ == "__main__":
     print('model', model)
     input = torch.rand(1, 3, 512, 512)
     output, low_level_feat = model(input)
-    print(output.size())
-    print(low_level_feat.size())
+    print(output.size()) #torch.Size([1, 512, 64, 64])
+    print(low_level_feat.size()) #torch.Size([1, 256, 128, 128])

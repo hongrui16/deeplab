@@ -1116,25 +1116,49 @@ def find_images_json(args):
                 print(f'move {img_filepath} -> {out_img_filepath}')
                     
 def split_train_val_test_filelist():
-    input_dir = '/home/hongrui/project/metro_pro/dataset/pot_20220108_cut'
-    output_dir = '/home/hongrui/project/metro_pro/dataset/'
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot_20220108_cut'
+    # output_dir = '/home/hongrui/project/metro_pro/dataset/'
 
-    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/data'
-    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/'
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/data'
+    # output_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/'
     
-    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/data'
-    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/'
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/data'
+    # output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/'
 
-    ref_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/data'
-    ref_img_names = os.listdir(ref_dir)
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/data'
+    output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/'
+
+
+    # ref_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/data'
+    # ref_img_names = os.listdir(ref_dir)
+    ref_img_names = []
     
     dirs =  ['val',   'test', 'train']
     label_files = glob.glob(osp.join(input_dir, "*.png"))
     total_num = len(label_files)
     
+    
+    
+    test_filepaths = []
     train_filepaths = []
     val_filepaths = []
-    test_filepaths = []
+    
+    test_list_txt = os.path.join(output_dir, 'test.txt')
+    val_list_txt = os.path.join(output_dir, 'val.txt')
+    train_list_txt = os.path.join(output_dir, 'train.txt')
+    
+    test_filepaths = read_txt_to_list(test_list_txt)
+    val_filepaths = read_txt_to_list(val_list_txt)
+    train_filepaths = read_txt_to_list(train_list_txt)
+    
+    test_filepaths = list(set(test_filepaths))
+    val_filepaths = list(set(val_filepaths))
+    train_filepaths = list(set(train_filepaths))
+    
+    os.remove(test_list_txt)
+    os.remove(val_list_txt)
+    os.remove(train_list_txt)
+    
     random.shuffle(label_files)
     random.shuffle(label_files)
     for i, label_filepath in enumerate(label_files):
@@ -1144,14 +1168,25 @@ def split_train_val_test_filelist():
         label_filepath = label_filepath.replace('.png', '.jpg')
         if i < 0.15*total_num:
             test_filepaths.append(label_filepath)
-        elif i < 0.3*total_num:
+        elif 0.15*total_num <= i < 0.3*total_num:
             val_filepaths.append(label_filepath)
         else:
             train_filepaths.append(label_filepath)
 
-    write_list_to_txt(os.path.join(output_dir, 'test.txt'), test_filepaths)
-    write_list_to_txt(os.path.join(output_dir, 'val.txt'), val_filepaths)
-    write_list_to_txt(os.path.join(output_dir, 'train.txt'), train_filepaths)
+    # test_filepaths *=3
+    # val_filepaths *=3
+    # train_filepaths *=2
+
+    write_list_to_txt(test_list_txt, test_filepaths)
+    write_list_to_txt(val_list_txt, val_filepaths)
+    write_list_to_txt(train_list_txt, train_filepaths)
+
+    total_num = 0
+    total_num += len(test_filepaths)
+    total_num += len(val_filepaths)
+    total_num += len(train_filepaths)
+    
+    print('total_num', total_num)
 
 
 def sort_GC10_DET():
@@ -1254,14 +1289,33 @@ def del_all_checkpoint_pth_tar():
                 os.remove(tar_filepath)
                 print(f'remove {tar_filepath}')
 
-def calculate_pixels():
-    txt_files = ['/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/train.txt', 
-                 '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/val.txt',    
-                '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/test.txt']
+def calculate_pixels_and_plot_dist():
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2'
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_v3'
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328'
     
-    csv_file = '0108_0222_obvious_defect_2_dist.csv'
     
-    label_dict = {'lasi_heavy': 11, 'lasi_medium':12, 'lasi_slight':13,
+    
+    txt_files = [
+                'train.txt', 
+                'val.txt',    
+                'test.txt',
+                ]
+    
+    if input_dir.endswith('/'):
+        input_dir = input_dir[:-1]
+    
+    dir_name = input_dir.split('/')[-1]
+    csv_file = os.path.join(input_dir, f'{dir_name}_dist.csv')
+    if os.path.exists(csv_file):
+        os.remove(csv_file)
+    
+    plot_file = os.path.join(input_dir, f'{dir_name}_dist.jpg')
+    if os.path.exists(plot_file):
+        os.remove(plot_file)
+        
+    label_dict = {
+        'lasi_heavy': 11, 'lasi_medium':12, 'lasi_slight':13,
         'gengshang_heavy':21, 'gengshang_medium':22, 'gengshang_slight':23,  
         'gengshi_heavy':31, 'gengshi_medium':32, 'gengshi_slight':33,
         'shayan_heavy':41, 'shayan_medium':42, 'shayan_slight':43,
@@ -1272,20 +1326,28 @@ def calculate_pixels():
         }
     
     label_names = label_dict.keys()
-    print('label_names', label_names)
-    num_classes = len(label_names)//3
-    prefix = []
+    # print('label_names', label_names)
+    num_classes = len(label_names)//3 - 3
+    cate_names = []
     for i, name in enumerate(label_names):
         if i % 3 == 0:
-            prefix.append(name.split('_')[0])
+            cat_id = i // 3
+            if cat_id >= num_classes:
+                continue
+            cate_names.append(name.split('_')[0])
     
     write_list_to_row_in_csv(csv_file, ['', 'heavy', 'medium', 'slight'])
     
+    all_counter = []
+    splits = []
     for txt_file in txt_files:
-        split = txt_file.split('/')[-1].split('.')[0]
+        txt_filepath = os.path.join(input_dir, txt_file)
+        split = txt_file.split('.')[0]
+        splits.append(split)
         write_list_to_row_in_csv(csv_file, [f'{split}'])
         
-        img_filepaths = read_txt_to_list(txt_file)
+        img_filepaths = read_txt_to_list(txt_filepath)
+        img_filepaths = list(set(img_filepaths))
         counter = np.zeros((num_classes, 3)).astype(np.float64)
         bk_num = 0
         total_num = 0
@@ -1300,69 +1362,274 @@ def calculate_pixels():
                 num = len(label[label==label_index])
                 row = label_index // 10 - 1
                 col = label_index % 10 - 1
+                if row >= num_classes:
+                    continue
                 counter[row, col] += num
             # print(label_name, row, col, num)
         counter /= total_num
         write_list_to_row_in_csv(csv_file, ['bk', f'{round(bk_num/total_num, 4)}'])
-        for i, category in enumerate(prefix):
+        for i, category in enumerate(cate_names):
             write_list_to_row_in_csv(csv_file, [f'{category}'] + counter[i].tolist())
         write_list_to_row_in_csv(csv_file, ['total', f'{total_num}'])
         
         write_list_to_row_in_csv(csv_file, [''])
+        all_counter.append(counter)
+    
+    # set width of bar
+    barWidth = 0.25
+    # fig = plt.subplots(figsize =(12, 8))
 
+    # Set position of bar on X axis
+    br1 = np.arange(num_classes)
+    br2 = [x + barWidth for x in br1]
+    br3 = [x + barWidth for x in br2]
 
-def cutPostives():
-    txt_files = ['/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/train.txt', 
-                 '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/val.txt',    
-                '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/test.txt']
-    ignore_index = 255
-    size = 480
-    cnt = 3
+    ax = plt.subplot(1, 2, 1)
+    
+    all_counter = np.array(all_counter)
+    # # print('all_counter', all_counter)
+    all_counter *= 100 ### show percentage
+    # print('all_counter', all_counter)
+    
+    # Make the plot
+    plt.grid(True, color = "grey", linewidth = "1.4", linestyle = "-.")
+    plt.bar(br1, all_counter[0][:,:2].sum(axis = 1), color ='r', width = barWidth,
+            edgecolor ='grey', label = f'{splits[0]}')
+    plt.bar(br2, all_counter[1][:,:2].sum(axis = 1), color ='g', width = barWidth,
+            edgecolor ='grey', label = f'{splits[1]}')
+    plt.bar(br3, all_counter[2][:,:2].sum(axis = 1), color ='b', width = barWidth,
+            edgecolor ='grey', label = f'{splits[2]}')
+    
+    # Adding Xticks
+    plt.xlabel('heavy & medium', fontweight ='bold', fontsize = 12)
+    plt.ylabel('Percentage (%)', fontweight ='bold', fontsize = 12)
+    plt.xticks([r + barWidth for r in range(num_classes)],
+            cate_names)
+    plt.legend()
+
+    ax = plt.subplot(1, 2, 2)
+    # Make the plot
+    plt.grid(True, color = "grey", linewidth = "1.4", linestyle = "-.")
+    plt.bar(br1, all_counter[0][:,2:].sum(axis = 1), color ='r', width = barWidth,
+            edgecolor ='grey', label = f'{splits[0]}')
+    plt.bar(br2, all_counter[1][:,2:].sum(axis = 1), color ='g', width = barWidth,
+            edgecolor ='grey', label = f'{splits[1]}')
+    plt.bar(br3, all_counter[2][:,2:].sum(axis = 1), color ='b', width = barWidth,
+            edgecolor ='grey', label = f'{splits[2]}')
+    
+    # Adding Xticks
+    plt.xlabel('slight', fontweight ='bold', fontsize = 12)
+    plt.ylabel('Percentage (%)', fontweight ='bold', fontsize = 12)
+    plt.xticks([r + barWidth for r in range(num_classes)],
+            cate_names)
+    plt.legend()
+    
+    plt.suptitle('Positive Pixel Percentate Calculated respectively', y = 0.92, verticalalignment = 'center', fontweight ='bold', fontsize = 15)
+    plt.show()
+    figure = plt.gcf()  
+    figure.set_size_inches(20, 10)
+    plt.savefig(plot_file, dpi=300, bbox_inches='tight')
+    plt.close()
+    
+def cut_block():
+    # txt_files = [
+    #         # '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/train.txt', 
+    #             '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/val.txt',    
+    #         '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/test.txt']
+    
+    # out_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2_block/'
+    # out_data_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2_block/data'
+    
+    txt_files = [
+            # '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/train.txt', 
+                '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_v3/val.txt',    
+            '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_v3/test.txt']
+    
+    out_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_v3_block/'
+    out_data_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_v3_block/data'
+    
+    if not os.path.exists(out_data_dir):
+        os.makedirs(out_data_dir)
+        
+    # ignore_index = 255
+    size = 640
     for txt_file in txt_files:
         split = txt_file.split('/')[-1].split('.')[0]
-        
+        new_txt_filepath = os.path.join(out_dir, f'{split}.txt')
+        new_filepath_list = []
         img_filepaths = read_txt_to_list(txt_file)
         img_filepaths = list(set(img_filepaths))
         for i, img_filepath in enumerate(img_filepaths):
+            ori_img_name = img_filepath.split('/')[-1]
+            
+            print(f'processing {split}, {i}/{len(img_filepaths)}, {ori_img_name}')
             label_filepath = img_filepath.replace('.jpg', '.png')
-            mask = cv2.imread(label_filepath, 0)
+            label = cv2.imread(label_filepath, 0)
             img = cv2.imread(img_filepath)
-            
-            img = Image.fromarray(img)
-            mask = Image.fromarray(mask)
-            w, h = img.size
-
-            label = np.array(mask)
-            label[label == ignore_index] = 0
-            if not label.any() > 0:
+            mask = label.copy()
+            mask[mask==255] = 0
+            if not mask.any() > 0:
                 continue
-            
-            nonzero = label.nonzero()
-            non_index = random.randint(0, len(nonzero[0])-1)
-            cx, cy = nonzero[1][non_index], nonzero[0][non_index]
-            
-            x1 = random.randint(0, cx//2)
-            y1 = random.randint(0, cy//2)
-            
-            if x1 + size <= cx:
-                x2 = cx + size // 2
-            elif cx < x1 + size <= w:
-                x2 = x1 + size
-            else:
-                x2 = w
-            
-            if y1 + size <= cy:
-                y2 = cy + size // 2
-            elif cy < y1 + size <= h:
-                y2 = y1 + size
-            else:
-                y2 = h
-
-            img = img.crop((x1, y1, x2, y2))
-            mask = mask.crop((x1, y1, x2, y2))
-            
-
+            connectivity = 4  
         
+            # Perform the operation
+            output = cv2.connectedComponentsWithStats(mask, connectivity, cv2.CV_32S)
+            # Get the results
+
+            # # The first cell is the number of labels
+            # num_labels = output[0]
+            # print('num_labels', num_labels)
+
+            # # The second cell is the label matrix
+            # labels = output[1]
+            # print('labels', labels)
+
+            # # The third cell is the stat matrix, (xmin, ymin, width, height, area)
+            stats = output[2]
+            # print('stats', stats)
+
+            # # The fourth cell is the centroid matrix, (cx, cy)
+            centroids = output[3]
+            # print('centroids', centroids)
+            if len(stats) == 1:
+                continue
+            stats = stats[1:]
+            centroids = centroids[1:]
+            # img = Image.fromarray(img)
+            # mask = Image.fromarray(label)
+            h, w, _ = img.shape
+            n_cen = len(centroids)
+            idx_list = [i for i in range(n_cen)]
+            if n_cen > 5:
+                random.shuffle(idx_list)
+                random.shuffle(idx_list)
+                idx_list = idx_list[:5]
+            
+            for j, idx in enumerate(idx_list):
+                x0, y0, width, height, _ = stats[idx].astype(np.uint32)
+                cx, cy = centroids[idx].astype(np.uint32)
+                
+                if width >= size :
+                    x_offset = size//2
+                else:
+                    x_offset = (size - width)//2
+                
+                if height >= size :
+                    y_offset = size//2
+                else:
+                    y_offset = (size - height)//2
+                
+                xmin = x0 - x_offset if x0 - x_offset > 0 else 0
+                ymin = y0 - y_offset if y0 - y_offset > 0 else 0
+                xmax = x0 + width + x_offset if x0 + width + x_offset < w else w
+                ymax = y0 + height + y_offset if y0 + height + y_offset < h else h
+                
+                img_block = img[ymin:ymax, xmin:xmax]
+                label_block = label[ymin:ymax, xmin:xmax]
+
+                h_block, w_block = label_block.shape
+                row = round(h_block/size)
+                col = round(w_block/size)
+                
+                row = 1 if row == 0 else row
+                col = 1 if col == 0 else col
+                base_h = int(h_block/row)
+                base_w = int(w_block/col)
+                for r in range(row):
+                    for c in range(col):
+                        temp_img = img[ymin + r*base_h: ymin + (r+1)*base_h, xmin + c*base_w: xmin + (c+1)*base_w]
+                        temp_label = label[ymin + r*base_h: ymin + (r+1)*base_h, xmin + c*base_w: xmin + (c+1)*base_w]
+                        new_img_name = ori_img_name.replace('.jpg', f'_{j}_{r}_{c}.jpg')
+                        new_label_name = ori_img_name.replace('.jpg', f'_{j}_{r}_{c}.png')
+                        out_img_filepath = os.path.join(out_data_dir, new_img_name)
+                        out_label_filepath = os.path.join(out_data_dir, new_label_name)
+                        cv2.imwrite(out_img_filepath, temp_img)
+                        cv2.imwrite(out_label_filepath, temp_label)
+                
+                        new_filepath_list.append(out_img_filepath)
+        write_list_to_txt(new_txt_filepath, new_filepath_list)
+
+def delete_repeat_in_txt():
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot_20220108_cut'
+    # output_dir = '/home/hongrui/project/metro_pro/dataset/'
+
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/data'
+    # output_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/'
+    
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/data'
+    # output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/'
+
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/data'
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/'
+
+
+    # ref_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/data'
+    # ref_img_names = os.listdir(ref_dir)
+    # ref_img_names = []
+    
+    dirs =  ['val',   'test', 'train']
+    
+    
+    test_list_txt = os.path.join(input_dir, 'test.txt')
+    val_list_txt = os.path.join(input_dir, 'val.txt')
+    train_list_txt = os.path.join(input_dir, 'train.txt')
+    
+    test_filepaths = read_txt_to_list(test_list_txt)
+    val_filepaths = read_txt_to_list(val_list_txt)
+    train_filepaths = read_txt_to_list(train_list_txt)
+    
+    test_filepaths = list(set(test_filepaths))
+    val_filepaths = list(set(val_filepaths))
+    train_filepaths = list(set(train_filepaths))
+    
+    os.remove(test_list_txt)
+    os.remove(val_list_txt)
+    os.remove(train_list_txt)
+    
+    
+    write_list_to_txt(test_list_txt, test_filepaths)
+    write_list_to_txt(val_list_txt, val_filepaths)
+    write_list_to_txt(train_list_txt, train_filepaths)
+    total_num = 0
+    total_num += len(test_filepaths)
+    total_num += len(val_filepaths)
+    total_num += len(train_filepaths)
+    
+    print('total_num', total_num)
+    
+    
+def count_images_nums():
+    
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/'
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/'
+
+
+    # ref_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/data'
+    # ref_img_names = os.listdir(ref_dir)
+    # ref_img_names = []
+    
+    dirs =  ['val',   'test', 'train']
+    
+    
+    test_list_txt = os.path.join(input_dir, 'test.txt')
+    val_list_txt = os.path.join(input_dir, 'val.txt')
+    train_list_txt = os.path.join(input_dir, 'train.txt')
+    
+    test_filepaths = read_txt_to_list(test_list_txt)
+    val_filepaths = read_txt_to_list(val_list_txt)
+    train_filepaths = read_txt_to_list(train_list_txt)
+    
+    test_filepaths = list(set(test_filepaths))
+    val_filepaths = list(set(val_filepaths))
+    train_filepaths = list(set(train_filepaths))
+    
+    
+    total_num = 0
+    total_num += len(test_filepaths)
+    total_num += len(val_filepaths)
+    total_num += len(train_filepaths)
+    
+    print('total_num', total_num)
 
 if __name__ == '__main__':
 
@@ -1426,4 +1693,8 @@ if __name__ == '__main__':
     
     # verify_exist()
     # del_all_checkpoint_pth_tar()
-    calculate_pixels()
+    calculate_pixels_and_plot_dist()
+    # cut_block()
+    # split_train_val_test_filelist()
+    # delete_repeat_in_txt()
+    # count_images_nums()
