@@ -50,7 +50,13 @@ class CustomPotSeg(Dataset):
         else:
             txt_filepath = os.path.join(self.root, f'{self.split}.txt')
             self.img_filepaths = read_txt_to_list(txt_filepath)
+            self.img_filepaths = list(set(self.img_filepaths))
             random.shuffle(self.img_filepaths)
+            num = len(self.img_filepaths)
+            if num < 100:
+                ratio = 100 // num
+                self.img_filepaths *= ratio
+            
             
 
 
@@ -241,7 +247,7 @@ class CustomPotSeg(Dataset):
             tr.RandomHorizontalFlip(self.args),
             tr.RandomVerticalFlip(self.args),            
             tr.RandomRotate(degree = self.args.rotate_degree, args = self.args),
-            tr.RandomGaussianBlur(),
+            # tr.RandomGaussianBlur(),
             # tr.FixScaleCrop(crop_size=self.args.crop_size, args = self.args),
             # tr.RandomHorizontalFlipImageMask(self.args),
             tr.FixedResize(size=self.args.base_size, args = self.args),

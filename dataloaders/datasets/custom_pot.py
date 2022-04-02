@@ -137,12 +137,6 @@ class CustomPot(Dataset):
         '''        
         if mask.any() > 0:
             mask_bk = mask.copy()
-            # if not self.args.diff_all_classes:
-            #     mask[mask_bk>0] = 1
-            # if self.args.ignore_huahen:
-            #     mask[mask_bk>3] = 0
-            # if self.args.ignore_zhoubian:
-            #     mask[mask_bk==3] = 0
             if self.args.pot_train_mode == 1: #不区分类别
                 mask[mask_bk>0] = 1
             elif self.args.pot_train_mode == 2:#区分类别，不训练划痕

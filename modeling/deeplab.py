@@ -23,7 +23,7 @@ class DeepLab(nn.Module):
         self.backbone = build_backbone(backbone, output_stride, BatchNorm)
         self.aspp = build_aspp(backbone, output_stride, BatchNorm)
         self.decoder = build_decoder(num_classes, backbone, BatchNorm)
-        self.classification_head = build_cls_head(num_classes, backbone, BatchNorm)
+        # self.classification_head = build_cls_head(num_classes, backbone, BatchNorm)
         self.freeze_bn = freeze_bn
         
         

@@ -5,7 +5,7 @@ from torch.autograd import Variable
 import os
 import sys
 
-print(os.getcwd())
+# print(os.getcwd())
 sys.path.append(os.getcwd())
 from utils.lovasz_losses import lovasz_softmax
 # from lovasz_losses import lovasz_softmax
