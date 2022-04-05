@@ -201,7 +201,7 @@ class RandomCrop(object):
 
     def __call__(self, sample):
         # short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
-        ratio = random.uniform(0.9, 1.25)
+        ratio = random.uniform(0.9, 1.1)
         self.crop_size = int(ratio*self.crop_size)
         img = sample['image']
         mask = sample['label']
@@ -240,6 +240,7 @@ class RandomCrop(object):
 
 
 class RandomScaleRemainSize(object):
+    ## 
     def __init__(self, args = None):
         self.fill = args.ignore_index
         self.ignore_loss_index = args.ignore_loss_index
@@ -511,11 +512,11 @@ class RandomCutPostives(object):
     def __init__(self, size, args = None, split = 'train'):
         self.args = args
         if split == 'train':
-            self.size = int(1.75 * size)
-        elif split == 'val':
             self.size = int(1.5 * size)
-        else:
+        elif split == 'val':
             self.size = int(1.25 * size)
+        else:
+            self.size = size
             # self.size = int(1.5 * size)
         self.fill = args.ignore_index
 

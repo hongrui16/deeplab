@@ -53,8 +53,9 @@ class CustomPotSeg(Dataset):
             self.img_filepaths = list(set(self.img_filepaths))
             random.shuffle(self.img_filepaths)
             num = len(self.img_filepaths)
-            if num < 100:
-                ratio = 100 // num
+            tar_num = 200 if split == 'train' else 100
+            if num < tar_num:
+                ratio = round(tar_num / num)
                 self.img_filepaths *= ratio
             
             

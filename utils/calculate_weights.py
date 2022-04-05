@@ -9,6 +9,7 @@ def calculate_weigths_labels(dataset, dataloader, num_classes, args = None, clas
     # Initialize tqdm
     tqdm_batch = tqdm(dataloader)
     print('Calculating classes weights')
+    cnt = 1
     for sample in tqdm_batch:
         y = sample['label']
         y = y.detach().cpu().numpy()
@@ -16,6 +17,9 @@ def calculate_weigths_labels(dataset, dataloader, num_classes, args = None, clas
         labels = y[mask].astype(np.uint8)
         count_l = np.bincount(labels, minlength=num_classes)
         z += count_l
+        cnt += 1
+        if cnt > 200:
+            break
     tqdm_batch.close()
     total_frequency = np.sum(z)
     class_weights = []
