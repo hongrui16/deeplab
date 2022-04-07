@@ -1550,17 +1550,18 @@ def cut_block():
         write_list_to_txt(new_txt_filepath, new_filepath_list)
 
 def delete_repeat_in_txt():
-    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot_20220108_cut'
-    # output_dir = '/home/hongrui/project/metro_pro/dataset/'
 
-    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/data'
-    # output_dir = '/home/hongrui/project/metro_pro/dataset/pot/pot_20220108_obvious_defect_0/'
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_0/'
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/'
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/'
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2_block/'
     
     # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/data'
     # output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/'
 
     # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/data'
     input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/'
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_v3/'
 
 
     # ref_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/data'
@@ -1693,8 +1694,8 @@ if __name__ == '__main__':
     
     # verify_exist()
     # del_all_checkpoint_pth_tar()
-    calculate_pixels_and_plot_dist()
+    # calculate_pixels_and_plot_dist()
     # cut_block()
     # split_train_val_test_filelist()
-    # delete_repeat_in_txt()
+    delete_repeat_in_txt()
     # count_images_nums()

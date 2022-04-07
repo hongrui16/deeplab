@@ -192,6 +192,63 @@ class RandomScaleCrop(object):
 
 
 
+class RandomCutPostives(object):
+    def __init__(self, size, args = None, split = 'train'):
+        self.args = args
+        if split == 'train':
+            self.size = int(1.5 * size)
+        elif split == 'val':
+            self.size = int(1.25 * size)
+        else:
+            self.size = int(1.25 * size)
+            # self.size = int(1.5 * size)
+        self.fill = args.ignore_index
+
+    def __call__(self, sample):
+        img = sample['image']
+        mask = sample['label']
+        if self.args.eval_on_small_block:
+            return sample
+        if not self.args.ramdom_cut_postives:
+            return sample
+        w, h = img.size
+
+        label = np.array(mask)
+        label[label == self.args.ignore_index] = 0
+        if not label.any() > 0:
+            return sample
+        
+        nonzero = label.nonzero()
+        non_index = random.randint(0, len(nonzero[0])-1)
+        cx, cy = nonzero[1][non_index], nonzero[0][non_index]
+        
+        x1 = random.randint(0, cx//2)
+        y1 = random.randint(0, cy//2)
+        
+        if x1 + self.size <= cx:
+            x2 = cx + self.size // 2
+        elif cx < x1 + self.size <= w:
+            x2 = x1 + self.size
+        else:
+            x2 = w
+        
+        if y1 + self.size <= cy:
+            y2 = cy + self.size // 2
+        elif cy < y1 + self.size <= h:
+            y2 = y1 + self.size
+        else:
+            y2 = h
+
+        img = img.crop((x1, y1, x2, y2))
+        mask = mask.crop((x1, y1, x2, y2))
+        
+        sample['image'] = img
+        sample['label'] = mask
+        return sample
+# sample = {'image': _img, 'label': _target, 'img_name': img_name}
+
+
+
 class RandomCrop(object):
     def __init__(self, args = None):        
         self.crop_size = args.crop_size
@@ -201,7 +258,9 @@ class RandomCrop(object):
 
     def __call__(self, sample):
         # short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
-        ratio = random.uniform(0.9, 1.1)
+        if self.args.eval_on_small_block:
+            return sample
+        ratio = random.uniform(0.8, 1.2)
         self.crop_size = int(ratio*self.crop_size)
         img = sample['image']
         mask = sample['label']
@@ -248,6 +307,8 @@ class RandomScaleRemainSize(object):
 
     def __call__(self, sample):
         # short_size = random.randint(int(self.base_size * 0.75), int(self.base_size * 1.25))
+        if self.args.eval_on_small_block:
+            return sample
         resize_ratio = random.uniform(0.8, 1.2)
         img = sample['image']
         mask = sample['label']
@@ -507,87 +568,6 @@ class ShortEdgePad(object):
         return sample
 
 
-
-class RandomCutPostives(object):
-    def __init__(self, size, args = None, split = 'train'):
-        self.args = args
-        if split == 'train':
-            self.size = int(1.5 * size)
-        elif split == 'val':
-            self.size = int(1.25 * size)
-        else:
-            self.size = size
-            # self.size = int(1.5 * size)
-        self.fill = args.ignore_index
-
-    def __call__(self, sample):
-        img = sample['image']
-        mask = sample['label']
-        
-        if not self.args.ramdom_cut_postives:
-            return sample
-        w, h = img.size
-
-        label = np.array(mask)
-        label[label == self.args.ignore_index] = 0
-        if not label.any() > 0:
-            return sample
-        
-        nonzero = label.nonzero()
-        non_index = random.randint(0, len(nonzero[0])-1)
-        cx, cy = nonzero[1][non_index], nonzero[0][non_index]
-        
-        x1 = random.randint(0, cx//2)
-        y1 = random.randint(0, cy//2)
-        
-        if x1 + self.size <= cx:
-            x2 = cx + self.size // 2
-        elif cx < x1 + self.size <= w:
-            x2 = x1 + self.size
-        else:
-            x2 = w
-        
-        if y1 + self.size <= cy:
-            y2 = cy + self.size // 2
-        elif cy < y1 + self.size <= h:
-            y2 = y1 + self.size
-        else:
-            y2 = h
-
-        img = img.crop((x1, y1, x2, y2))
-        mask = mask.crop((x1, y1, x2, y2))
-        
-        sample['image'] = img
-        sample['label'] = mask
-        return sample
-# sample = {'image': _img, 'label': _target, 'img_name': img_name}
-
-class FixedResize(object):
-    def __init__(self, size, args = None):
-        self.size = (size, size)  # size: (h, w)
-        self.args = args
-
-    def __call__(self, sample):
-        # if self.args.testValTrain <= 1:
-        #     return sample
-        img = sample['image']
-        mask = sample['label']
-        # img_name = sample['img_name']
-        if isinstance(mask, Image.Image):
-            assert img.size == mask.size
-            mask = mask.resize(self.size, Image.NEAREST)
-        img = img.resize(self.size, Image.BILINEAR)
-        # if img_name:
-        #     return {'image': img,
-        #         'label': mask,
-        #         'img_name':img_name}
-        # else:
-        #     return {'image': img,
-        #         'label': mask}
-        sample['image'] = img
-        sample['label'] = mask
-        return sample
-
 class LimitResize(object):
     def __init__(self, size, args = None):
         self.size = size  # size: (h, w)
@@ -752,4 +732,31 @@ class DeIgnoreIndex(object):
             sample['seg_loss_mask'] = Image.fromarray(seg_loss_mask)
     
         sample['label'] = Image.fromarray(mask)
+        return sample
+
+
+class FixedResize(object):
+    def __init__(self, size, args = None):
+        self.size = (size, size)  # size: (h, w)
+        self.args = args
+
+    def __call__(self, sample):
+        # if self.args.testValTrain <= 1:
+        #     return sample
+        img = sample['image']
+        mask = sample['label']
+        # img_name = sample['img_name']
+        if isinstance(mask, Image.Image):
+            assert img.size == mask.size
+            mask = mask.resize(self.size, Image.NEAREST)
+        img = img.resize(self.size, Image.BILINEAR)
+        # if img_name:
+        #     return {'image': img,
+        #         'label': mask,
+        #         'img_name':img_name}
+        # else:
+        #     return {'image': img,
+        #         'label': mask}
+        sample['image'] = img
+        sample['label'] = mask
         return sample

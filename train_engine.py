@@ -84,6 +84,7 @@ def main_worker(gpu, ngpus_per_node, args):
     # return
     print(f'rank {args.rank} Starting Epoch: {worker.args.start_epoch}, Total Epoches: {worker.args.epochs}')
     is_best_epoch = False
+    loop_num = 1
     if args.testValTrain >= 2:
         for epoch in range(worker.args.start_epoch, worker.args.epochs):
             worker.training(epoch)
@@ -101,14 +102,15 @@ def main_worker(gpu, ngpus_per_node, args):
         worker.args.testValTrain = 1
         avg_val_miou = 0
         avg_test_miou = 0
-        for _ in range(3):
+        
+        for _ in range(loop_num):
             _, val_mIoU = worker.validation()
             test_mIoU = worker.test()
             avg_val_miou += val_mIoU
             avg_test_miou += test_mIoU
         worker.saver.write_log_to_txt('\n')
-        avg_val_miou = round(avg_val_miou/3, 4)
-        avg_test_miou = round(avg_test_miou/3, 4)
+        avg_val_miou = round(avg_val_miou/loop_num, 4)
+        avg_test_miou = round(avg_test_miou/loop_num, 4)
         if args.master:
             worker.saver.write_log_to_txt(f'val/avg mIoU@argmax: {avg_val_miou}\n')
             worker.saver.write_log_to_txt(f'test/avg mIoU@argmax: {avg_test_miou}\n')
@@ -116,14 +118,14 @@ def main_worker(gpu, ngpus_per_node, args):
     elif 2 > args.testValTrain >= 0:
         avg_val_miou = 0
         avg_test_miou = 0
-        for _ in range(3):
+        for _ in range(loop_num):
             _, val_mIoU = worker.validation()
             test_mIoU = worker.test()
             avg_val_miou += val_mIoU
             avg_test_miou += test_mIoU
         worker.saver.write_log_to_txt('\n')
-        avg_val_miou = round(avg_val_miou/3, 4)
-        avg_test_miou = round(avg_test_miou/3, 4)
+        avg_val_miou = round(avg_val_miou/loop_num, 4)
+        avg_test_miou = round(avg_test_miou/loop_num, 4)
         if args.master:
             worker.saver.write_log_to_txt(f'val/avg mIoU@argmax: {avg_val_miou}\n')
             worker.saver.write_log_to_txt(f'test/avg mIoU@argmax: {avg_test_miou}\n')

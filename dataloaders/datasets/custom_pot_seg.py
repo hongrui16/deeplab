@@ -53,10 +53,16 @@ class CustomPotSeg(Dataset):
             self.img_filepaths = list(set(self.img_filepaths))
             random.shuffle(self.img_filepaths)
             num = len(self.img_filepaths)
-            tar_num = 200 if split == 'train' else 100
-            if num < tar_num:
-                ratio = round(tar_num / num)
-                self.img_filepaths *= ratio
+            # tar_num = 200 if split == 'train' else 100
+            num = len(self.img_filepaths)
+            if self.args.testValTrain > 1:
+                if num < 100:
+                    ratio = round(100 / num) + 1
+                    self.img_filepaths *= ratio
+            elif self.args.testValTrain == 1:
+                if num < 200:
+                    ratio = round(200 / num) + 1
+                    self.img_filepaths *= ratio
             
             
 
@@ -279,8 +285,8 @@ class CustomPotSeg(Dataset):
         composed_transforms = transforms.Compose([
             tr.RandomCutPostives(size=self.args.base_size, args = self.args, split = self.split),
             tr.ShortEdgePad(size=self.args.base_size, args = self.args),
-            # tr.RandomCrop(args=self.args),
-            # tr.RandomScaleRemainSize(args=self.args),
+            tr.RandomCrop(args=self.args),
+            tr.RandomScaleRemainSize(args=self.args),
             # tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size, fill=self.ignore_index, args = self.args),
             # tr.RandomAddNegSample(args = self.args),
             # tr.CenterPadAndCrop(size=self.args.base_size, args = self.args),

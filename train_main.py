@@ -185,6 +185,8 @@ parser.add_argument('--ignore_loss_index', type=int, default = 255,
                     help="ignore loss index") 
 parser.add_argument('--de_ignore_index', action='store_true', default=False, help="do not ignore index") 
 parser.add_argument('--with_classification_head', action='store_true', default=False, help="with classification head") 
+parser.add_argument('--eval_on_small_block', action='store_true', default=False, 
+                    help="eval on small_block") 
 
 args = parser.parse_args()
 
