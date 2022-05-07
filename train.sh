@@ -53,7 +53,13 @@
 # --dataset_dir /home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/ --rotate_degree 30 --epochs 200 \
 # --pot_train_mode 1 --backbone drn --ramdom_cut_postives  --de_ignore_index
 
-CUDA_VISIBLE_DEVICES=2 python train_main.py  --batch_size 8 --testValTrain 4  --base_size 480 \
+# CUDA_VISIBLE_DEVICES=0 python train_main.py  --batch_size 20 --testValTrain 4  --base_size 480 \
+# --crop_size 480 --dataset CustomPotSeg  --use_txtfile \
+# --dataset_dir /home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/ --rotate_degree 30 --epochs 200 \
+# --backbone drn --ramdom_cut_postives  --de_ignore_index  --pot_train_mode 1
+
+
+CUDA_VISIBLE_DEVICES=7 python train_main.py  --batch_size 20 --testValTrain 4  --base_size 480 \
 --crop_size 480 --dataset CustomPotSeg  --use_txtfile \
---dataset_dir /home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/ --rotate_degree 30 --epochs 200 \
---backbone drn --ramdom_cut_postives  --de_ignore_index  --pot_train_mode 5
+--dataset_dir /home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/ --rotate_degree 30 --epochs 200 \
+--backbone drn --ramdom_cut_postives  --de_ignore_index  --pot_train_mode 1 --resume /home/hongrui/project/metro_pro/deeplab/run/CustomPotSeg/deeplab-drn/experiment_25/model_best.pth.tar

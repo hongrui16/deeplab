@@ -125,7 +125,7 @@ class distWorker(object):
                 self.model.load_state_dict(checkpoint['state_dict'])
             if not args.ft and args.testValTrain > 1: #train
                 self.optimizer.load_state_dict(checkpoint['optimizer'])
-                self.best_pred = checkpoint['best_pred']
+                # self.best_pred = checkpoint['best_pred']
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(args.resume, checkpoint['epoch']))
 
@@ -488,7 +488,7 @@ class distWorker(object):
                 cv2.imwrite(out_label_filepath, labels[_id])
 
     def dump_thre_pre_gt(self, pres, GTs, img_names, images = None, output_mask_dir = None):
-        if not os.path.exists(output_mask_dir):
+        if output_mask_dir and not os.path.exists(output_mask_dir):
             os.makedirs(output_mask_dir)
         # print('pres.shape', pres.shape)
         raw_pre = np.transpose(pres.copy(), axes=[0, 2, 3, 1])
@@ -527,6 +527,8 @@ class distWorker(object):
         
         
     def dump_composed_img_pre_label(self, images, pres, GTs, img_names, output_mask_dir = None):
+        if output_mask_dir and not os.path.exists(output_mask_dir):
+            os.makedirs(output_mask_dir)
         if isinstance(GTs, np.ndarray):                    
             labels = GTs.copy()
         elif isinstance(GTs, torch.Tensor): 

@@ -29,6 +29,7 @@ import imgviz
 import random
 import glob
 from pascal import PascalVOC
+from zipfile import ZipFile
 
 from pathlib import Path
 
@@ -1289,15 +1290,124 @@ def del_all_checkpoint_pth_tar():
                 os.remove(tar_filepath)
                 print(f'remove {tar_filepath}')
 
-def calculate_pixels_and_plot_dist():
-    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2'
+def calculate_pos_vs_neg():
     input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_v3'
     # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328'
-    
-    
-    
     txt_files = [
-                'train.txt', 
+                'val.txt',    
+                'test.txt',
+                ]
+    
+    if input_dir.endswith('/'):
+        input_dir = input_dir[:-1]
+    
+        
+    label_dict = {
+        'lasi_heavy': 11, 'lasi_medium':12, 'lasi_slight':13,
+        'gengshang_heavy':21, 'gengshang_medium':22, 'gengshang_slight':23,  
+        'gengshi_heavy':31, 'gengshi_medium':32, 'gengshi_slight':33,
+        'shayan_heavy':41, 'shayan_medium':42, 'shayan_slight':43,
+        'huahen_heavy':51, 'huahen_medium':52, 'huahen_slight':53,
+        'zhoubian_heavy':61, 'zhoubian_medium':62, 'zhoubian_slight':63,
+        'bowen_heavy':71, 'bowen_medium':72, 'bowen_slight':73,
+        'youwu_heavy':81, 'youwu_medium':82, 'youwu_slight':83,
+        }
+    
+    label_names = label_dict.keys()
+    # print('label_names', label_names)
+    num_classes = len(label_names)//3 - 3
+    cate_names = []
+    for i, name in enumerate(label_names):
+        if i % 3 == 0:
+            cat_id = i // 3
+            if cat_id >= num_classes:
+                continue
+            cate_names.append(name.split('_')[0])
+    
+    for txt_file in txt_files:
+        txt_filepath = os.path.join(input_dir, txt_file)
+        split = txt_file.split('.')[0]
+
+        
+        img_filepaths = read_txt_to_list(txt_filepath)
+        img_filepaths = list(set(img_filepaths))
+        pos, neg = 0, 0
+        for i, img_filepath in enumerate(img_filepaths):
+            label_filepath = img_filepath.replace('.jpg', '.png')
+            label = cv2.imread(label_filepath, 0)
+            # print(label_filepath, np.unique(label))
+            ids = np.unique(label)
+            ids = ids[(ids > 0) * (ids < 61)]
+            ids = ids.tolist()
+            flag = False
+            for c in ids:
+                if not c % 10 == 3:
+                    pos += 1
+                    flag = True
+                    break
+            if flag:
+                continue
+            else:
+                neg += 1
+        print(split, f'pos:neg = {pos}:{neg}')
+            
+def calculate_pos_vs_neg_v2():
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328_block'
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328'
+    txt_files = [
+                'val.txt',    
+                'test.txt',
+                ]
+    # val pos:neg = 149:127
+    # test pos:neg = 140:98
+
+    if input_dir.endswith('/'):
+        input_dir = input_dir[:-1]
+    
+        
+    label_dict = {
+        'lasi_heavy': 11, 'lasi_medium':12, 'lasi_slight':13,
+        'gengshang_heavy':21, 'gengshang_medium':22, 'gengshang_slight':23,  
+        'gengshi_heavy':31, 'gengshi_medium':32, 'gengshi_slight':33,
+        'shayan_heavy':41, 'shayan_medium':42, 'shayan_slight':43,
+        'huahen_heavy':51, 'huahen_medium':52, 'huahen_slight':53,
+        'zhoubian_heavy':61, 'zhoubian_medium':62, 'zhoubian_slight':63,
+        'bowen_heavy':71, 'bowen_medium':72, 'bowen_slight':73,
+        'youwu_heavy':81, 'youwu_medium':82, 'youwu_slight':83,
+        }
+
+    for txt_file in txt_files:
+        txt_filepath = os.path.join(input_dir, txt_file)
+        split = txt_file.split('.')[0]
+
+        
+        img_filepaths = read_txt_to_list(txt_filepath)
+        img_filepaths = list(set(img_filepaths))
+        pos, neg = 0, 0
+        for i, img_filepath in enumerate(img_filepaths):
+            img_name = img_filepath.split('/')[-1]
+            tag = img_name.split('_')[-3]
+            if tag == 'P':
+                pos += 1
+            else:
+                neg += 1
+        print(split, f'pos:neg = {pos}:{neg}')
+
+
+def calculate_pixels_and_plot_dist():
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2'
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_v3'
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328_block'
+    
+    
+    
+    # txt_files = [
+    #             'train.txt', 
+    #             'val.txt',    
+    #             'test.txt',
+    #             ]
+
+    txt_files = [
                 'val.txt',    
                 'test.txt',
                 ]
@@ -1315,14 +1425,14 @@ def calculate_pixels_and_plot_dist():
         os.remove(plot_file)
         
     label_dict = {
-        'lasi_heavy': 11, 'lasi_medium':12, 'lasi_slight':13,
-        'gengshang_heavy':21, 'gengshang_medium':22, 'gengshang_slight':23,  
-        'gengshi_heavy':31, 'gengshi_medium':32, 'gengshi_slight':33,
-        'shayan_heavy':41, 'shayan_medium':42, 'shayan_slight':43,
-        'huahen_heavy':51, 'huahen_medium':52, 'huahen_slight':53,
-        'zhoubian_heavy':61, 'zhoubian_medium':62, 'zhoubian_slight':63,
-        'bowen_heavy':71, 'bowen_medium':72, 'bowen_slight':73,
-        'youwu_heavy':81, 'youwu_medium':82, 'youwu_slight':83,
+        'lasi_heavy': 11,       'lasi_medium':12,       'lasi_slight':13,
+        'gengshang_heavy':21,   'gengshang_medium':22,  'gengshang_slight':23,  
+        'gengshi_heavy':31,     'gengshi_medium':32,    'gengshi_slight':33,
+        'shayan_heavy':41,      'shayan_medium':42,     'shayan_slight':43,
+        'huahen_heavy':51,      'huahen_medium':52,     'huahen_slight':53,
+        'zhoubian_heavy':61,    'zhoubian_medium':62,   'zhoubian_slight':63,
+        'bowen_heavy':71,       'bowen_medium':72,      'bowen_slight':73,
+        'youwu_heavy':81,       'youwu_medium':82,      'youwu_slight':83,
         }
     
     label_names = label_dict.keys()
@@ -1397,8 +1507,8 @@ def calculate_pixels_and_plot_dist():
             edgecolor ='grey', label = f'{splits[0]}')
     plt.bar(br2, all_counter[1][:,:2].sum(axis = 1), color ='g', width = barWidth,
             edgecolor ='grey', label = f'{splits[1]}')
-    plt.bar(br3, all_counter[2][:,:2].sum(axis = 1), color ='b', width = barWidth,
-            edgecolor ='grey', label = f'{splits[2]}')
+    # plt.bar(br3, all_counter[2][:,:2].sum(axis = 1), color ='b', width = barWidth,
+    #         edgecolor ='grey', label = f'{splits[2]}')
     
     # Adding Xticks
     plt.xlabel('heavy & medium', fontweight ='bold', fontsize = 12)
@@ -1414,8 +1524,8 @@ def calculate_pixels_and_plot_dist():
             edgecolor ='grey', label = f'{splits[0]}')
     plt.bar(br2, all_counter[1][:,2:].sum(axis = 1), color ='g', width = barWidth,
             edgecolor ='grey', label = f'{splits[1]}')
-    plt.bar(br3, all_counter[2][:,2:].sum(axis = 1), color ='b', width = barWidth,
-            edgecolor ='grey', label = f'{splits[2]}')
+    # plt.bar(br3, all_counter[2][:,2:].sum(axis = 1), color ='b', width = barWidth,
+    #         edgecolor ='grey', label = f'{splits[2]}')
     
     # Adding Xticks
     plt.xlabel('slight', fontweight ='bold', fontsize = 12)
@@ -1452,7 +1562,7 @@ def cut_block():
         os.makedirs(out_data_dir)
         
     # ignore_index = 255
-    size = 640
+    size = 480
     for txt_file in txt_files:
         split = txt_file.split('/')[-1].split('.')[0]
         new_txt_filepath = os.path.join(out_dir, f'{split}.txt')
@@ -1549,6 +1659,208 @@ def cut_block():
                         new_filepath_list.append(out_img_filepath)
         write_list_to_txt(new_txt_filepath, new_filepath_list)
 
+    
+def cut_pos_neg_block():
+    # txt_files = [
+    #         # '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/train.txt', 
+    #             '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/val.txt',    
+    #         '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/test.txt']
+    
+    # out_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2_block/'
+    # out_data_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2_block/data'
+    
+    txt_files = [
+            # '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/train.txt', 
+                '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/val.txt',    
+            '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/test.txt']
+    
+    out_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328_block/'
+    out_data_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328_block/data'
+    
+    if not os.path.exists(out_data_dir):
+        os.makedirs(out_data_dir)
+        
+    # ignore_index = 255
+    size = 480
+    for txt_file in txt_files:
+        split = txt_file.split('/')[-1].split('.')[0]
+        new_txt_filepath = os.path.join(out_dir, f'{split}.txt')
+        new_filepath_list = []
+        img_filepaths = read_txt_to_list(txt_file)
+        img_filepaths = list(set(img_filepaths))
+        for i, img_filepath in enumerate(img_filepaths):
+            ori_img_name = img_filepath.split('/')[-1]
+            
+            print(f'processing {split}, {i}/{len(img_filepaths)}, {ori_img_name}')
+            label_filepath = img_filepath.replace('.jpg', '.png')
+            label = cv2.imread(label_filepath, 0)
+            img = cv2.imread(img_filepath)
+            mask = label.copy()
+            mask[mask==255] = 0
+            mask[mask==13] = 0
+            mask[mask==23] = 0
+            mask[mask==33] = 0
+            mask[mask==43] = 0
+            mask[mask==53] = 0
+            mask[mask>=61] = 0
+            # if not mask.any() > 0:
+            #     continue
+            connectivity = 4  
+        
+            # Perform the operation
+            output = cv2.connectedComponentsWithStats(mask, connectivity, cv2.CV_32S)
+            # Get the results
+
+            # # The first cell is the number of labels
+            # num_labels = output[0]
+            # print('num_labels', num_labels)
+
+            # # The second cell is the label matrix
+            # labels = output[1]
+            # print('labels', labels)
+
+            # # The third cell is the stat matrix, (xmin, ymin, width, height, area)
+            stats = output[2]
+            # print('stats', stats)
+
+            # # The fourth cell is the centroid matrix, (cx, cy)
+            centroids = output[3]
+            # print('centroids', centroids)
+            h, w, _ = img.shape
+            if len(stats) > 1:
+                stats = stats[1:]
+                centroids = centroids[1:]
+                # img = Image.fromarray(img)
+                # mask = Image.fromarray(label)
+                
+                n_cen = len(centroids)
+                idx_list = [i for i in range(n_cen)]
+                if n_cen > 5:
+                    random.shuffle(idx_list)
+                    random.shuffle(idx_list)
+                    idx_list = idx_list[:5]
+                
+                for j, idx in enumerate(idx_list):
+                    # x0, y0, width, height, _ = stats[idx].astype(np.uint32)
+                    cx, cy = centroids[idx].astype(np.uint32)
+                    
+                    xmin = cx - size // 2 if cx - size // 2 > 0 else 0
+                    ymin = cy - size // 2 if cy - size // 2 > 0 else 0
+                    xmax = cx + size // 2 if cx + size // 2 < w else w
+                    ymax = cy + size // 2 if cy + size // 2 < h else h
+                    
+                    img_block = img[ymin:ymax, xmin:xmax]
+                    label_block = label[ymin:ymax, xmin:xmax]
+                    new_img_name = ori_img_name.replace('.jpg', f'_P_c_{j}.jpg')
+                    new_label_name = ori_img_name.replace('.jpg', f'_P_c_{j}.png')
+                    out_img_filepath = os.path.join(out_data_dir, new_img_name)
+                    out_label_filepath = os.path.join(out_data_dir, new_label_name)
+                    cv2.imwrite(out_img_filepath, img_block)
+                    cv2.imwrite(out_label_filepath, label_block)
+                    new_filepath_list.append(out_img_filepath)
+
+
+            row = round(h/size)
+            col = round(w/size)
+            
+            row = 1 if row == 0 else row
+            col = 1 if col == 0 else col
+            base_h = int(h/row)
+            base_w = int(w/col)
+            for r in range(row):
+                for c in range(col):
+                    xmin = 0
+                    ymin = 0
+                    temp_img = img[ymin + r*base_h: ymin + (r+1)*base_h, xmin + c*base_w: xmin + (c+1)*base_w]
+                    temp_label = label[ymin + r*base_h: ymin + (r+1)*base_h, xmin + c*base_w: xmin + (c+1)*base_w]
+                    temp_mask = mask[ymin + r*base_h: ymin + (r+1)*base_h, xmin + c*base_w: xmin + (c+1)*base_w]
+                    nonzero = temp_mask[temp_mask>0]
+                    if len(nonzero) > 12:
+                        tag = 'P'
+                    else:
+                        tag = 'N'
+                    new_img_name = ori_img_name.replace('.jpg', f'_{tag}_{r}_{c}.jpg')
+                    new_label_name = ori_img_name.replace('.jpg', f'_{tag}_{r}_{c}.png')
+                    out_img_filepath = os.path.join(out_data_dir, new_img_name)
+                    out_label_filepath = os.path.join(out_data_dir, new_label_name)
+                    cv2.imwrite(out_img_filepath, temp_img)
+                    cv2.imwrite(out_label_filepath, temp_label)
+            
+                    new_filepath_list.append(out_img_filepath)
+        write_list_to_txt(new_txt_filepath, new_filepath_list)
+
+
+    
+def cut_black_bk_to_block():
+    # txt_files = [
+    #         # '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/train.txt', 
+    #             '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/val.txt',    
+    #         '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/test.txt']
+    
+    # out_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2_block/'
+    # out_data_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2_block/data'
+    
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/test_val_blank_bk'
+    
+    splits = ['test', 'val']
+    out_dir = '/home/hongrui/project/metro_pro/dataset/pot/test_val_blank_bk/block'
+    
+    
+    
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+        
+    # ignore_index = 255
+    size = 480
+    tag = 'N'
+    for split in splits:
+        new_txt_filepath = os.path.join(out_dir, f'{split}.txt')
+        new_filepath_list = []
+        in_img_dir = os.path.join(input_dir, split)
+        img_filepaths = glob.glob(osp.join(in_img_dir, "*.jpg"))
+        out_img_dir = os.path.join(out_dir, split)
+        if not os.path.exists(out_img_dir):
+            os.makedirs(out_img_dir)
+        for i, img_filepath in enumerate(img_filepaths):
+            ori_img_name = img_filepath.split('/')[-1]
+            
+            print(f'processing {split}, {i}/{len(img_filepaths)}, {ori_img_name}')
+            label_filepath = img_filepath.replace('.jpg', '.png')
+            label = cv2.imread(label_filepath, 0)
+            img = cv2.imread(img_filepath)
+            
+            h, w = label.shape
+            row = round(h/size)
+            col = round(w/size)
+            
+            row = 1 if row == 0 else row
+            col = 1 if col == 0 else col
+            base_h = int(h/row)
+            base_w = int(w/col)
+            for r in range(row):
+                for c in range(col):
+                    xmin = 0
+                    ymin = 0
+                    temp_img = img[ymin + r*base_h: ymin + (r+1)*base_h, xmin + c*base_w: xmin + (c+1)*base_w]
+                    temp_label = label[ymin + r*base_h: ymin + (r+1)*base_h, xmin + c*base_w: xmin + (c+1)*base_w]
+                    # temp_mask = mask[ymin + r*base_h: ymin + (r+1)*base_h, xmin + c*base_w: xmin + (c+1)*base_w]
+                    # nonzero = temp_mask[temp_mask>0]
+                    # if len(nonzero) > 12:
+                    #     tag = 'P'
+                    # else:
+                    #     tag = 'N'
+                    new_img_name = ori_img_name.replace('.jpg', f'_{tag}_{r}_{c}.jpg')
+                    new_label_name = ori_img_name.replace('.jpg', f'_{tag}_{r}_{c}.png')
+                    out_img_filepath = os.path.join(out_img_dir, new_img_name)
+                    out_label_filepath = os.path.join(out_img_dir, new_label_name)
+                    cv2.imwrite(out_img_filepath, temp_img)
+                    cv2.imwrite(out_label_filepath, temp_label)
+            
+                    new_filepath_list.append(out_img_filepath)
+        write_list_to_txt(new_txt_filepath, new_filepath_list)
+
+
+
 def delete_repeat_in_txt():
 
     # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_0/'
@@ -1560,43 +1872,32 @@ def delete_repeat_in_txt():
     # output_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/'
 
     # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/data'
-    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/'
-    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_v3/'
+    # input_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/'
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/test_val_blank_bk/block'
 
 
     # ref_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_1/data'
     # ref_img_names = os.listdir(ref_dir)
     # ref_img_names = []
     
-    dirs =  ['val',   'test', 'train']
+    # splits =  ['val',   'test', 'train']
+    splits =  ['val',   'test']
     
-    
-    test_list_txt = os.path.join(input_dir, 'test.txt')
-    val_list_txt = os.path.join(input_dir, 'val.txt')
-    train_list_txt = os.path.join(input_dir, 'train.txt')
-    
-    test_filepaths = read_txt_to_list(test_list_txt)
-    val_filepaths = read_txt_to_list(val_list_txt)
-    train_filepaths = read_txt_to_list(train_list_txt)
-    
-    test_filepaths = list(set(test_filepaths))
-    val_filepaths = list(set(val_filepaths))
-    train_filepaths = list(set(train_filepaths))
-    
-    os.remove(test_list_txt)
-    os.remove(val_list_txt)
-    os.remove(train_list_txt)
-    
-    
-    write_list_to_txt(test_list_txt, test_filepaths)
-    write_list_to_txt(val_list_txt, val_filepaths)
-    write_list_to_txt(train_list_txt, train_filepaths)
     total_num = 0
-    total_num += len(test_filepaths)
-    total_num += len(val_filepaths)
-    total_num += len(train_filepaths)
+    for split in splits:
+        txt_filepath = os.path.join(input_dir, f'{split}.txt')
+        img_filepaths = read_txt_to_list(txt_filepath)
+        os.remove(txt_filepath)
+        img_filepaths = list(set(img_filepaths))
+        random.shuffle(img_filepaths)
+        random.shuffle(img_filepaths)
+        write_list_to_txt(txt_filepath, img_filepaths)
+        total_num += len(img_filepaths)
     
     print('total_num', total_num)
+    
+    
+    
     
     
 def count_images_nums():
@@ -1631,6 +1932,38 @@ def count_images_nums():
     total_num += len(train_filepaths)
     
     print('total_num', total_num)
+
+def write_zip_file():
+    txt_files = [
+            # '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/train.txt', 
+                '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/val.txt',    
+            '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/test.txt']
+    
+    out_dir = '/home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/'
+    
+    input_dir = '/home/hongrui/project/metro_pro/dataset/pot/'
+    dir_names = ['20220108', '20220222', '20220328']
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+        
+
+    for txt_file in txt_files:
+        split = txt_file.split('/')[-1].split('.')[0]
+        zip_filepath = os.path.join(out_dir, f'{split}.zip')
+
+        img_filepaths = read_txt_to_list(txt_file)
+        img_filepaths = list(set(img_filepaths))
+        with ZipFile(zip_filepath,'w') as zip:
+            for i, img_filepath in enumerate(img_filepaths):
+                img_name = img_filepath.split('/')[-1]
+                for dir_name in dir_names:
+                    filepath = os.path.join(input_dir, dir_name, 'image', img_name)
+                    # print(filepath)
+                    if os.path.exists(filepath):
+                        zip.write(filepath)
+
+
 
 if __name__ == '__main__':
 
@@ -1694,8 +2027,15 @@ if __name__ == '__main__':
     
     # verify_exist()
     # del_all_checkpoint_pth_tar()
-    # calculate_pixels_and_plot_dist()
+    calculate_pixels_and_plot_dist()
     # cut_block()
     # split_train_val_test_filelist()
-    delete_repeat_in_txt()
+    # delete_repeat_in_txt()
     # count_images_nums()
+
+    # calculate_pos_vs_neg()
+    # calculate_pos_vs_neg_v2()
+
+    # cut_pos_neg_block()
+    # write_zip_file()
+    # cut_black_bk_to_block()

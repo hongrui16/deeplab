@@ -14,8 +14,14 @@
 # CUDA_VISIBLE_DEVICES=2,3 python train_main.py --testValTrain 4 --distinguish_left_right_semantic
 # CUDA_VISIBLE_DEVICES=1 python train_main.py --testValTrain 1  --dump_image_for_cal_chamferDist --resume run/workspace/TASK_2021-12-28_16-27-13/run/basicDataset/deeplab-resnet/experiment_1/model_best.pth.tar  --dataset_dir /comp_robot/hongrui/metro_pro/dataset/twoRail/sorted
 
-CUDA_VISIBLE_DEVICES=2 python train_main.py  --backbone resnet --batch_size 4 --testValTrain 1  --base_size 480 \
+# CUDA_VISIBLE_DEVICES=6 python train_main.py --batch_size 16 --testValTrain 1  --base_size 480 \
+# --crop_size 480 --dataset CustomPotSeg  --use_txtfile \
+# --dataset_dir /home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/  \
+# --pot_train_mode 1 --backbone drn --ramdom_cut_postives \
+# --resume run/CustomPotSeg/deeplab-drn/experiment_23/model_best.pth.tar
+
+CUDA_VISIBLE_DEVICES=7 python train_main.py --batch_size 24 --test_batch_size 24 --testValTrain 1  --base_size 480 \
 --crop_size 480 --dataset CustomPotSeg  --use_txtfile \
---dataset_dir /home/hongrui/project/metro_pro/dataset/pot/0108_0222_obvious_defect_2/  \
---pot_train_mode 4 --backbone drn --ramdom_cut_postives \
---resume run/CustomPotSeg/deeplab-drn/experiment_20/model_best.pth.tar
+--dataset_dir /home/hongrui/project/metro_pro/dataset/pot/0108_0222_0328/  \
+--pot_train_mode 1 --backbone drn --ramdom_cut_postives \
+--resume run/CustomPotSeg/deeplab-drn/experiment_26/model_best.pth.tar
